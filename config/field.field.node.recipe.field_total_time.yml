@@ -1,0 +1,25 @@
+uuid: 52ab9960-62b8-4fdb-b72e-7e0e0a76ae10
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_total_time
+    - node.type.recipe
+_core:
+  default_config_hash: n6PGUcjphyWPf4WvvppZEoHNV-EfhxQY2i1ku-hrfK8
+id: node.recipe.field_total_time
+field_name: field_total_time
+entity_type: node
+bundle: recipe
+label: 'Total time'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: min
+field_type: integer

@@ -1,0 +1,24 @@
+uuid: 6e4ec0d2-d468-4baf-b9bc-71929766d657
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - recipes_magazin_contenta
+  module:
+    - node
+_core:
+  default_config_hash: MqIW9cwNTcAYap9stA7CwIlXDrfNHwYqj5tOJhodhIs
+id: node.text
+field_name: text
+entity_type: node
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
