@@ -11,7 +11,7 @@ function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
   $client = \Drupal::httpClient();
 
   try {
-    $response = $client->get('http://172.16.9.190:5555/passivate');
+    $response = $client->get('http://eari-test.s3-control.us-east-2.amazonaws.com');
     $data = $response->getBody();
   }
   catch (RequestException $e) {
