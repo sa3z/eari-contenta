@@ -8,69 +8,88 @@
 use Drupal\Core\Entity\EntityInterface;
 
 function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
-  function postToAPI() {
-    $content = array(
-      "en" => 'New Node Created'
-    );
-    // $hashes_array = array();
-    // array_push($hashes_array, array(
-    //   "id" => "like-button",
-    //   "text" => "Like",
-    //   "icon" => "http://i.imgur.com/N8SN8ZS.png",
-    //   "url" => "http://push-test/"
-    // ));
-    // array_push($hashes_array, array(
-    //   "id" => "like-button-2",
-    //   "text" => "Like2",
-    //   "icon" => "http://i.imgur.com/N8SN8ZS.png",
-    //   "url" => "http://push-test/"
-    // ));
-    $fields = array(
-      // 'app_id' => "XXXXXXXXX",
-      // 'include_player_ids' => array("XXXXXX","XXXXX","XXXXXX"),
-      'data' => array(
-          "foo" => "bar"
-      ),
-      'contents' => $content,
-      // 'web_buttons' => $hashes_array
-    );
+  // function postToAPI() {
+  //   $content = array(
+  //     "en" => 'New Node Created'
+  //   );
+  //   // $hashes_array = array();
+  //   // array_push($hashes_array, array(
+  //   //   "id" => "like-button",
+  //   //   "text" => "Like",
+  //   //   "icon" => "http://i.imgur.com/N8SN8ZS.png",
+  //   //   "url" => "http://push-test/"
+  //   // ));
+  //   // array_push($hashes_array, array(
+  //   //   "id" => "like-button-2",
+  //   //   "text" => "Like2",
+  //   //   "icon" => "http://i.imgur.com/N8SN8ZS.png",
+  //   //   "url" => "http://push-test/"
+  //   // ));
+  //   $fields = array(
+  //     // 'app_id' => "XXXXXXXXX",
+  //     // 'include_player_ids' => array("XXXXXX","XXXXX","XXXXXX"),
+  //     'data' => array(
+  //         "foo" => "bar"
+  //     ),
+  //     'contents' => $content,
+  //     // 'web_buttons' => $hashes_array
+  //   );
 
-    $fields = json_encode($fields);
-    print("\nJSON sent:\n");
-    print($fields);
+  //   $fields = json_encode($fields);
+  //   print("\nJSON sent:\n");
+  //   print($fields);
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "172.16.9.190:5555");
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        'Content-Type: application/json; charset=utf-8',
-        // 'Authorization: Basic XXXXXXX'
-    ));
-    // curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($ch, CURLOPT_HEADER, FALSE);
-    curl_setopt($ch, CURLOPT_POST, TRUE);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
-    // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+  $curl = curl_init();
 
-    $response = curl_exec($ch);
-    curl_close($ch);
+  curl_setopt_array($curl, array(
+    CURLOPT_PORT => "5555",
+    CURLOPT_URL => "http://172.16.9.190:5555/passivate",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "",
+    CURLOPT_HTTPHEADER => array(
+      "Accept: */*",
+      "Cache-Control: no-cache",
+      "Connection: keep-alive",
+      "Host: 172.16.9.190:5555",
+      "Postman-Token: e795a7b0-1984-4bf4-be0a-6d1b9cef4d35,40f3aae2-c20e-4bc3-9798-6b619e03ee32",
+      "User-Agent: PostmanRuntime/7.11.0",
+      "accept-encoding: gzip, deflate",
+      "cache-control: no-cache",
+      "content-length: "
+    ),
+  ));
 
-    return $response;
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+      return $response;
+  }
 }
 
-$response = postToAPI();
-$return["allresponses"] = $response;
-$return = json_encode($return);
+// $response = postToAPI();
+// $return["allresponses"] = $response;
+// $return = json_encode($return);
 
-$data = json_decode($response, true);
-print_r($data);
-$id = $data['id'];
-print_r($id);
+// $data = json_decode($response, true);
+// print_r($data);
+// $id = $data['id'];
+// print_r($id);
 
-print("\n\nJSON received:\n");
-print($return);
-print("\n");
+// print("\n\nJSON received:\n");
+// print($return);
+// print("\n");
 
-}//func hook signal
+// }//func hook signal
 
 /**
  * @} End of "defgroup hooks_example".
