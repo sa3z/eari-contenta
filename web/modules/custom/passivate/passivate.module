@@ -79,7 +79,7 @@ curl_setopt($ch, CURLOPT_HEADER, 0);
     // curl_close($ch);
 
     curl_close($ch);
-    fclose($fp);
+    // fclose($fp);
 
     return $response;
 }
