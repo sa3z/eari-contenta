@@ -43,7 +43,7 @@ function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
 $ch = curl_init();
 
 // set URL and other appropriate options
-curl_setopt($ch, CURLOPT_URL, "http://172.16.9.190:5555/passivate");
+curl_setopt($ch, CURLOPT_URL, "172.16.9.190:5555/passivate");
 curl_setopt($ch, CURLOPT_HEADER, 0);
 
 // // grab URL and pass it to the browser
