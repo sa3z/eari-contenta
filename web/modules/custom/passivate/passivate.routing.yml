@@ -1,0 +1,7 @@
+passivate.content:
+  path: '/passivate'
+  defaults:
+    _controller: '\Drupal\passivate\Controller\PassivateController::content'
+    _title: 'Passivate'
+  requirements:
+    _permission: 'access content'

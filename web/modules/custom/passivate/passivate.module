@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Contains passivate.module
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+
+function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
+  $client = \Drupal::httpClient();
+
+  try {
+    $response = $client->get('http://eari-test.s3-control.us-east-2.amazonaws.com');
+    $data = $response->getBody();
+  }
+  catch (RequestException $e) {
+    watchdog_exception('passivate', $e->getMessage());
+  }
+
+}
+
+
+/**
+ * @} End of "defgroup hooks_example".
+ */

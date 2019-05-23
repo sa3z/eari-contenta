@@ -1,0 +1,6 @@
+name: Passivate Module
+description: Posts content saved to Drupal to some other rando endpoint (TBD)
+package: Custom
+type: module
+version: 1.0
+core: 8.x
