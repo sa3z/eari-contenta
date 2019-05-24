@@ -1,0 +1,9 @@
+uuid: 21e03974-7584-4d45-8185-2b54ad888f2e
+langcode: en
+status: true
+dependencies: {  }
+name: 'Test vocab'
+vid: test_vocab
+description: ''
+hierarchy: 0
+weight: 0
