@@ -1,0 +1,11 @@
+uuid: 4911e9c5-7cd5-425e-8397-44779e383d05
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.stub
+id: node.stub
+target_entity_type_id: node
+target_bundle: stub
+default_langcode: site_default
+language_alterable: false

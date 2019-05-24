@@ -1,29 +1,27 @@
-uuid: a43ac089-fa38-432c-8f1b-717b71bf37fb
+uuid: dd618431-4591-442a-af68-d76181ef79f6
 langcode: en
 status: true
 dependencies:
   config:
-    - field.field.node.page.body
-    - node.type.page
+    - field.field.node.stub.body
+    - node.type.stub
   module:
     - text
     - user
-_core:
-  default_config_hash: VqveUl45jEIrcFdwqPGUugSlskosthrCIrrqwb4rEkQ
-id: node.page.default
+id: node.stub.default
 targetEntityType: node
-bundle: page
+bundle: stub
 mode: default
 content:
   body:
     label: hidden
     type: text_default
-    weight: 100
-    region: content
+    weight: 101
     settings: {  }
     third_party_settings: {  }
+    region: content
   links:
-    weight: 101
+    weight: 100
     region: content
   title:
     label: hidden

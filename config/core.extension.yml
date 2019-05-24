@@ -42,8 +42,6 @@ module:
   page_cache: 0
   passivate: 0
   path: 0
-  recipes_magazin: 0
-  recipes_magazin_contenta: 0
   rest: 0
   schemata: 0
   schemata_json_schema: 0
