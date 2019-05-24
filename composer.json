@@ -81,6 +81,9 @@
     "patches":{
       "asm89/stack-cors": {
         "(November 29 2017 06:22:06 PM: See issue #223 on contentacms/contenta_jsonapi) Add origin matcher for wildcard matching": "https://raw.githubusercontent.com/contentacms/contenta_jsonapi_project/8.x-1.x/patches/asm89_stack-cors/pull_request_42.patch"
+      },
+      "drupal/jsonapi_extras": {
+        "Error when uninstalling modules; this patch should fix it": "https://www.drupal.org/files/issues/jsonapi_extras-set-add-form-params-2922244-23.patch"
       }
     },
     "build-env": {
