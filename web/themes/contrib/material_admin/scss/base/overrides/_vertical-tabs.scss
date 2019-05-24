@@ -1,0 +1,87 @@
+/* @file
+ * Vertical tabs override
+ *
+ */
+
+.vertical-tab-wrapper {
+  height: auto;
+  >label {
+    font-size: 20px;
+    text-transform: uppercase;
+    border-bottom: 1px solid color($utility, "lighten-2");
+    width: 100%;
+    display: block;
+  }
+  ul.vertical-tabs__menu {
+    @extend .col, .m3, .s12;
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding-right: 0!important;
+    margin-right: 0;
+    border-right: 3px solid color($utility, "base");
+    ;
+    li.vertical-tabs__menu-item {
+      display: block;
+      &:focus {
+        outline: none;
+      }
+      a {
+        text-transform: uppercase;
+        text-decoration: none;
+        padding: 1em;
+
+        display: block;
+        width: 100%;
+        color: color($utility, "base");
+        strong {
+         letter-spacing: .5px;
+         font-weight:normal;
+        }
+        span {
+          font-size: .75em;
+          display: block;
+          text-transform: initial;
+        }
+        &:hover {
+          color: color($secondary, "lighten-2");
+        }
+      }
+      &.is-selected {
+        border-right: 3px solid color($secondary, "lighten-2");
+        margin-right: -3px;
+        z-index: 2;
+        background: color($utility, "lighten-4");
+        a {
+          color: color($secondary, "lighten-2");
+        }
+      }
+    }
+  }
+  .vertical-tabs__panes {
+    // add margin to go beyond border width 
+    margin-left: -3px!important;
+    padding-left: 1em;
+    border-left: 3px solid color($utility, base);
+    transition: max-height 0.66s ease-out;
+    @extend .col, .m9, .s12;
+    >details {
+      border: none;
+      box-shadow: none;
+      >summary {
+       color: color($secondary, "lighten-2");
+        text-transform: uppercase;
+      }
+    }
+  }
+}
+
+@media #{$small-and-down} {
+  .vertical-tab-wrapper .vertical-tabs__panes {
+    border-left: 0;
+    margin-left:0;
+  }
+  .vertical-tab-wrapper ul.vertical-tabs__menu {
+    border-right: 0;
+  }
+}
