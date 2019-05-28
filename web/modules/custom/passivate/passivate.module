@@ -13,13 +13,13 @@ function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
   try {
     $request = $client->post('https://api.jsonbin.io/b', [
       'json' => [
-        'title' => $node->title,
-        'nid' => $node->nid,
-        'id' => $node->uuid
+        'title' => $node->title->value//,
+        // 'nid' => $node->nid,
+        // 'id' => $node->uuid
       ],
       'headers' => [
-        'secret-key' => '$2a$10$ioC1xzbucqmfX9Y0SO66H.2rqEyeZc2jpFG/r.eInlKWZxQjSTfPi',
-        'collection-id' => '5ceda068bc2a75194e4f7606'
+        'secret-key' => '$2a$10$ioC1xzbucqmfX9Y0SO66H.2rqEyeZc2jpFG/r.eInlKWZxQjSTfPi'//,
+        // 'collection-id' => '5ceda068bc2a75194e4f7606'
       ]
     ]);
     $response = json_decode($request->getBody());
