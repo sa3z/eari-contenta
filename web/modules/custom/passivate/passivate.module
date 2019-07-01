@@ -19,9 +19,9 @@ use Drupal\Core\Menu\MenuTreeParameters;
 
 function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
   //echo $site_name = \Drupal::config('system.site')->get('name');
-  /*$config = \Drupal::service('config.factory')->getEditable('passivate.settings');
+  $config = \Drupal::service('config.factory')->getEditable('passivate.settings');
           $config->set('server_api_url', 'https://gslr2dvfxi.execute-api.us-west-2.amazonaws.com/pantheon/test')
-          ->save();*/
+          ->save();
   $serverApiUrl = \Drupal::config('passivate.settings')->get('server_api_url'); 
   
   // Retrieve JSON API representation of this node.
