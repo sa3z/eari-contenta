@@ -147,6 +147,7 @@ class ComposerStaticInitcadc8bf7abcac017fb4a7c6e74911377
             'Doctrine\\Instantiator\\' => 22,
             'Doctrine\\Common\\Lexer\\' => 22,
             'Doctrine\\Common\\Inflector\\' => 26,
+            'Doctrine\\Common\\Collections\\' => 28,
             'Doctrine\\Common\\Cache\\' => 22,
             'Doctrine\\Common\\Annotations\\' => 28,
             'Doctrine\\Common\\' => 16,
@@ -467,6 +468,10 @@ class ComposerStaticInitcadc8bf7abcac017fb4a7c6e74911377
         array (
             0 => __DIR__ . '/..' . '/doctrine/inflector/lib/Doctrine/Common/Inflector',
         ),
+        'Doctrine\\Common\\Collections\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/collections/lib/Doctrine/Common/Collections',
+        ),
         'Doctrine\\Common\\Cache\\' => 
         array (
             0 => __DIR__ . '/..' . '/doctrine/cache/lib/Doctrine/Common/Cache',
@@ -605,10 +610,6 @@ class ComposerStaticInitcadc8bf7abcac017fb4a7c6e74911377
             'Drupal\\Driver' => 
             array (
                 0 => __DIR__ . '/..' . '/drupal/drupal-driver/src',
-            ),
-            'Doctrine\\Common\\Collections\\' => 
-            array (
-                0 => __DIR__ . '/..' . '/doctrine/collections/lib',
             ),
             'Dflydev\\PlaceholderResolver' => 
             array (
@@ -5375,12 +5376,17 @@ class ComposerStaticInitcadc8bf7abcac017fb4a7c6e74911377
         'Symfony\\Cmf\\Component\\Routing\\Tests\\Routing\\VersatileRouter' => __DIR__ . '/..' . '/symfony-cmf/routing/Tests/Routing/ChainRouterTest.php',
         'Symfony\\Cmf\\Component\\Routing\\Tests\\Routing\\WarmableRouterMock' => __DIR__ . '/..' . '/symfony-cmf/routing/Tests/Routing/ChainRouterTest.php',
         'Symfony\\Cmf\\Component\\Routing\\VersatileGeneratorInterface' => __DIR__ . '/..' . '/symfony-cmf/routing/VersatileGeneratorInterface.php',
+        'Symfony\\Component\\BrowserKit\\AbstractBrowser' => __DIR__ . '/..' . '/symfony/browser-kit/AbstractBrowser.php',
         'Symfony\\Component\\BrowserKit\\Client' => __DIR__ . '/..' . '/symfony/browser-kit/Client.php',
         'Symfony\\Component\\BrowserKit\\Cookie' => __DIR__ . '/..' . '/symfony/browser-kit/Cookie.php',
         'Symfony\\Component\\BrowserKit\\CookieJar' => __DIR__ . '/..' . '/symfony/browser-kit/CookieJar.php',
+        'Symfony\\Component\\BrowserKit\\Exception\\BadMethodCallException' => __DIR__ . '/..' . '/symfony/browser-kit/Exception/BadMethodCallException.php',
         'Symfony\\Component\\BrowserKit\\History' => __DIR__ . '/..' . '/symfony/browser-kit/History.php',
+        'Symfony\\Component\\BrowserKit\\HttpBrowser' => __DIR__ . '/..' . '/symfony/browser-kit/HttpBrowser.php',
         'Symfony\\Component\\BrowserKit\\Request' => __DIR__ . '/..' . '/symfony/browser-kit/Request.php',
         'Symfony\\Component\\BrowserKit\\Response' => __DIR__ . '/..' . '/symfony/browser-kit/Response.php',
+        'Symfony\\Component\\BrowserKit\\Test\\Constraint\\BrowserCookieValueSame' => __DIR__ . '/..' . '/symfony/browser-kit/Test/Constraint/BrowserCookieValueSame.php',
+        'Symfony\\Component\\BrowserKit\\Test\\Constraint\\BrowserHasCookie' => __DIR__ . '/..' . '/symfony/browser-kit/Test/Constraint/BrowserHasCookie.php',
         'Symfony\\Component\\ClassLoader\\ApcClassLoader' => __DIR__ . '/..' . '/symfony/class-loader/ApcClassLoader.php',
         'Symfony\\Component\\ClassLoader\\ClassCollectionLoader' => __DIR__ . '/..' . '/symfony/class-loader/ClassCollectionLoader.php',
         'Symfony\\Component\\ClassLoader\\ClassLoader' => __DIR__ . '/..' . '/symfony/class-loader/ClassLoader.php',

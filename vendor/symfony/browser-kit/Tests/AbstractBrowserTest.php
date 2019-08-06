@@ -12,16 +12,18 @@
 namespace Symfony\Component\BrowserKit\Tests;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\BrowserKit\AbstractBrowser;
 use Symfony\Component\BrowserKit\Client;
 use Symfony\Component\BrowserKit\CookieJar;
 use Symfony\Component\BrowserKit\History;
 use Symfony\Component\BrowserKit\Response;
+use Symfony\Component\DomCrawler\Form as DomCrawlerForm;
 
 class SpecialResponse extends Response
 {
 }
 
-class TestClient extends Client
+class TestClient extends AbstractBrowser
 {
     protected $nextResponse = null;
     protected $nextScript = null;
@@ -51,7 +53,7 @@ class TestClient extends Client
     protected function filterResponse($response)
     {
         if ($response instanceof SpecialResponse) {
-            return new Response($response->getContent(), $response->getStatus(), $response->getHeaders());
+            return new Response($response->getContent(), $response->getStatusCode(), $response->getHeaders());
         }
 
         return $response;
@@ -72,31 +74,64 @@ EOF;
     }
 }
 
-class ClientTest extends TestCase
+class AbstractBrowserTest extends TestCase
 {
+    public function getBrowser(array $server = [], History $history = null, CookieJar $cookieJar = null)
+    {
+        return new TestClient($server, $history, $cookieJar);
+    }
+
+    /**
+     * @group legacy
+     */
+    public function testAbstractBrowserIsAClient()
+    {
+        $browser = $this->getBrowser();
+
+        $this->assertInstanceOf(Client::class, $browser);
+    }
+
     public function testGetHistory()
     {
-        $client = new TestClient([], $history = new History());
+        $client = $this->getBrowser([], $history = new History());
         $this->assertSame($history, $client->getHistory(), '->getHistory() returns the History');
     }
 
     public function testGetCookieJar()
     {
-        $client = new TestClient([], null, $cookieJar = new CookieJar());
+        $client = $this->getBrowser([], null, $cookieJar = new CookieJar());
         $this->assertSame($cookieJar, $client->getCookieJar(), '->getCookieJar() returns the CookieJar');
     }
 
     public function testGetRequest()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://example.com/');
 
         $this->assertEquals('http://example.com/', $client->getRequest()->getUri(), '->getCrawler() returns the Request of the last request');
     }
 
+    /**
+     * @group legacy
+     * @expectedDeprecation Calling the "Symfony\Component\BrowserKit\Tests\%s::getRequest()" method before the "request()" one is deprecated since Symfony 4.1 and will throw an exception in 5.0.
+     */
+    public function testGetRequestNull()
+    {
+        $client = $this->getBrowser();
+        $this->assertNull($client->getRequest());
+    }
+
+    public function testXmlHttpRequest()
+    {
+        $client = $this->getBrowser();
+        $client->xmlHttpRequest('GET', 'http://example.com/', [], [], [], null, true);
+        $this->assertEquals($client->getRequest()->getServer()['HTTP_X_REQUESTED_WITH'], 'XMLHttpRequest');
+        $this->assertFalse($client->getServerParameter('HTTP_X_REQUESTED_WITH', false));
+    }
+
     public function testGetRequestWithIpAsHttpHost()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'https://example.com/foo', [], [], ['HTTP_HOST' => '127.0.0.1']);
 
         $this->assertEquals('https://example.com/foo', $client->getRequest()->getUri());
@@ -106,7 +141,7 @@ class ClientTest extends TestCase
 
     public function testGetResponse()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('foo'));
         $client->request('GET', 'http://example.com/');
 
@@ -114,9 +149,19 @@ class ClientTest extends TestCase
         $this->assertInstanceOf('Symfony\Component\BrowserKit\Response', $client->getResponse(), '->getCrawler() returns the Response of the last request');
     }
 
+    /**
+     * @group legacy
+     * @expectedDeprecation Calling the "Symfony\Component\BrowserKit\Tests\%s::getResponse()" method before the "request()" one is deprecated since Symfony 4.1 and will throw an exception in 5.0.
+     */
+    public function testGetResponseNull()
+    {
+        $client = $this->getBrowser();
+        $this->assertNull($client->getResponse());
+    }
+
     public function testGetInternalResponse()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new SpecialResponse('foo'));
         $client->request('GET', 'http://example.com/');
 
@@ -125,32 +170,52 @@ class ClientTest extends TestCase
         $this->assertInstanceOf('Symfony\Component\BrowserKit\Tests\SpecialResponse', $client->getResponse());
     }
 
+    /**
+     * @group legacy
+     * @expectedDeprecation Calling the "Symfony\Component\BrowserKit\Tests\%s::getInternalResponse()" method before the "request()" one is deprecated since Symfony 4.1 and will throw an exception in 5.0.
+     */
+    public function testGetInternalResponseNull()
+    {
+        $client = $this->getBrowser();
+        $this->assertNull($client->getInternalResponse());
+    }
+
     public function testGetContent()
     {
         $json = '{"jsonrpc":"2.0","method":"echo","id":7,"params":["Hello World"]}';
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('POST', 'http://example.com/jsonrpc', [], [], [], $json);
         $this->assertEquals($json, $client->getRequest()->getContent());
     }
 
     public function testGetCrawler()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('foo'));
         $crawler = $client->request('GET', 'http://example.com/');
 
         $this->assertSame($crawler, $client->getCrawler(), '->getCrawler() returns the Crawler of the last request');
     }
 
+    /**
+     * @group legacy
+     * @expectedDeprecation Calling the "Symfony\Component\BrowserKit\Tests\%s::getCrawler()" method before the "request()" one is deprecated since Symfony 4.1 and will throw an exception in 5.0.
+     */
+    public function testGetCrawlerNull()
+    {
+        $client = $this->getBrowser();
+        $this->assertNull($client->getCrawler());
+    }
+
     public function testRequestHttpHeaders()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', '/');
         $headers = $client->getRequest()->getServer();
         $this->assertEquals('localhost', $headers['HTTP_HOST'], '->request() sets the HTTP_HOST header');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com');
         $headers = $client->getRequest()->getServer();
         $this->assertEquals('www.example.com', $headers['HTTP_HOST'], '->request() sets the HTTP_HOST header');
@@ -159,7 +224,7 @@ class ClientTest extends TestCase
         $headers = $client->getRequest()->getServer();
         $this->assertTrue($headers['HTTPS'], '->request() sets the HTTPS header');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com:8080');
         $headers = $client->getRequest()->getServer();
         $this->assertEquals('www.example.com:8080', $headers['HTTP_HOST'], '->request() sets the HTTP_HOST header with port');
@@ -167,20 +232,20 @@ class ClientTest extends TestCase
 
     public function testRequestURIConversion()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', '/foo');
         $this->assertEquals('http://localhost/foo', $client->getRequest()->getUri(), '->request() converts the URI to an absolute one');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com');
         $this->assertEquals('http://www.example.com', $client->getRequest()->getUri(), '->request() does not change absolute URIs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/');
         $client->request('GET', '/foo');
         $this->assertEquals('http://www.example.com/foo', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo');
         $client->request('GET', '#');
         $this->assertEquals('http://www.example.com/foo#', $client->getRequest()->getUri(), '->request() uses the previous request for #');
@@ -189,32 +254,32 @@ class ClientTest extends TestCase
         $client->request('GET', '#foo');
         $this->assertEquals('http://www.example.com/foo#foo', $client->getRequest()->getUri(), '->request() uses the previous request for #');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/');
         $client->request('GET', 'bar');
         $this->assertEquals('http://www.example.com/foo/bar', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $client->request('GET', 'bar');
         $this->assertEquals('http://www.example.com/foo/bar', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/');
         $client->request('GET', 'http');
         $this->assertEquals('http://www.example.com/foo/http', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo');
         $client->request('GET', 'http/bar');
         $this->assertEquals('http://www.example.com/http/bar', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/');
         $client->request('GET', 'http');
         $this->assertEquals('http://www.example.com/http', $client->getRequest()->getUri(), '->request() uses the previous request for relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo');
         $client->request('GET', '?');
         $this->assertEquals('http://www.example.com/foo?', $client->getRequest()->getUri(), '->request() uses the previous request for ?');
@@ -226,7 +291,7 @@ class ClientTest extends TestCase
 
     public function testRequestReferer()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $client->request('GET', 'bar');
         $server = $client->getRequest()->getServer();
@@ -235,7 +300,7 @@ class ClientTest extends TestCase
 
     public function testRequestHistory()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $client->request('GET', 'bar');
 
@@ -245,7 +310,7 @@ class ClientTest extends TestCase
 
     public function testRequestCookies()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('<html><a href="/foo">foo</a></html>', 200, ['Set-Cookie' => 'foo=bar']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $this->assertEquals(['foo' => 'bar'], $client->getCookieJar()->allValues('http://www.example.com/foo/foobar'), '->request() updates the CookieJar');
@@ -256,7 +321,7 @@ class ClientTest extends TestCase
 
     public function testRequestSecureCookies()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('<html><a href="/foo">foo</a></html>', 200, ['Set-Cookie' => 'foo=bar; path=/; secure']));
         $client->request('GET', 'https://www.example.com/foo/foobar');
 
@@ -265,7 +330,7 @@ class ClientTest extends TestCase
 
     public function testClick()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('<html><a href="/foo">foo</a></html>'));
         $crawler = $client->request('GET', 'http://www.example.com/foo/foobar');
 
@@ -274,9 +339,33 @@ class ClientTest extends TestCase
         $this->assertEquals('http://www.example.com/foo', $client->getRequest()->getUri(), '->click() clicks on links');
     }
 
+    public function testClickLink()
+    {
+        $client = $this->getBrowser();
+        $client->setNextResponse(new Response('<html><a href="/foo">foo</a></html>'));
+        $client->request('GET', 'http://www.example.com/foo/foobar');
+        $client->clickLink('foo');
+
+        $this->assertEquals('http://www.example.com/foo', $client->getRequest()->getUri(), '->click() clicks on links');
+    }
+
+    public function testClickLinkNotFound()
+    {
+        $client = $this->getBrowser();
+        $client->setNextResponse(new Response('<html><a href="/foo">foobar</a></html>'));
+        $client->request('GET', 'http://www.example.com/foo/foobar');
+
+        try {
+            $client->clickLink('foo');
+            $this->fail('->clickLink() throws a \InvalidArgumentException if the link could not be found');
+        } catch (\Exception $e) {
+            $this->assertInstanceOf('InvalidArgumentException', $e, '->clickLink() throws a \InvalidArgumentException if the link could not be found');
+        }
+    }
+
     public function testClickForm()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
         $crawler = $client->request('GET', 'http://www.example.com/foo/foobar');
 
@@ -287,18 +376,55 @@ class ClientTest extends TestCase
 
     public function testSubmit()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
         $crawler = $client->request('GET', 'http://www.example.com/foo/foobar');
 
         $client->submit($crawler->filter('input')->form());
 
         $this->assertEquals('http://www.example.com/foo', $client->getRequest()->getUri(), '->submit() submit forms');
+    }
+
+    public function testSubmitForm()
+    {
+        $client = $this->getBrowser();
+        $client->setNextResponse(new Response('<html><form name="signup" action="/foo"><input type="text" name="username" value="the username" /><input type="password" name="password" value="the password" /><input type="submit" value="Register" /></form></html>'));
+        $client->request('GET', 'http://www.example.com/foo/foobar');
+
+        $client->submitForm('Register', [
+            'username' => 'new username',
+            'password' => 'new password',
+        ], 'PUT', [
+            'HTTP_USER_AGENT' => 'Symfony User Agent',
+        ]);
+
+        $this->assertEquals('http://www.example.com/foo', $client->getRequest()->getUri(), '->submitForm() submit forms');
+        $this->assertEquals('PUT', $client->getRequest()->getMethod(), '->submitForm() allows to change the method');
+        $this->assertEquals('new username', $client->getRequest()->getParameters()['username'], '->submitForm() allows to override the form values');
+        $this->assertEquals('new password', $client->getRequest()->getParameters()['password'], '->submitForm() allows to override the form values');
+        $this->assertEquals('Symfony User Agent', $client->getRequest()->getServer()['HTTP_USER_AGENT'], '->submitForm() allows to change the $_SERVER parameters');
+    }
+
+    public function testSubmitFormNotFound()
+    {
+        $client = $this->getBrowser();
+        $client->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
+        $client->request('GET', 'http://www.example.com/foo/foobar');
+
+        try {
+            $client->submitForm('Register', [
+                'username' => 'username',
+                'password' => 'password',
+            ], 'POST');
+            $this->fail('->submitForm() throws a \InvalidArgumentException if the form could not be found');
+        } catch (\Exception $e) {
+            $this->assertInstanceOf('InvalidArgumentException', $e, '->submitForm() throws a \InvalidArgumentException if the form could not be found');
+        }
     }
 
     public function testSubmitPreserveAuth()
     {
-        $client = new TestClient(['PHP_AUTH_USER' => 'foo', 'PHP_AUTH_PW' => 'bar']);
+        $client = $this->getBrowser(['PHP_AUTH_USER' => 'foo', 'PHP_AUTH_PW' => 'bar']);
         $client->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
         $crawler = $client->request('GET', 'http://www.example.com/foo/foobar');
 
@@ -319,9 +445,23 @@ class ClientTest extends TestCase
         $this->assertEquals('bar', $server['PHP_AUTH_PW']);
     }
 
+    public function testSubmitPassthrewHeaders()
+    {
+        $client = $this->getBrowser();
+        $client->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
+        $crawler = $client->request('GET', 'http://www.example.com/foo/foobar');
+        $headers = ['Accept-Language' => 'de'];
+
+        $client->submit($crawler->filter('input')->form(), [], $headers);
+
+        $server = $client->getRequest()->getServer();
+        $this->assertArrayHasKey('Accept-Language', $server);
+        $this->assertEquals('de', $server['Accept-Language']);
+    }
+
     public function testFollowRedirect()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->followRedirects(false);
         $client->request('GET', 'http://www.example.com/foo/foobar');
 
@@ -338,19 +478,19 @@ class ClientTest extends TestCase
 
         $this->assertEquals('http://www.example.com/redirected', $client->getRequest()->getUri(), '->followRedirect() follows a redirect if any');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, ['Location' => 'http://www.example.com/redirected']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
 
         $this->assertEquals('http://www.example.com/redirected', $client->getRequest()->getUri(), '->followRedirect() automatically follows redirects if followRedirects is true');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 201, ['Location' => 'http://www.example.com/redirected']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
 
         $this->assertEquals('http://www.example.com/foo/foobar', $client->getRequest()->getUri(), '->followRedirect() does not follow redirect if HTTP Code is not 30x');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 201, ['Location' => 'http://www.example.com/redirected']));
         $client->followRedirects(false);
         $client->request('GET', 'http://www.example.com/foo/foobar');
@@ -365,12 +505,12 @@ class ClientTest extends TestCase
 
     public function testFollowRelativeRedirect()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, ['Location' => '/redirected']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $this->assertEquals('http://www.example.com/redirected', $client->getRequest()->getUri(), '->followRedirect() follows a redirect if any');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, ['Location' => '/redirected:1234']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $this->assertEquals('http://www.example.com/redirected:1234', $client->getRequest()->getUri(), '->followRedirect() follows relative urls');
@@ -378,7 +518,7 @@ class ClientTest extends TestCase
 
     public function testFollowRedirectWithMaxRedirects()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setMaxRedirects(1);
         $client->setNextResponse(new Response('', 302, ['Location' => 'http://www.example.com/redirected']));
         $client->request('GET', 'http://www.example.com/foo/foobar');
@@ -401,13 +541,13 @@ class ClientTest extends TestCase
 
         $this->assertEquals('http://www.example.com/redirected', $client->getRequest()->getUri(), '->followRedirect() follows relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, ['Location' => '//www.example.org/']));
         $client->request('GET', 'https://www.example.com/');
 
         $this->assertEquals('https://www.example.org/', $client->getRequest()->getUri(), '->followRedirect() follows protocol-relative URLs');
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, ['Location' => 'http://www.example.com/redirected']));
         $client->request('POST', 'http://www.example.com/foo/foobar', ['name' => 'bar']);
 
@@ -417,7 +557,7 @@ class ClientTest extends TestCase
 
     public function testFollowRedirectWithCookies()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->followRedirects(false);
         $client->setNextResponse(new Response('', 302, [
             'Location' => 'http://www.example.com/redirected',
@@ -438,7 +578,7 @@ class ClientTest extends TestCase
             'HTTPS' => false,
         ];
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->followRedirects(false);
         $client->setNextResponse(new Response('', 302, [
             'Location' => 'http://www.example.com/redirected',
@@ -465,7 +605,7 @@ class ClientTest extends TestCase
             'HTTP_REFERER' => 'http://www.example.com:8080/',
         ];
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->setNextResponse(new Response('', 302, [
             'Location' => 'http://www.example.com:8080/redirected',
         ]));
@@ -476,7 +616,7 @@ class ClientTest extends TestCase
 
     public function testIsFollowingRedirects()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $this->assertTrue($client->isFollowingRedirects(), '->getFollowRedirects() returns default value');
         $client->followRedirects(false);
         $this->assertFalse($client->isFollowingRedirects(), '->getFollowRedirects() returns assigned value');
@@ -484,7 +624,7 @@ class ClientTest extends TestCase
 
     public function testGetMaxRedirects()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $this->assertEquals(-1, $client->getMaxRedirects(), '->getMaxRedirects() returns default value');
         $client->setMaxRedirects(3);
         $this->assertEquals(3, $client->getMaxRedirects(), '->getMaxRedirects() returns assigned value');
@@ -497,7 +637,7 @@ class ClientTest extends TestCase
         $server = ['X_TEST_FOO' => 'bazbar'];
         $content = 'foobarbaz';
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $client->setNextResponse(new Response('', 307, ['Location' => 'http://www.example.com/redirected']));
         $client->request('POST', 'http://www.example.com/foo/foobar', $parameters, $files, $server, $content);
@@ -517,7 +657,7 @@ class ClientTest extends TestCase
         $server = ['X_TEST_FOO' => 'bazbar'];
         $content = 'foobarbaz';
 
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         foreach ([301, 302, 303] as $code) {
             $client->setNextResponse(new Response('', $code, ['Location' => 'http://www.example.com/redirected']));
@@ -532,9 +672,42 @@ class ClientTest extends TestCase
         }
     }
 
+    /**
+     * @dataProvider getTestsForMetaRefresh
+     */
+    public function testFollowMetaRefresh(string $content, string $expectedEndingUrl, bool $followMetaRefresh = true)
+    {
+        $client = $this->getBrowser();
+        $client->followMetaRefresh($followMetaRefresh);
+        $client->setNextResponse(new Response($content));
+        $client->request('GET', 'http://www.example.com/foo/foobar');
+        $this->assertEquals($expectedEndingUrl, $client->getRequest()->getUri());
+    }
+
+    public function getTestsForMetaRefresh()
+    {
+        return [
+            ['<html><head><meta http-equiv="Refresh" content="4" /><meta http-equiv="refresh" content="0; URL=http://www.example.com/redirected"/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content="0;URL=http://www.example.com/redirected"/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content="0;URL=\'http://www.example.com/redirected\'"/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content=\'0;URL="http://www.example.com/redirected"\'/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content="0; URL = http://www.example.com/redirected"/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content="0;URL= http://www.example.com/redirected  "/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><meta http-equiv="refresh" content="0;url=http://www.example.com/redirected  "/></head></html>', 'http://www.example.com/redirected'],
+            ['<html><head><noscript><meta http-equiv="refresh" content="0;URL=http://www.example.com/redirected"/></noscript></head></head></html>', 'http://www.example.com/redirected'],
+            // Non-zero timeout should not result in a redirect.
+            ['<html><head><meta http-equiv="refresh" content="4; URL=http://www.example.com/redirected"/></head></html>', 'http://www.example.com/foo/foobar'],
+            ['<html><body></body></html>', 'http://www.example.com/foo/foobar'],
+            // Invalid meta tag placement should not result in a redirect.
+            ['<html><body><meta http-equiv="refresh" content="0;url=http://www.example.com/redirected"/></body></html>', 'http://www.example.com/foo/foobar'],
+            // Valid meta refresh should not be followed if disabled.
+            ['<html><head><meta http-equiv="refresh" content="0;URL=http://www.example.com/redirected"/></head></html>', 'http://www.example.com/foo/foobar', false],
+        ];
+    }
+
     public function testBack()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $parameters = ['foo' => 'bar'];
         $files = ['myfile.foo' => 'baz'];
@@ -554,7 +727,7 @@ class ClientTest extends TestCase
 
     public function testForward()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $parameters = ['foo' => 'bar'];
         $files = ['myfile.foo' => 'baz'];
@@ -575,7 +748,7 @@ class ClientTest extends TestCase
 
     public function testBackAndFrowardWithRedirects()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $client->request('GET', 'http://www.example.com/foo');
         $client->setNextResponse(new Response('', 301, ['Location' => 'http://www.example.com/redirected']));
@@ -594,7 +767,7 @@ class ClientTest extends TestCase
 
     public function testReload()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $parameters = ['foo' => 'bar'];
         $files = ['myfile.foo' => 'baz'];
@@ -613,7 +786,7 @@ class ClientTest extends TestCase
 
     public function testRestart()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->request('GET', 'http://www.example.com/foo/foobar');
         $client->restart();
 
@@ -626,7 +799,7 @@ class ClientTest extends TestCase
      */
     public function testInsulatedRequests()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $client->insulate();
         $client->setNextScript("new Symfony\Component\BrowserKit\Response('foobar')");
         $client->request('GET', 'http://www.example.com/foo/foobar');
@@ -645,7 +818,7 @@ class ClientTest extends TestCase
 
     public function testGetServerParameter()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $this->assertEquals('', $client->getServerParameter('HTTP_HOST'));
         $this->assertEquals('Symfony BrowserKit', $client->getServerParameter('HTTP_USER_AGENT'));
         $this->assertEquals('testvalue', $client->getServerParameter('testkey', 'testvalue'));
@@ -653,7 +826,7 @@ class ClientTest extends TestCase
 
     public function testSetServerParameter()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $this->assertEquals('', $client->getServerParameter('HTTP_HOST'));
         $this->assertEquals('Symfony BrowserKit', $client->getServerParameter('HTTP_USER_AGENT'));
@@ -667,7 +840,7 @@ class ClientTest extends TestCase
 
     public function testSetServerParameterInRequest()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $this->assertEquals('', $client->getServerParameter('HTTP_HOST'));
         $this->assertEquals('Symfony BrowserKit', $client->getServerParameter('HTTP_USER_AGENT'));
@@ -701,7 +874,7 @@ class ClientTest extends TestCase
 
     public function testRequestWithRelativeUri()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $client->request('GET', '/', [], [], [
             'HTTP_HOST' => 'testhost',
@@ -718,7 +891,7 @@ class ClientTest extends TestCase
 
     public function testInternalRequest()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
 
         $client->request('GET', 'https://www.example.com/https/www.example.com', [], [], [
             'HTTP_HOST' => 'testhost',
@@ -730,9 +903,51 @@ class ClientTest extends TestCase
         $this->assertInstanceOf('Symfony\Component\BrowserKit\Request', $client->getInternalRequest());
     }
 
+    /**
+     * @group legacy
+     * @expectedDeprecation Calling the "Symfony\Component\BrowserKit\Tests\%s::getInternalRequest()" method before the "request()" one is deprecated since Symfony 4.1 and will throw an exception in 5.0.
+     */
     public function testInternalRequestNull()
     {
-        $client = new TestClient();
+        $client = $this->getBrowser();
         $this->assertNull($client->getInternalRequest());
+    }
+
+    /**
+     * @group legacy
+     * @expectedDeprecation The "Symfony\Component\BrowserKit\Tests\ClassThatInheritClient::submit()" method will have a new "array $serverParameters = []" argument in version 5.0, not defining it is deprecated since Symfony 4.2.
+     */
+    public function testInheritedClassCallSubmitWithTwoArguments()
+    {
+        $clientChild = new ClassThatInheritClient();
+        $clientChild->setNextResponse(new Response('<html><form action="/foo"><input type="submit" /></form></html>'));
+        $clientChild->submit($clientChild->request('GET', 'http://www.example.com/foo/foobar')->filter('input')->form());
+    }
+}
+
+class ClassThatInheritClient extends AbstractBrowser
+{
+    protected $nextResponse = null;
+
+    public function setNextResponse(Response $response)
+    {
+        $this->nextResponse = $response;
+    }
+
+    protected function doRequest($request)
+    {
+        if (null === $this->nextResponse) {
+            return new Response();
+        }
+
+        $response = $this->nextResponse;
+        $this->nextResponse = null;
+
+        return $response;
+    }
+
+    public function submit(DomCrawlerForm $form, array $values = [])
+    {
+        return parent::submit($form, $values);
     }
 }
