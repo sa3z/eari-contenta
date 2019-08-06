@@ -21,6 +21,7 @@
     "drupal/simple_block": "^1.0@beta",
     "drush/drush": "~8",
     "rvtraveller/qs-composer-installer": "^1.1",
+    "twig/twig": "1.37.1",
     "webflo/drupal-core-strict": "^8"
   },
   "require-dev": {
