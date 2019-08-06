@@ -2,22 +2,23 @@
 
 namespace Drupal\jsonapi\Normalizer;
 
-use Drupal\Core\Access\AccessibleInterface;
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\EntityReferenceFieldItemList;
+use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
 use Drupal\jsonapi\Normalizer\Value\EntityNormalizerValue;
 use Drupal\jsonapi\Normalizer\Value\FieldNormalizerValueInterface;
+use Drupal\jsonapi\Normalizer\Value\IncludeOnlyRelationshipNormalizerValue;
+use Drupal\jsonapi\Normalizer\Value\NullFieldNormalizerValue;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\LinkManager\LinkManager;
-use Drupal\jsonapi\Normalizer\Value\NullFieldNormalizerValue;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
 use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 /**
  * Converts the Drupal entity object to a JSON API array structure.
+ *
+ * @internal
  */
 class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
 
@@ -93,38 +94,31 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
     }
     /* @var Value\FieldNormalizerValueInterface[] $normalizer_values */
     $normalizer_values = [];
+    $relationship_field_names = array_keys($resource_type->getRelatableResourceTypes());
     foreach ($this->getFields($entity, $bundle, $resource_type) as $field_name => $field) {
-      if (!in_array($field_name, $field_names)) {
+      $normalized_field = $this->serializeField($field, $context, $format);
+      assert($normalized_field instanceof FieldNormalizerValueInterface);
+
+      $in_sparse_fieldset = in_array($field_name, $field_names);
+      $is_relationship_field = in_array($field_name, $relationship_field_names);
+      // Omit fields not listed in sparse fieldsets, except if they're fields
+      // modeling relationships; despite a relationship field being omitted,
+      // using `?include` to include related resources is still allowed.
+      if (!$in_sparse_fieldset) {
+        if ($is_relationship_field) {
+          $is_null_field = $field instanceof NullFieldNormalizerValue;
+          $has_includes = !empty($normalized_field->getIncludes());
+          if (!$is_null_field && $has_includes) {
+            $normalizer_values[$field_name] = new IncludeOnlyRelationshipNormalizerValue($normalized_field);
+          }
+        }
         continue;
       }
-      $normalizer_values[$field_name] = $this->serializeField($field, $context, $format);
+      $normalizer_values[$field_name] = $normalized_field;
     }
 
     $link_context = ['link_manager' => $this->linkManager];
-    $output = new EntityNormalizerValue($normalizer_values, $context, $entity, $link_context);
-    // Add the entity level cacheability metadata.
-    $output->addCacheableDependency($entity);
-    $output->addCacheableDependency($output);
-    // Add the field level cacheability metadata.
-    array_walk($normalizer_values, function ($normalizer_value) {
-      if ($normalizer_value instanceof RefinableCacheableDependencyInterface) {
-        $normalizer_value->addCacheableDependency($normalizer_value);
-      }
-    });
-    return $output;
-  }
-
-  /**
-   * Checks if the passed field is a relationship field.
-   *
-   * @param mixed $field
-   *   The field.
-   *
-   * @return bool
-   *   TRUE if it's a JSON API relationship.
-   */
-  protected function isRelationship($field) {
-    return $field instanceof EntityReferenceFieldItemList || $field instanceof Relationship;
+    return new EntityNormalizerValue($normalizer_values, $context, $entity, $link_context);
   }
 
   /**
@@ -181,7 +175,13 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
    */
   protected function getFields($entity, $bundle, ResourceType $resource_type) {
     $output = [];
-    $fields = $entity->getFields();
+    // @todo Remove this when JSON API requires Drupal 8.5 or newer.
+    if (floatval(\Drupal::VERSION) >= 8.5) {
+      $fields = TypedDataInternalPropertiesHelper::getNonInternalProperties($entity->getTypedData());
+    }
+    else {
+      $fields = $entity->getFields();
+    }
     // Filter the array based on the field names.
     $enabled_field_names = array_filter(
       array_keys($fields),
@@ -211,28 +211,7 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
    *   The normalized value.
    */
   protected function serializeField($field, array $context, $format) {
-    /* @var \Drupal\Core\Field\FieldItemListInterface|\Drupal\jsonapi\Normalizer\Relationship $field */
-    // Continue if the current user does not have access to view this field.
-    $access = $field->access('view', $context['account'], TRUE);
-    if ($field instanceof AccessibleInterface && !$access->isAllowed()) {
-      return (new NullFieldNormalizerValue())->addCacheableDependency($access);
-    }
-    /** @var \Drupal\jsonapi\Normalizer\Value\FieldNormalizerValue $output */
-    $output = $this->serializer->normalize($field, $format, $context);
-    if (!$output instanceof FieldNormalizerValueInterface) {
-      return new NullFieldNormalizerValue();
-    }
-    $is_relationship = $this->isRelationship($field);
-    $property_type = $is_relationship ? 'relationships' : 'attributes';
-    $output->setPropertyType($property_type);
-
-    if ($output instanceof RefinableCacheableDependencyInterface) {
-      // Add the cache dependency to the field level object because we want to
-      // allow the field normalizers to add extra cacheability metadata.
-      $output->addCacheableDependency($access);
-    }
-
-    return $output;
+    return $this->serializer->normalize($field, $format, $context);
   }
 
   /**

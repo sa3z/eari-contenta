@@ -8,9 +8,6 @@ use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\graphql\Utility\StringHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-/**
- * Create GraphQL context fields based on available Drupal contexts.
- */
 class ContextDeriver extends DeriverBase implements ContainerDeriverInterface {
 
   /**
@@ -28,7 +25,10 @@ class ContextDeriver extends DeriverBase implements ContainerDeriverInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * ContextDeriver constructor.
+   *
+   * @param \Drupal\Core\Plugin\Context\ContextRepositoryInterface $contextRepository
+   *   The context repository service.
    */
   public function __construct(ContextRepositoryInterface $contextRepository) {
     $this->contextRepository = $contextRepository;
@@ -40,14 +40,10 @@ class ContextDeriver extends DeriverBase implements ContainerDeriverInterface {
   public function getDerivativeDefinitions($basePluginDefinition) {
     if (empty($this->derivatives)) {
       foreach ($this->contextRepository->getAvailableContexts() as $id => $context) {
-        $dataType = $context->getContextDefinition()->getDataType();
-
         $this->derivatives[$id] = [
           'name' => StringHelper::propCase($id, 'context'),
           'context_id' => $id,
-          'nullable' => TRUE,
-          'multi' => FALSE,
-          'data_type' => $dataType,
+          'type' => $context->getContextDefinition()->getDataType(),
         ] + $basePluginDefinition;
       }
     }

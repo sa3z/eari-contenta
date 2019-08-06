@@ -2,23 +2,18 @@
 
 namespace Drupal\Tests\graphql_core\Kernel\Entity;
 
-use Drupal\Component\Utility\NestedArray;
-use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
-use Drupal\simpletest\ContentTypeCreationTrait;
-use Drupal\simpletest\NodeCreationTrait;
-use Drupal\Tests\graphql\Kernel\GraphQLFileTestBase;
-use Drupal\user\Entity\Role;
+use Drupal\graphql\Utility\StringHelper;
+use Drupal\node\Entity\Node;
+use Drupal\Tests\graphql_core\Kernel\GraphQLContentTestBase;
+use GraphQL\Server\OperationParams;
 
 /**
  * Test basic entity fields.
  *
  * @group graphql_core
  */
-class EntityFieldValueTest extends GraphQLFileTestBase {
-  use ContentTypeCreationTrait;
-  use NodeCreationTrait;
+class EntityFieldValueTest extends GraphQLContentTestBase {
 
   /**
    * @var File
@@ -34,12 +29,6 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
    * {@inheritdoc}
    */
   public static $modules = [
-    'graphql_core',
-    'node',
-    'field',
-    'filter',
-    'text',
-    'graphql_core',
     'link',
     'datetime',
     'image',
@@ -51,18 +40,163 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
    */
   protected function setUp() {
     parent::setUp();
+  }
 
-    $this->installConfig(['node']);
-    $this->installConfig(['filter']);
-    $this->installConfig(['text']);
-    $this->installEntitySchema('node');
-    $this->installEntitySchema('file');
-    $this->installSchema('file', ['file_usage']);
+  /**
+   * Test boolean fields.
+   */
+  public function testBoolean() {
+    $this->addField('boolean', "field_boolean", FALSE);
 
-    $this->createContentType([
-      'type' => 'test',
+    $this->mockNode([
+      'field_boolean' => TRUE,
     ]);
 
+    $this->assertGraphQLFields([
+      ['NodeTest', 'fieldBoolean', 'Boolean'],
+    ]);
+
+    $query = <<<GQL
+query {
+  node {
+    fieldBoolean
+  }
+}
+GQL;
+
+    $metadata = $this->defaultCacheMetaData();
+
+    $this->assertResults($query, [], [
+      'node' => [
+        'fieldBoolean' => TRUE,
+      ],
+    ], $metadata);
+  }
+
+  /**
+   * Test a simple text field.
+   */
+  public function testText() {
+    $this->addField('text', "field_text", FALSE);
+    $this->mockNode([
+      'field_text' => [
+        'value' => 'Foo',
+      ],
+    ]);
+
+    $this->assertGraphQLFields([
+      ['NodeTest', 'fieldText', 'FieldNodeTestFieldText'],
+      ['FieldNodeTestFieldText', 'value', 'String'],
+      ['FieldNodeTestFieldText', 'processed', 'String'],
+      ['FieldNodeTestFieldText', 'format', 'String'],
+    ]);
+
+    $query = <<<GQL
+query {
+  node {
+    fieldText {
+      value
+      processed
+      format
+    }
+  }
+}
+GQL;
+
+    $metadata = $this->defaultCacheMetaData();
+
+    $this->assertResults($query, [], [
+      'node' => [
+        'fieldText' => [
+          'value' => 'Foo',
+          'processed' => "<p>Foo</p>\n",
+          'format' => null,
+        ],
+      ],
+    ], $metadata);
+
+  }
+
+  /**
+   * Test filtered text fields.
+   */
+  public function testFilteredText() {
+    $this->mockNode([
+      'body' => [
+        'value' => 'http://www.drupal.org',
+        'format' => 'plain_text',
+      ],
+    ]);
+
+    $this->assertGraphQLFields([
+      ['NodeTest', 'body', 'FieldNodeTestBody'],
+      ['FieldNodeTestBody', 'format', 'String'],
+      ['FieldNodeTestBody', 'value', 'String'],
+      ['FieldNodeTestBody', 'processed', 'String'],
+      ['FieldNodeTestBody', 'summary', 'String'],
+      ['FieldNodeTestBody', 'summaryProcessed', 'String'],
+    ]);
+
+    $query = <<<GQL
+query {
+  node {
+    body {
+      value
+      processed
+      summary
+      summaryProcessed
+    }
+  }
+}
+GQL;
+
+    $metadata = $this->defaultCacheMetaData();
+
+    $this->assertResults($query, [], [
+      'node' => [
+        'body' => [
+          'value' => 'http://www.drupal.org',
+          'processed' => "<p><a href=\"http://www.drupal.org\">http://www.drupal.org</a></p>\n",
+          'summary' => null,
+          'summaryProcessed' => '',
+        ],
+      ],
+    ], $metadata);
+  }
+
+  /**
+   * Verify that fields are assigned correctly among bundles.
+   */
+  public function testFieldAssignment() {
+    $this->createContentType(['type' => 'a']);
+    $this->createContentType(['type' => 'b']);
+    $this->addField('boolean', 'field_a', FALSE, 'A', 'a');
+    $this->addField('boolean', 'field_b', FALSE, 'B', 'b');
+
+    // Verify that the fields for a given bundle are there.
+    $this->assertGraphQLFields([
+      ['NodeA', 'fieldA', 'Boolean'],
+      ['NodeB', 'fieldB', 'Boolean'],
+    ]);
+
+    // Verify that the fields of another bundle are *not* there.
+    $this->assertGraphQLFields([
+      ['NodeA', 'fieldB', 'Boolean'],
+      ['NodeB', 'fieldA', 'Boolean'],
+    ], TRUE);
+  }
+
+  /**
+   * Test if the basic fields are available on the interface.
+   *
+   * @dataProvider nodeValuesProvider
+   *
+   * @param array $actualFieldValues
+   * @param array $expectedFieldValues
+   */
+  public function testRawValues($actualFieldValues, $expectedFieldValues) {
+    $this->installEntitySchema('file');
+    $this->installSchema('file', ['file_usage']);
     $this->addField('text', "field_text");
     $this->addField('boolean', "field_boolean");
     $this->addField('link', "field_link");
@@ -77,11 +211,6 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
     $this->addField('file', 'field_file');
     $this->addField('image', 'field_image');
 
-    Role::load('anonymous')
-      ->grantPermission('access content')
-      ->grantPermission('access user profiles')
-      ->save();
-
     // File 1
     file_put_contents('public://example.txt', $this->randomMachineName());
     $this->testFile = File::create([
@@ -95,24 +224,12 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
       'uri' => 'public://example.png',
     ]);
     $this->testImage->save();
-  }
-
-  /**
-   * Test if the basic fields are available on the interface.
-   *
-   * @dataProvider nodeValuesProvider
-   */
-  public function testRawValues($actualFieldValues, $expectedFieldValues) {
     $values = [
       'title' => 'Test',
       'type' => 'test',
     ];
-    $node = $this->createNode($values + $actualFieldValues);
 
-    $result = $this->executeQueryFile('raw_field_values.gql', [
-      'path' => '/node/' . $node->id(),
-    ]);
-    $resultNode = NestedArray::getValue($result, ['data', 'route', 'entity']);
+    $node = $this->createNode($values + $actualFieldValues);
 
     // Workaround for public file urls.
     $expectedFieldValues['fieldFile'][0]['entity']['url'] = file_create_url($this->testFile->getFileUri());
@@ -120,7 +237,19 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
     $expectedFieldValues['fieldImage'][0]['entity']['url'] = file_create_url($this->testFile->getFileUri());
     $expectedFieldValues['fieldImage'][1]['entity']['url'] = file_create_url($this->testImage->getFileUri());
 
-    $this->assertEquals($expectedFieldValues, $resultNode, 'Correct raw node values are returned.');
+    $metadata = $this->defaultCacheMetaData();
+    $metadata->addCacheTags([
+      'node:1',
+      'user:0',
+      'file:1',
+      'file:2',
+    ]);
+
+    $this->assertResults($this->getQueryFromFile('raw_field_values.gql'), [
+      'path' => '/node/' . $node->id(),
+    ], [
+      'route' => ['entity' => $expectedFieldValues],
+    ], $metadata);
   }
 
   /**
@@ -154,7 +283,7 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
       'field_timestamp' => [0, 300],
       'field_email' => ['test@test.com'],
       'field_string' => ['test', '123'],
-      'field_reference' => [
+      'field_reference' =>  [
         ['target_id' => 1],
       ],
       'field_file' => [
@@ -198,19 +327,21 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
       ],
       'uid' => [
         'targetId' => 0,
-        'entity' => NULL,
+        'entity' => [
+          'name' => '',
+        ],
       ],
       'title' => 'Test',
-      'status' => 1,
-      'promote' => 1,
-      'sticky' => 0,
-      'revisionTranslationAffected' => 1,
+      'status' => TRUE,
+      'promote' => TRUE,
+      'sticky' => FALSE,
+      'revisionTranslationAffected' => TRUE,
       'body' => [
         'value' => 'test',
         'summary' => 'test summary',
         'summaryProcessed' => "<p>test summary</p>\n",
         'processed' => "<p>test</p>\n",
-        'format' => NULL,
+        'format' => null,
       ],
       'fieldText' => [
         ['value' => 'a'],
@@ -269,18 +400,22 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
       'fieldFile' => [
         [
           'targetId' => 1,
-          'display' => 0,
+          'display' => FALSE,
           'description' => 'description test 1',
           'entity' => [
-            'uri' => 'public://example.txt'
+//            'uri' => [
+//              'value' => 'public://example.txt',
+//            ],
           ],
         ],
         [
           'targetId' => 2,
-          'display' => 1,
+          'display' => TRUE,
           'description' => 'description test 2',
           'entity' => [
-            'uri' => 'public://example.png'
+//            'uri' => [
+//              'value' => 'public://example.png',
+//            ],
           ],
         ],
       ],
@@ -292,7 +427,9 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
           'width' => 100,
           'height' => 50,
           'entity' => [
-            'uri' => 'public://example.txt'
+//            'uri' => [
+//              'value' => 'public://example.txt',
+//            ],
           ],
         ],
         [
@@ -302,7 +439,9 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
           'width' => 200,
           'height' => 100,
           'entity' => [
-            'uri' => 'public://example.png'
+//            'uri' => [
+//              'value' => 'public://example.png',
+//            ],
           ],
         ],
       ],
@@ -311,31 +450,6 @@ class EntityFieldValueTest extends GraphQLFileTestBase {
     return [
       [$fieldValues, $expected],
     ];
-  }
-
-  /**
-   * Add a field to test content type.
-   *
-   * @param string $type
-   *   Field type.
-   * @param string $fieldName
-   *   Field machine name.
-   * @param string $label
-   *   Label for the field.
-   */
-  protected function addField($type, $fieldName, $label = 'Label') {
-    FieldStorageConfig::create([
-      'field_name' => $fieldName,
-      'entity_type' => 'node',
-      'type' => $type,
-      'cardinality' => -1,
-    ])->save();
-    FieldConfig::create([
-      'entity_type' => 'node',
-      'bundle' => 'test',
-      'field_name' => $fieldName,
-      'label' => $label,
-    ])->save();
   }
 
 }

@@ -72,17 +72,8 @@ class PathTranslator extends ControllerBase {
     // Event subscribers are in charge of setting the appropriate response,
     // including cacheability metadata.
     $this->eventDispatcher->dispatch(PathTranslatorEvent::TRANSLATE, $event);
+    /** @var \Drupal\Core\Cache\CacheableJsonResponse $response */
     $response = $event->getResponse();
-    $response = $response ?: CacheableResponse::create(
-      Json::encode([
-        'message' => $this->t('Unable to resolve path @path.', ['@path' => $path]),
-        'details' => $this->t('None of the available methods were able to find a match for this path.'),
-      ]),
-      404,
-      [
-        'Content-Type' => 'application/json',
-      ]
-    );
     $response->headers->add(['Content-Type' => 'application/json']);
     $response->getCacheableMetadata()->addCacheContexts(['url.query_args:path']);
     return $response;

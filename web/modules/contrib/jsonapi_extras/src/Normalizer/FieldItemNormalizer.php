@@ -61,7 +61,7 @@ class FieldItemNormalizer extends NormalizerBase {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = array()) {
+  public function normalize($object, $format = NULL, array $context = []) {
     // First get the regular output.
     $normalized_output = $this->subject->normalize($object, $format, $context);
     // Then detect if there is any enhancer to be applied here.

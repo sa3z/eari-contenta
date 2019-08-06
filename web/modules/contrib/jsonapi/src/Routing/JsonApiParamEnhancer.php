@@ -6,12 +6,13 @@ use Drupal\Core\Routing\Enhancer\RouteEnhancerInterface;
 use Drupal\jsonapi\Query\OffsetPage;
 use Drupal\jsonapi\Query\Filter;
 use Drupal\jsonapi\Query\Sort;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 /**
+ * Processes the request query parameters.
+ *
  * @internal
  */
 class JsonApiParamEnhancer implements RouteEnhancerInterface {
@@ -50,8 +51,7 @@ class JsonApiParamEnhancer implements RouteEnhancerInterface {
    * {@inheritdoc}
    */
   public function applies(Route $route) {
-    // This enhancer applies to the JSON API routes.
-    return $route->getDefault(RouteObjectInterface::CONTROLLER_NAME) == Routes::FRONT_CONTROLLER;
+    return (bool) Routes::getResourceTypeNameFromParameters($route->getDefaults());
   }
 
   /**
@@ -60,20 +60,15 @@ class JsonApiParamEnhancer implements RouteEnhancerInterface {
   public function enhance(array $defaults, Request $request) {
     $options = [];
 
-    $route = $defaults[RouteObjectInterface::ROUTE_OBJECT];
+    $resource_type = Routes::getResourceTypeNameFromParameters($defaults);
     $context = [
-      'entity_type_id' => $route->getRequirement('_entity_type'),
-      'bundle' => $route->getRequirement('_bundle'),
+      'entity_type_id' => $resource_type->getEntityTypeId(),
+      'bundle' => $resource_type->getBundle(),
     ];
-
-    if ($request->query->has('filter')) {
-      $filter = $request->query->get('filter');
-      $options['filter'] = $this->filterNormalizer->denormalize($filter, Filter::class, NULL, $context);
-    }
 
     if ($request->query->has('sort')) {
       $sort = $request->query->get('sort');
-      $options['sort'] = $this->sortNormalizer->denormalize($sort, Sort::class);
+      $options['sort'] = $this->sortNormalizer->denormalize($sort, Sort::class, NULL, $context);
     }
 
     $page = ($request->query->has('page')) ? $request->query->get('page') : [];

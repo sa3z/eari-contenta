@@ -18,7 +18,9 @@ class SchemataSchemaNormalizer extends SchemataJsonSchemaSchemataSchemaNormalize
   protected $resourceTypeRepository;
 
   /**
-   * @param ResourceTypeRepository $resource_type_repository
+   * Constructs a SchemataSchemaNormalizer object.
+   *
+   * @param \Drupal\jsonapi\ResourceType\ResourceTypeRepository $resource_type_repository
    *   A resource repository.
    */
   public function __construct(ResourceTypeRepository $resource_type_repository) {

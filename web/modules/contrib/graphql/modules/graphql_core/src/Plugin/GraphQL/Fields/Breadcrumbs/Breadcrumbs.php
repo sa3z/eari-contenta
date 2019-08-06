@@ -3,32 +3,38 @@
 namespace Drupal\graphql_core\Plugin\GraphQL\Fields\Breadcrumbs;
 
 use Drupal\Core\Breadcrumb\BreadcrumbManager;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\graphql\GraphQL\Batching\BatchedFieldResolver;
-use Drupal\graphql\Plugin\GraphQL\Fields\SubrequestFieldBase;
+use Drupal\Core\Url;
+use Drupal\graphql\GraphQL\Buffers\SubRequestBuffer;
+use Drupal\graphql\GraphQL\Cache\CacheableValue;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
+use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
  * Retrieve the breadcrumbs.
- *
- * TODO: Move this to `InternalUrl` (breaking change).
  *
  * @GraphQLField(
  *   id = "breadcrumb",
  *   secure = true,
  *   name = "breadcrumb",
- *   type = "Link",
- *   multi = true,
- *   parents = {"Url"},
+ *   type = "[Link]",
+ *   parents = {"InternalUrl"},
  * )
  */
-class Breadcrumbs extends SubrequestFieldBase {
+class Breadcrumbs extends FieldPluginBase implements ContainerFactoryPluginInterface {
 
   /**
-   * The breadcrumb manager.
+   * The subrequest buffer service.
+   *
+   * @var \Drupal\graphql\GraphQL\Buffers\SubRequestBuffer
+   */
+  protected $subRequestBuffer;
+
+  /**
+   * The breadcrumb manager service.
    *
    * @var \Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface
    */
@@ -42,21 +48,6 @@ class Breadcrumbs extends SubrequestFieldBase {
   protected $routeMatch;
 
   /**
-   * The request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
-  protected $requestStack;
-
-  /**
-   * A http kernel to issue sub-requests to.
-   *
-   * @var \Symfony\Component\HttpKernel\HttpKernelInterface
-   */
-  protected $httpKernel;
-
-
-  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $pluginId, $pluginDefinition) {
@@ -64,37 +55,62 @@ class Breadcrumbs extends SubrequestFieldBase {
       $configuration,
       $pluginId,
       $pluginDefinition,
-      $container->get('http_kernel'),
-      $container->get('request_stack'),
-      $container->get('graphql.batched_resolver'),
+      $container->get('graphql.buffer.subrequest'),
       $container->get('breadcrumb'),
       $container->get('current_route_match')
     );
   }
 
   /**
-   * {@inheritdoc}
+   * Breadcrumbs constructor.
+   *
+   * @param array $configuration
+   *   The plugin configuration array.
+   * @param string $pluginId
+   *   The plugin id.
+   * @param mixed $pluginDefinition
+   *   The plugin definition.
+   * @param \Drupal\graphql\GraphQL\Buffers\SubRequestBuffer $subRequestBuffer
+   *   The sub-request buffer service.
+   * @param \Drupal\Core\Breadcrumb\BreadcrumbManager $breadcrumbManager
+   *   The breadcrumb manager service.
+   * @param \Drupal\Core\Routing\RouteMatchInterface $routeMatch
+   *   The current route match.
    */
   public function __construct(
     array $configuration,
     $pluginId,
     $pluginDefinition,
-    HttpKernelInterface $httpKernel,
-    RequestStack $requestStack,
-    BatchedFieldResolver $batchedFieldResolver,
+    SubRequestBuffer $subRequestBuffer,
     BreadcrumbManager $breadcrumbManager,
     RouteMatchInterface $routeMatch
   ) {
+    parent::__construct($configuration, $pluginId, $pluginDefinition);
+    $this->subRequestBuffer = $subRequestBuffer;
     $this->breadcrumbManager = $breadcrumbManager;
     $this->routeMatch = $routeMatch;
-    parent::__construct($configuration, $pluginId, $pluginDefinition, $httpKernel, $requestStack, $batchedFieldResolver);
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function resolveSubrequest($value, array $args, ResolveInfo $info) {
-    return $this->breadcrumbManager->build($this->routeMatch)->getLinks();
+  protected function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
+    if ($value instanceof Url) {
+      $resolve = $this->subRequestBuffer->add($value, function () {
+        $links = $this->breadcrumbManager->build($this->routeMatch)->getLinks();
+        return $links;
+      });
+
+      return function ($value, array $args, ResolveContext $context, ResolveInfo $info) use ($resolve) {
+        /** @var \Drupal\graphql\GraphQL\Cache\CacheableValue $response */
+        $response = $resolve();
+        $links = $response->getValue();
+
+        foreach ($links as $link) {
+          yield new CacheableValue($link, [$response]);
+        }
+      };
+    }
   }
 
 }

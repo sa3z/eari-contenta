@@ -5,11 +5,11 @@ description: 'Handles the awkwardness of routing in decoupled architectures.'
 package: Web services
 test_dependencies:
   - drupal:path
-  - jsonapi
-  - redirect
+  - jsonapi:jsonapi
+  - redirect:redirect
 
-# Information added by Drupal.org packaging script on 2017-11-29
-version: '8.x-1.0-beta1'
+# Information added by Drupal.org packaging script on 2019-04-12
+version: '8.x-1.7'
 core: '8.x'
 project: 'decoupled_router'
-datestamp: 1511988493
+datestamp: 1555098194

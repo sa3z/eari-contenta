@@ -2,9 +2,10 @@
 
 namespace Stecman\Component\Symfony\Console\BashCompletion\Tests;
 
+use PHPUnit\Framework\TestCase;
 use Stecman\Component\Symfony\Console\BashCompletion\HookFactory;
 
-class HookFactoryTest extends \PHPUnit_Framework_TestCase
+class HookFactoryTest extends TestCase
 {
     /**
      * @var HookFactory
@@ -53,6 +54,59 @@ class HookFactoryTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testForMissingSemiColons()
+    {
+        $class = new \ReflectionClass('Stecman\Component\Symfony\Console\BashCompletion\HookFactory');
+        $properties = $class->getStaticProperties();
+        $hooks = $properties['hooks'];
+
+        // Check each line is commented or closed correctly to be collapsed for eval
+        foreach ($hooks as $shellType => $hook) {
+            $line = strtok($hook, "\n");
+            $lineNumber = 0;
+
+            while ($line !== false) {
+                $lineNumber++;
+
+                if (!$this->isScriptLineValid($line)) {
+                    $this->fail("$shellType hook appears to be missing a semicolon on line $lineNumber:\n> $line");
+                }
+
+                $line = strtok("\n");
+            }
+        }
+    }
+
+    /**
+     * Check if a line of shell script is safe to be collapsed to one line for eval
+     */
+    protected function isScriptLineValid($line)
+    {
+        if (preg_match('/^\s*#/', $line)) {
+            // Line is commented out
+            return true;
+        }
+
+        if (preg_match('/[;\{\}]\s*$/', $line)) {
+            // Line correctly ends with a semicolon or syntax
+            return true;
+        }
+
+        if (preg_match('
+                    /(
+                        ;\s*then |
+                        \s*else
+                    )
+                    \s*$
+                    /x', $line)
+        ) {
+            // Line ends with another permitted sequence
+            return true;
+        }
+
+        return false;
+    }
+
     protected function hasProgram($programName)
     {
         exec(sprintf(
@@ -91,9 +145,7 @@ class HookFactoryTest extends \PHPUnit_Framework_TestCase
 
             $status = proc_close($process);
 
-            if ($status !== 0) {
-                $this->fail("Syntax check for $context failed:\n$output");
-            }
+            $this->assertSame(0, $status, "Syntax check for $context failed:\n$output");
         } else {
             throw new \RuntimeException("Failed to start process with command '$syntaxCheckCommand'");
         }

@@ -12,6 +12,8 @@ use Prophecy\Argument;
  * @group jsonapi
  * @group jsonapi_normalizers
  * @group legacy
+ *
+ * @internal
  */
 class FilterNormalizerTest extends KernelTestBase {
 
@@ -59,22 +61,57 @@ class FilterNormalizerTest extends KernelTestBase {
    */
   public function denormalizeProvider() {
     return [
-      [['uid' => ['value' => 1]], [['path' => 'uid', 'value' => 1, 'operator' => '=']]],
+      'shorthand' => [
+        ['uid' => ['value' => 1]],
+        [['path' => 'uid', 'value' => 1, 'operator' => '=']],
+      ],
+      'extreme shorthand' => [
+        ['uid' => 1],
+        [['path' => 'uid', 'value' => 1, 'operator' => '=']],
+      ],
     ];
   }
 
   /**
    * @covers ::denormalize
    */
-  public function testDenormalize_nested() {
+  public function testDenormalizeNested() {
     $normalized = [
       'or-group' => ['group' => ['conjunction' => 'OR']],
-      'nested-or-group' => ['group' => ['conjunction' => 'OR', 'memberOf' => 'or-group']],
-      'nested-and-group' => ['group' => ['conjunction' => 'AND', 'memberOf' => 'or-group']],
-      'condition-0' => ['condition' => ['path' => 'field0', 'value' => 'value0', 'memberOf' => 'nested-or-group']],
-      'condition-1' => ['condition' => ['path' => 'field1', 'value' => 'value1', 'memberOf' => 'nested-or-group']],
-      'condition-2' => ['condition' => ['path' => 'field2', 'value' => 'value2', 'memberOf' => 'nested-and-group']],
-      'condition-3' => ['condition' => ['path' => 'field3', 'value' => 'value3', 'memberOf' => 'nested-and-group']],
+      'nested-or-group' => [
+        'group' => ['conjunction' => 'OR', 'memberOf' => 'or-group'],
+      ],
+      'nested-and-group' => [
+        'group' => ['conjunction' => 'AND', 'memberOf' => 'or-group'],
+      ],
+      'condition-0' => [
+        'condition' => [
+          'path' => 'field0',
+          'value' => 'value0',
+          'memberOf' => 'nested-or-group',
+        ],
+      ],
+      'condition-1' => [
+        'condition' => [
+          'path' => 'field1',
+          'value' => 'value1',
+          'memberOf' => 'nested-or-group',
+        ],
+      ],
+      'condition-2' => [
+        'condition' => [
+          'path' => 'field2',
+          'value' => 'value2',
+          'memberOf' => 'nested-and-group',
+        ],
+      ],
+      'condition-3' => [
+        'condition' => [
+          'path' => 'field3',
+          'value' => 'value3',
+          'memberOf' => 'nested-and-group',
+        ],
+      ],
     ];
     $filter = $this->normalizer->denormalize($normalized, Filter::class, NULL, ['entity_type_id' => 'foo', 'bundle' => 'bar']);
     $root = $filter->root();
@@ -110,7 +147,7 @@ class FilterNormalizerTest extends KernelTestBase {
    */
   protected function getFieldResolver($entity_type_id, $bundle) {
     $field_resolver = $this->prophesize(FieldResolver::class);
-    $field_resolver->resolveInternal('foo', 'bar', Argument::any())->willReturnArgument(2);
+    $field_resolver->resolveInternalEntityQueryPath('foo', 'bar', Argument::any())->willReturnArgument(2);
     return $field_resolver->reveal();
   }
 

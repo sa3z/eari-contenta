@@ -1,14 +1,66 @@
 # Change Log
 
-### 2.8.1
+### 2.12.0 - 8 Mar 2019
+
+- Allow annotated args and options to specify their default values in their descriptions. (#186)
+
+### 2.11.2 - 1 Feb 2019
+
+- Fix handling of old caches from 2.11.1 that introduced upgrade errors.
+
+### 2.11.1 - 31 Jan 2019
+
+- Cache injected classes (#182)
+
+### 2.11.0 - 27 Jan 2019
+
+- Make injection of InputInterface / OutputInterface general-purpose (#179)
+
+### 2.10.2 - 20 Dec 2018
+
+- Fix commands that have a @param annotation for their InputInterface/OutputInterface params (#176)
+
+### 2.10.1 - 13 Dec 2018
+
+- Add stdin handler convenience class
+- Add setter to AnnotationData to suppliment existing array acces
+- Update to Composer Test Scenarios 3
+
+### 2.10.0 - 14 Nov 2018
+
+- Add a new data type, CommandResult (#167)
+
+### 2.9.0 & 2.9.1 - 19 Sept 2018
+
+- Improve commandfile discovery for extensions installed via Composer. (#156)
+
+### 2.8.5 - 18 Aug 2018
+
+- Add dependencies.yml for dependencies.io
+- Fix warning in AnnotatedCommandFactory when getCommandInfoListFromCache called with null.
+
+### 2.8.4 - 25 May 2018
+
+- Use g1a/composer-test-scenarios for better PHP version matrix testing.
+
+### 2.8.3 - 23 Feb 2018
+
+- BUGFIX: Do not shift off the command name unless it is there. (#139)
+- Use test scenarios to test multiple versions of Symfony. (#136, #137)
+
+### 2.8.2 - 29 Nov 2017
+
+- Allow Symfony 4 components.
+
+### 2.8.1 - 16 Oct 2017
 
 - Add hook methods to allow Symfony command events to be added directly to the hook manager, givig better control of hook order. (#131)
 
-### 2.8.0
+### 2.8.0 - 13 Oct 2017
 
 - Remove phpdocumentor/reflection-docblock in favor of using a bespoke parser (#130)
 
-### 2.7.0
+### 2.7.0 - 18 Sept 2017
 
 - Add support for options with a default value of 'true' (#119)
 - BUGFIX: Improve handling of options with optional values, which previously was not working correctly. (#118)

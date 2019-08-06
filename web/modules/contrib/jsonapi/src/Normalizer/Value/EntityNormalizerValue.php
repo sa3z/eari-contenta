@@ -2,49 +2,52 @@
 
 namespace Drupal\jsonapi\Normalizer\Value;
 
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\jsonapi\Normalizer\CacheableDependencyTrait;
 
 /**
+ * Helps normalize entities in compliance with the JSON API spec.
+ *
  * @internal
  */
-class EntityNormalizerValue implements ValueExtractorInterface, RefinableCacheableDependencyInterface {
+class EntityNormalizerValue implements ValueExtractorInterface, CacheableDependencyInterface {
 
-  use RefinableCacheableDependencyTrait;
+  use CacheableDependencyTrait;
+  use CacheableDependenciesMergerTrait;
 
   /**
    * The values.
    *
-   * @param array
+   * @var array
    */
   protected $values;
 
   /**
    * The includes.
    *
-   * @param array
+   * @var array
    */
   protected $includes;
 
   /**
    * The resource path.
    *
-   * @param array
+   * @var array
    */
   protected $context;
 
   /**
    * The resource entity.
    *
-   * @param \Drupal\Core\Entity\EntityInterface
+   * @var \Drupal\Core\Entity\EntityInterface
    */
   protected $entity;
 
   /**
    * The link manager.
    *
-   * @param \Drupal\jsonapi\LinkManager\LinkManager
+   * @var \Drupal\jsonapi\LinkManager\LinkManager
    */
   protected $linkManager;
 
@@ -62,25 +65,26 @@ class EntityNormalizerValue implements ValueExtractorInterface, RefinableCacheab
    *   relationship.
    */
   public function __construct(array $values, array $context, EntityInterface $entity, array $link_context) {
+    $this->setCacheability(static::mergeCacheableDependencies(array_merge([$entity], $values)));
+
+    // Gather includes from all normalizer values, before filtering away null
+    // and include-only normalizer values.
+    $this->includes = array_map(function ($value) {
+      return $value->getIncludes();
+    }, $values);
+
     $this->values = array_filter($values, function ($value) {
-      return !($value instanceof NullFieldNormalizerValue);
+      return !($value instanceof NullFieldNormalizerValue || $value instanceof IncludeOnlyRelationshipNormalizerValue);
     });
     $this->context = $context;
     $this->entity = $entity;
     $this->linkManager = $link_context['link_manager'];
-    // Get an array of arrays of includes.
-    $this->includes = array_map(function ($value) {
-      return $value->getIncludes();
-    }, $values);
     // Flatten the includes.
     $this->includes = array_reduce($this->includes, function ($carry, $includes) {
       return array_merge($carry, $includes);
     }, []);
     // Filter the empty values.
     $this->includes = array_filter($this->includes);
-    array_walk($this->includes, function ($include) {
-      $this->addCacheableDependency($include);
-    });
   }
 
   /**

@@ -6,6 +6,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
+use Drupal\node\NodeInterface;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\Tests\BrowserTestBase;
 
@@ -67,17 +68,17 @@ class DecoupledRouterFunctionalTest extends BrowserTestBase {
       'delete any article content',
     ]);
     $this->createDefaultContent(3);
-    $redirect = Redirect::create(['type' => '301']);
+    $redirect = Redirect::create(['status_code' => '301']);
     $redirect->setSource('/foo');
     $redirect->setRedirect('/node--0');
     $redirect->setLanguage(Language::LANGCODE_NOT_SPECIFIED);
     $redirect->save();
-    $redirect = Redirect::create(['type' => '301']);
+    $redirect = Redirect::create(['status_code' => '301']);
     $redirect->setSource('/bar');
     $redirect->setRedirect('/foo');
     $redirect->setLanguage(Language::LANGCODE_NOT_SPECIFIED);
     $redirect->save();
-    $redirect = Redirect::create(['type' => '301']);
+    $redirect = Redirect::create(['status_code' => '301']);
     $redirect->setSource('/foo--ca');
     $redirect->setRedirect('/node--0--ca');
     $redirect->setLanguage('ca');
@@ -90,6 +91,8 @@ class DecoupledRouterFunctionalTest extends BrowserTestBase {
    *
    * @param int $num_articles
    *   Number of articles to create.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   protected function createDefaultContent($num_articles) {
     $random = $this->getRandomGenerator();
@@ -132,8 +135,9 @@ class DecoupledRouterFunctionalTest extends BrowserTestBase {
       $test->assertSame('node--article', $output['jsonapi']['resourceName']);
       $test->assertStringEndsWith('/jsonapi/node/article/' . $test->nodes[0]->uuid(), $output['jsonapi']['individual']);
     };
-    $parts = parse_url(getenv('SIMPLETEST_BASE_URL') ?: DRUPAL_CI_BASE_URL);
-    $base_path = empty($parts['path']) ? '/' : $parts['path'];
+
+    $base_path = $this->getBasePath();
+
     // Test cases:
     $test_cases = [
       // 1. Test negotiation by system path for /node/1 -> /node--0.
@@ -148,4 +152,157 @@ class DecoupledRouterFunctionalTest extends BrowserTestBase {
     });
   }
 
+  /**
+   * Test that unpublished content ist not available
+   */
+  public function testUnpublishedContent() {
+    $values = [
+      'uid' => ['target_id' => $this->user->id()],
+      'type' => 'article',
+      'path' => '/node--unpublished',
+      'title' => $this->getRandomGenerator()->name(),
+      'status' => NodeInterface::NOT_PUBLISHED
+    ];
+    $node = $this->createNode($values);
+
+    $redirect = Redirect::create(['status_code' => '301']);
+    $redirect->setSource('/unp');
+    $redirect->setRedirect('/node--unpublished');
+    $redirect->setLanguage(Language::LANGCODE_NOT_SPECIFIED);
+    $redirect->save();
+
+    // test access via node_id to unpublished content
+    $res = $this->drupalGet(
+      Url::fromRoute('decoupled_router.path_translation'),
+      ['query' => [
+        'path' => '/unp',
+        '_format' => 'json',
+      ]]
+    );
+    $output = Json::decode($res);
+    $this->assertArrayNotHasKey('redirect', $output);
+    $this->assertEquals(
+      [
+        'message' => 'Access denied for entity.',
+        'details' => 'This user does not have access to view the resolved entity. Please authenticate and try again.'
+      ],
+      $output
+    );
+    $this->assertSession()->statusCodeEquals(403);
+
+    // Make sure priviledged users can access the output.
+    $admin_user = $this->drupalCreateUser([
+      'administer nodes',
+      'bypass node access',
+    ]);
+    $this->drupalLogin($admin_user);
+    // test access via node_id to unpublished content
+    $res = $this->drupalGet(
+      Url::fromRoute('decoupled_router.path_translation'),
+      ['query' => [
+        'path' => '/unp',
+        '_format' => 'json',
+      ]]
+    );
+    $output = Json::decode($res);
+    $this->assertSession()->statusCodeEquals(200);
+    $expected = [
+      'resolved' => $this->buildUrl('/node--unpublished'),
+      'isHomePath' => FALSE,
+      'entity' => [
+        'canonical' => $this->buildUrl('/node--unpublished'),
+        'type' => 'node',
+        'bundle' => 'article',
+        'id' => $node->id(),
+        'uuid' => $node->uuid(),
+      ],
+      'label' => $node->label(),
+      'jsonapi' => [
+        'individual' => $this->buildUrl('/jsonapi/node/article/' . $node->uuid()),
+        'resourceName' => 'node--article',
+        'pathPrefix' => 'jsonapi',
+        'basePath' => '/jsonapi',
+        'entryPoint' => $this->buildUrl('/jsonapi'),
+      ],
+      'meta' => [
+        'deprecated' => [
+          'jsonapi.pathPrefix' => 'This property has been deprecated and will be removed in the next version of Decoupled Router. Use basePath instead.',
+        ],
+      ],
+      'redirect' => [
+        [
+          'from' => '/unp',
+          'to' => '/' . implode('/', array_filter([trim($this->getBasePath(), '/'), 'node--unpublished'])),
+          'status' => '301',
+        ]
+      ],
+    ];
+    $this->assertEquals($expected, $output);
+  }
+
+  /**
+   * Test that the home path check is working.
+   */
+  public function testHomPathCheck() {
+
+    // Create front page node.
+    $this->createNode([
+      'uid' => ['target_id' => $this->user->id()],
+      'type' => 'article',
+      'path' => '/node--homepage',
+      'title' => $this->getRandomGenerator()->name(),
+      'status' => NodeInterface::NOT_PUBLISHED,
+    ]);
+
+    // Update front page.
+    \Drupal::configFactory()->getEditable('system.site')
+      ->set('page.front', '/node--homepage')
+      ->save();
+
+    $user = $this->drupalCreateUser(['bypass node access']);
+    $this->drupalLogin($user);
+
+    // Test front page node.
+    $res = $this->drupalGet(
+      Url::fromRoute('decoupled_router.path_translation'),
+      [
+        'query' => [
+          'path' => '/node--homepage',
+          '_format' => 'json',
+        ],
+      ]
+    );
+    $this->assertSession()->statusCodeEquals(200);
+    $output = Json::decode($res);
+    $this->assertTrue($output['isHomePath']);
+
+    // Test non-front page node.
+    $res = $this->drupalGet(
+      Url::fromRoute('decoupled_router.path_translation'),
+      [
+        'query' => [
+          'path' => '/node--1',
+          '_format' => 'json',
+        ],
+      ]
+    );
+    $this->assertSession()->statusCodeEquals(200);
+    $output = Json::decode($res);
+    $this->assertFalse($output['isHomePath']);
+  }
+
+  /**
+   * Computes the base path under which the Drupal managed URLs are available.
+   *
+   * @return string
+   *   The path.
+   */
+  private function getBasePath() {
+    $parts = parse_url(
+      (
+        getenv('SIMPLETEST_BASE_URL') ?: getenv('WEB_HOST')
+      ) ?: DRUPAL_CI_BASE_URL
+    );
+    return empty($parts['path']) ? '/' : $parts['path'];
+  }
 }

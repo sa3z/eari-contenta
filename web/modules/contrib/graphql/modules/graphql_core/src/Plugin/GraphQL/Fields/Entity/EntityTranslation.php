@@ -6,29 +6,25 @@ use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
- * Retrieve an entity translation.
- *
  * @GraphQLField(
  *   id = "entity_translation",
  *   secure = true,
  *   name = "entityTranslation",
- *   nullable = true,
- *   multi = false,
- *   weight = -1,
  *   type = "Entity",
  *   parents = {"Entity"},
  *   arguments = {
- *     "language" = "AvailableLanguages"
+ *     "language" = "LanguageId!"
  *   }
  * )
  */
 class EntityTranslation extends FieldPluginBase implements ContainerFactoryPluginInterface {
-
   use DependencySerializationTrait;
 
   /**
@@ -37,15 +33,6 @@ class EntityTranslation extends FieldPluginBase implements ContainerFactoryPlugi
    * @var \Drupal\Core\Entity\EntityRepositoryInterface
    */
   protected $entityRepository;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct(array $configuration, $pluginId, $pluginDefinition, EntityRepositoryInterface $entityRepository) {
-    parent::__construct($configuration, $pluginId, $pluginDefinition);
-
-    $this->entityRepository = $entityRepository;
-  }
 
   /**
    * {@inheritdoc}
@@ -60,11 +47,30 @@ class EntityTranslation extends FieldPluginBase implements ContainerFactoryPlugi
   }
 
   /**
+   * EntityTranslation constructor.
+   *
+   * @param array $configuration
+   *   The plugin configuration array.
+   * @param string $pluginId
+   *   The plugin id.
+   * @param mixed $pluginDefinition
+   *   The plugin definition.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entityRepository
+   *   The entity repository service.
+   */
+  public function __construct(array $configuration, $pluginId, $pluginDefinition, EntityRepositoryInterface $entityRepository) {
+    parent::__construct($configuration, $pluginId, $pluginDefinition);
+    $this->entityRepository = $entityRepository;
+  }
+
+  /**
    * {@inheritdoc}
    */
-  public function resolveValues($value, array $args, ResolveInfo $info) {
-    if ($value instanceof EntityInterface) {
-      yield $this->entityRepository->getTranslationFromContext($value, $args['language']);
+  public function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
+    if ($value instanceof EntityInterface && $value instanceof TranslatableInterface && $value->isTranslatable()) {
+      if ($value->hasTranslation($args['language'])) {
+        yield $value->getTranslation($args['language']);
+      }
     }
   }
 

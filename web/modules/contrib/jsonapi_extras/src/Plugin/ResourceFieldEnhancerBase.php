@@ -26,6 +26,13 @@ abstract class ResourceFieldEnhancerBase extends PluginBase implements ResourceF
   /**
    * {@inheritdoc}
    */
+  public function defaultConfiguration() {
+    return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function calculateDependencies() {
     // TODO: This should have a dependency on the resource_config entity.
     return [];
@@ -46,6 +53,13 @@ abstract class ResourceFieldEnhancerBase extends PluginBase implements ResourceF
   public function setConfiguration(array $configuration) {
     $this->configuration = $configuration + $this->defaultConfiguration();
     return $this->configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSettingsForm(array $resource_field_info) {
+    return [];
   }
 
 }

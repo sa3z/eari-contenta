@@ -66,9 +66,11 @@ trait EntityNormalizerTrait {
     $entity_type_id = $resource_type->getEntityTypeId();
     $bundle_id = $resource_type->getBundle();
     // The output depends on the configuration entity for caching.
-    $context['cacheable_metadata']->addCacheableDependency(
-      $this->getResourceConfig($entity_type_id, $bundle_id)
-    );
+    if ($resource_config = $this->getResourceConfig($entity_type_id, $bundle_id)) {
+      $context['cacheable_metadata']->addCacheableDependency(
+        $resource_config
+      );
+    }
     $context['cacheable_metadata']->addCacheableDependency(
       \Drupal::config('jsonapi_extras.settings')
     );

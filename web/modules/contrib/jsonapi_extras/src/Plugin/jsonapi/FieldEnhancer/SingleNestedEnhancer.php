@@ -69,9 +69,9 @@ class SingleNestedEnhancer extends ResourceFieldEnhancerBase {
    * {@inheritdoc}
    */
   public function getSettingsForm(array $resource_field_info) {
-    $settings = empty($resource_field_info['settings'])
+    $settings = empty($resource_field_info['enhancer']['settings'])
       ? $this->getConfiguration()
-      : $resource_field_info['settings'];
+      : $resource_field_info['enhancer']['settings'];
 
     return [
       'path' => [

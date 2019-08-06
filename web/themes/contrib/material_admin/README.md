@@ -14,10 +14,12 @@ Material Design Inspired Admin Theme Utilizing the [Materialize CSS](http://mate
  - `gulp rename` renames conflict with jQueryUI and Materialize CSS autocomplete plugin and places it in /js/lib to manage in git repo.
  - `gulp sass` or `gulp` to watch sass changes
 
+
  ## Features Notes
 
  - Additional features supported with [Material Admin Support](https://github.com/briancwald/material_admin_support) module.
- - Portal style login [screenshot](https://dl.dropboxusercontent.com/u/8476966/portal-login.png). To use this, you will want to alter the login paths to use the admin theme. I created a simple module that does this for you: https://www.drupal.org/project/admin_login_path
+ - Portal style login [screenshot](https://materialadmin.com/img/portal-login.png). To use this, you will want to alter the login paths to use the admin theme. I created a simple module that does this for you: https://www.drupal.org/project/admin_login_path
+ - Breadcrumbs are set in `/config/install` to be placed in a region "breadcrumbs" which display below the header. If you would like to reduce the the vertical space. you can move the breadcrumbs to the header above the site branding block, which is styled to use Material Design standard for applications.
 
 ## To-Do
 - [x] Gulp Setup
@@ -62,4 +64,4 @@ Since this is just a POC, code is not very well organized and needs to be mature
 - [x] Easy color swap in SCSS variables (_settings.scss)
 - [ ] Better way to handle Materialize CSS overrides
 - [ ] Prod deployment packaging (Min, optimize, etc)
-- [ ] Code standards + Lint
+- [x] Code standards + Lint

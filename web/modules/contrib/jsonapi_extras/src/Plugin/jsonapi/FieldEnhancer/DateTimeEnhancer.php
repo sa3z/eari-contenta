@@ -2,27 +2,18 @@
 
 namespace Drupal\jsonapi_extras\Plugin\jsonapi\FieldEnhancer;
 
-use Drupal\jsonapi_extras\Plugin\ResourceFieldEnhancerBase;
+use Drupal\jsonapi_extras\Plugin\DateTimeEnhancerBase;
 
 /**
- * Perform additional manipulations to date fields.
+ * Perform additional manipulations to timestamp fields.
  *
  * @ResourceFieldEnhancer(
  *   id = "date_time",
- *   label = @Translation("Date Time"),
- *   description = @Translation("Formats a date based the configured date format.")
+ *   label = @Translation("Date Time (Timestamp field)"),
+ *   description = @Translation("Formats a date based the configured date format for timestamp fields.")
  * )
  */
-class DateTimeEnhancer extends ResourceFieldEnhancerBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public function defaultConfiguration() {
-    return [
-      'dateTimeFormat' => \DateTime::ISO8601,
-    ];
-  }
+class DateTimeEnhancer extends DateTimeEnhancerBase {
 
   /**
    * {@inheritdoc}
@@ -42,33 +33,6 @@ class DateTimeEnhancer extends ResourceFieldEnhancerBase {
     $date = new \DateTime($value);
 
     return (int) $date->format('U');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getJsonSchema() {
-    return [
-      'type' => 'string',
-    ];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSettingsForm(array $resource_field_info) {
-    $settings = empty($resource_field_info['enhancer']['settings'])
-      ? $this->getConfiguration()
-      : $resource_field_info['enhancer']['settings'];
-
-    return [
-      'dateTimeFormat' => [
-        '#type' => 'textfield',
-        '#title' => $this->t('Format'),
-        '#description' => $this->t('Use a valid date format.'),
-        '#default_value' => $settings['dateTimeFormat'],
-      ],
-    ];
   }
 
 }

@@ -2,7 +2,6 @@
 
 namespace Drupal\jsonapi_extras\Normalizer;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceType;
 use Drupal\schemata_json_schema\Normalizer\jsonapi\FieldDefinitionNormalizer as SchemataJsonSchemaFieldDefinitionNormalizer;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepository;

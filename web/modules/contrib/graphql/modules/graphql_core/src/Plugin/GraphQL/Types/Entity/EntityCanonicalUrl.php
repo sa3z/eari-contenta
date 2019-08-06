@@ -3,8 +3,9 @@
 namespace Drupal\graphql_core\Plugin\GraphQL\Types\Entity;
 
 use Drupal\Core\Url;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Types\TypePluginBase;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
  * GraphQL type for Drupal entity routes.
@@ -13,7 +14,7 @@ use Youshido\GraphQL\Execution\ResolveInfo;
  *   id = "entity_canonical_url",
  *   name = "EntityCanonicalUrl",
  *   description = @Translation("The canonical entity url."),
- *   interfaces = {"Url"},
+ *   interfaces = {"InternalUrl"},
  *   weight = 1
  * )
  */
@@ -22,7 +23,7 @@ class EntityCanonicalUrl extends TypePluginBase {
   /**
    * {@inheritdoc}
    */
-  public function applies($object, ResolveInfo $info = NULL) {
+  public function applies($object, ResolveContext $context, ResolveInfo $info) {
     if ($object instanceof Url && $object->isRouted()) {
       $parts = explode('.', $object->getRouteName());
       if (count($parts) !== 3) {

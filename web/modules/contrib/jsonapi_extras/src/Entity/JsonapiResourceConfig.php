@@ -83,7 +83,7 @@ class JsonapiResourceConfig extends ConfigEntityBase {
    */
   public function calculateDependencies() {
     parent::calculateDependencies();
-    $id = explode('--',$this->id);
+    $id = explode('--', $this->id);
     $typeManager = $this->entityTypeManager();
     $dependency = $typeManager->getDefinition($id[0])->getBundleConfigDependency($id[1]);
     $this->addDependency($dependency['type'], $dependency['name']);
@@ -102,4 +102,5 @@ class JsonapiResourceConfig extends ConfigEntityBase {
     }
     return $uri_route_parameters;
   }
+
 }

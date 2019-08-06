@@ -3,10 +3,9 @@
 namespace Drupal\jsonapi\Normalizer;
 
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
-use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
-use Drupal\jsonapi\Context\CurrentContext;
 use Drupal\jsonapi\Context\FieldResolver;
 use Drupal\jsonapi\Normalizer\Value\JsonApiDocumentTopLevelNormalizerValue;
 use Drupal\jsonapi\Resource\EntityCollection;
@@ -15,12 +14,17 @@ use Drupal\jsonapi\Resource\JsonApiDocumentTopLevel;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
 
 /**
+ * Normalizes the top-level document according to the JSON API specification.
+ *
  * @see \Drupal\jsonapi\Resource\JsonApiDocumentTopLevel
+ *
+ * @internal
  */
 class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements DenormalizerInterface, NormalizerInterface {
 
@@ -37,13 +41,6 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
   protected $linkManager;
 
   /**
-   * The current JSON API request context.
-   *
-   * @var \Drupal\jsonapi\Context\CurrentContext
-   */
-  protected $currentContext;
-
-  /**
    * The entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -51,43 +48,50 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
   protected $entityTypeManager;
 
   /**
-   * The field resolver.
+   * The JSON API resource type repository.
    *
-   * @var \Drupal\jsonapi\Context\FieldResolver
+   * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface
    */
-  protected $fieldResolver;
+  protected $resourceTypeRepository;
 
   /**
    * Constructs a JsonApiDocumentTopLevelNormalizer object.
    *
    * @param \Drupal\jsonapi\LinkManager\LinkManager $link_manager
    *   The link manager to get the links.
-   * @param \Drupal\jsonapi\Context\CurrentContext $current_context
-   *   The current context.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface $resource_type_repository
+   *   The JSON API resource type repository.
    */
-  public function __construct(LinkManager $link_manager, CurrentContext $current_context, EntityTypeManagerInterface $entity_type_manager, ResourceTypeRepositoryInterface $resource_type_repository, FieldResolver $field_resolver) {
+  public function __construct(LinkManager $link_manager, EntityTypeManagerInterface $entity_type_manager, ResourceTypeRepositoryInterface $resource_type_repository) {
     $this->linkManager = $link_manager;
-    $this->currentContext = $current_context;
     $this->entityTypeManager = $entity_type_manager;
     $this->resourceTypeRepository = $resource_type_repository;
-    $this->fieldResolver = $field_resolver;
   }
 
   /**
    * {@inheritdoc}
    */
   public function denormalize($data, $class, $format = NULL, array $context = []) {
-    $context += [
-      'on_relationship' => $this->currentContext->isOnRelationship(),
-    ];
+    // Validate a few common errors in document formatting.
+    $this->validateRequestBody($data);
+
     $normalized = [];
+
     if (!empty($data['data']['attributes'])) {
       $normalized = $data['data']['attributes'];
     }
+
+    if (!empty($data['data']['id'])) {
+      $resource_type = $this->resourceTypeRepository->getByTypeName($data['data']['type']);
+      $uuid_key = $this->entityTypeManager->getDefinition($resource_type->getEntityTypeId())->getKey('uuid');
+      $normalized[$uuid_key] = $data['data']['id'];
+    }
+
     if (!empty($data['data']['relationships'])) {
-      // Turn all single object relationship data fields into an array of objects.
+      // Turn all single object relationship data fields into an array of
+      // objects.
       $relationships = array_map(function ($relationship) {
         if (isset($relationship['data']['type']) && isset($relationship['data']['id'])) {
           return ['data' => [$relationship['data']]];
@@ -163,63 +167,31 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
-    if (empty($context['resource_type'])) {
-      $context['resource_type'] = $this->currentContext->getResourceType();
-    }
-    $value_extractor = $this->buildNormalizerValue($object->getData(), $format, $context);
-    if (!empty($context['cacheable_metadata'])) {
-      $context['cacheable_metadata']->addCacheableDependency($value_extractor);
-    }
-    $normalized = $value_extractor->rasterizeValue();
-    $included = array_filter($value_extractor->rasterizeIncludes());
-    if (!empty($included)) {
-      $normalized['included'] = [];
-      foreach ($included as $included_item) {
-        if ($included_item['data'] === FALSE) {
-          unset($included_item['data']);
-          $normalized = NestedArray::mergeDeep($normalized, $included_item);
-        }
-        else {
-          $normalized['included'][] = $included_item['data'];
-        }
-      }
-    }
-
-    return $normalized;
-  }
-
-  /**
-   * Build the normalizer value.
-   *
-   * @return \Drupal\jsonapi\Normalizer\Value\JsonApiDocumentTopLevelNormalizerValue
-   *   The normalizer value.
-   */
-  public function buildNormalizerValue($data, $format = NULL, array $context = []) {
+    $data = $object->getData();
     if (empty($context['expanded'])) {
       $context += $this->expandContext($context['request'], $context['resource_type']);
     }
 
     if ($data instanceof EntityReferenceFieldItemListInterface) {
-      $output = $this->serializer->normalize($data, $format, $context);
-      // The only normalizer value that computes nested includes automatically is the JsonApiDocumentTopLevelNormalizerValue.
-      $output->setIncludes($output->getAllIncludes());
-      return $output;
+      $normalizer_values = [
+        $this->serializer->normalize($data, $format, $context),
+      ];
+      $link_context = ['link_manager' => $this->linkManager];
+      return new JsonApiDocumentTopLevelNormalizerValue($normalizer_values, $context, $link_context, FALSE);
     }
-    else {
-      $is_collection = $data instanceof EntityCollection;
-      $include_count = $context['resource_type']->includeCount();
-      // To improve the logical workflow deal with an array at all times.
-      $entities = $is_collection ? $data->toArray() : [$data];
-      $context['has_next_page'] = $is_collection ? $data->hasNextPage() : FALSE;
+    $is_collection = $data instanceof EntityCollection;
+    $include_count = $context['resource_type']->includeCount();
+    // To improve the logical workflow deal with an array at all times.
+    $entities = $is_collection ? $data->toArray() : [$data];
+    $context['has_next_page'] = $is_collection ? $data->hasNextPage() : FALSE;
 
-      if ($include_count) {
-        $context['total_count'] = $is_collection ? $data->getTotalCount() : 1;
-      }
-      $serializer = $this->serializer;
-      $normalizer_values = array_map(function ($entity) use ($format, $context, $serializer) {
-        return $serializer->normalize($entity, $format, $context);
-      }, $entities);
+    if ($include_count) {
+      $context['total_count'] = $is_collection ? $data->getTotalCount() : 1;
     }
+    $serializer = $this->serializer;
+    $normalizer_values = array_map(function ($entity) use ($format, $context, $serializer) {
+      return $serializer->normalize($entity, $format, $context);
+    }, $entities);
 
     $link_context = [
       'link_manager' => $this->linkManager,
@@ -230,7 +202,7 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
       $link_context['total_count'] = $context['total_count'];
     }
 
-    return new JsonApiDocumentTopLevelNormalizerValue($normalizer_values, $context, $is_collection, $link_context);
+    return new JsonApiDocumentTopLevelNormalizerValue($normalizer_values, $context, $link_context, $is_collection);
   }
 
   /**
@@ -247,15 +219,22 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
   protected function expandContext(Request $request, ResourceType $resource_type) {
     // Translate ALL the includes from the public field names to the internal.
     $includes = array_filter(explode(',', $request->query->get('include')));
-    $public_includes = array_map(function ($include_str) use ($resource_type) {
-      $resolved = $this->fieldResolver->resolveInternal(
-        $resource_type->getEntityTypeId(),
-        $resource_type->getBundle(),
-        trim($include_str)
-      );
-      // We don't need the entity information for the includes. Clean it.
-      return preg_replace('/\.entity\./', '.', $resolved);
+    // The primary resource type for 'related' routes is different than the
+    // primary resource type of individual and relationship routes and is
+    // determined by the relationship field name.
+    $related = $request->get('_on_relationship') ? FALSE : $request->get('related');
+    $public_includes = array_map(function ($include) use ($resource_type, $related) {
+      $trimmed = trim($include);
+      // If the request is a related route, prefix the path with the related
+      // field name so that the path can be resolved from the base resource
+      // type. Then, remove it after the path is resolved.
+      $path_parts = explode('.', $related ? "{$related}.{$trimmed}" : $trimmed);
+      return array_map(function ($resolved) use ($related) {
+        return implode('.', $related ? array_slice($resolved, 1) : $resolved);
+      }, FieldResolver::resolveInternalIncludePath($resource_type, $path_parts));
     }, $includes);
+    // Flatten the resolved possible include paths.
+    $public_includes = array_reduce($public_includes, 'array_merge', []);
     // Build the expanded context.
     $context = [
       'account' => NULL,
@@ -271,6 +250,24 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
     }
 
     return $context;
+  }
+
+  /**
+   * Performs mimimal validation of the document.
+   */
+  protected static function validateRequestBody(array $document) {
+    // Ensure that the relationships key was not placed in the top level.
+    if (isset($document['relationships']) && !empty($document['relationships'])) {
+      throw new BadRequestHttpException("Found \"relationships\" within the document's top level. The \"relationships\" key must be within resource object.");
+    }
+    // Ensure that the resource object contains the "type" key.
+    if (!isset($document['data']['type'])) {
+      throw new BadRequestHttpException("Resource object must include a \"type\".");
+    }
+    // Ensure that the client provided ID is a valid UUID.
+    if (isset($document['data']['id']) && !Uuid::isValid($document['data']['id'])) {
+      throw new UnprocessableEntityHttpException('IDs should be properly generated and formatted UUIDs as described in RFC 4122.');
+    }
   }
 
 }

@@ -38,10 +38,15 @@ class FieldablePathController {
     }
 
     // Load entity from the path source.
-    $entity_type = key($params);
+    $param_keys = array_keys($params);
+    $entity_type = array_pop($param_keys);
     $entity = \Drupal::entityTypeManager()
       ->getStorage($entity_type)
       ->load($params[$entity_type]);
+
+    // Make sure the right entity translation is used.
+    $entity = \Drupal::service('entity.repository')
+      ->getTranslationFromContext($entity);
 
     // Make sure the current entity exists.
     if (empty($entity)) {
@@ -133,13 +138,7 @@ class FieldablePathController {
       return;
     }
 
-    // Call proper pathauto hooks.
-    if ($op == 'insert') {
-      pathauto_entity_insert($entity);
-    }
-    elseif ($op == 'update') {
-      pathauto_entity_update($entity);
-    }
+    \Drupal::service('pathauto.generator')->updateEntityAlias($entity, $op);
   }
 
   /**

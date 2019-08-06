@@ -8,6 +8,8 @@ use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
 use Drupal\jsonapi\JsonApiSpec;
 
 /**
+ * Helps normalize the top level document in compliance with the JSON API spec.
+ *
  * @internal
  */
 class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface, RefinableCacheableDependencyInterface {
@@ -17,28 +19,28 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
   /**
    * The values.
    *
-   * @param array
+   * @var array
    */
   protected $values;
 
   /**
    * The includes.
    *
-   * @param array
+   * @var array
    */
   protected $includes;
 
   /**
    * The resource path.
    *
-   * @param array
+   * @var array
    */
   protected $context;
 
   /**
    * Is collection?
    *
-   * @param bool
+   * @var bool
    */
   protected $isCollection;
 
@@ -64,19 +66,21 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
    *   collection of entities.
    * @param array $context
    *   The context.
-   * @param bool $is_collection
-   *   TRUE if this is a serialization for a list.
    * @param array $link_context
    *   All the objects and variables needed to generate the links for this
    *   relationship.
+   * @param bool $is_collection
+   *   TRUE if this is a serialization for a list.
    */
-  public function __construct(array $values, array $context, $is_collection = FALSE, array $link_context) {
+  public function __construct(array $values, array $context, array $link_context, $is_collection = FALSE) {
     $this->values = $values;
     array_walk($values, [$this, 'addCacheableDependency']);
     // Make sure that different sparse fieldsets are cached differently.
     $this->addCacheContexts(array_map(function ($query_parameter_name) {
       return sprintf('url.query_args:%s', $query_parameter_name);
     }, JsonApiSpec::getReservedQueryParameters()));
+    // Every JSON API document contains absolute URLs.
+    $this->addCacheContexts(['url.site']);
 
     $this->context = $context;
     $this->isCollection = $is_collection;
@@ -102,7 +106,16 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
    */
   public function rasterizeValue() {
     // Create the array of normalized fields, starting with the URI.
-    $rasterized = ['data' => []];
+    $rasterized = [
+      'data' => [],
+      'jsonapi' => [
+        'version' => JsonApiSpec::SUPPORTED_SPECIFICATION_VERSION,
+        'meta' => [
+          'links' => ['self' => JsonApiSpec::SUPPORTED_SPECIFICATION_PERMALINK],
+        ],
+      ],
+      'links' => [],
+    ];
 
     foreach ($this->values as $normalizer_value) {
       if ($normalizer_value instanceof HttpExceptionNormalizerValue) {
@@ -111,20 +124,26 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
         $rasterized['meta']['errors'] = array_merge($previous_errors, $normalizer_value->rasterizeValue());
       }
       else {
-        $rasterized['data'][] = $normalizer_value->rasterizeValue();
+        $rasterized_value = $normalizer_value->rasterizeValue();
+        if (array_key_exists('data', $rasterized_value) && array_key_exists('links', $rasterized_value)) {
+          $rasterized['data'][] = $rasterized_value['data'];
+          $rasterized['links'] = NestedArray::mergeDeep($rasterized['links'], $rasterized_value['links']);
+        }
+        else {
+          $rasterized['data'][] = $rasterized_value;
+        }
       }
     }
-    $rasterized['data'] = array_filter($rasterized['data']);
     // Deal with the single entity case.
     $rasterized['data'] = $this->isCollection ?
-      $rasterized['data'] :
+      array_filter($rasterized['data']) :
       reset($rasterized['data']);
 
     // Add the self link.
     if ($this->context['request']) {
       /* @var \Symfony\Component\HttpFoundation\Request $request */
       $request = $this->context['request'];
-      $rasterized['links'] = [
+      $rasterized['links'] += [
         'self' => $this->linkManager->getRequestLink($request),
       ];
       // If this is a collection we need to append the pager data.
@@ -134,10 +153,34 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
 
         // Add the pre-calculated total count to the meta section.
         if (isset($this->context['total_count'])) {
-          $rasterized['meta']['count'] = $this->context['total_count'];
+          $rasterized = NestedArray::mergeDeepArray([
+            $rasterized,
+            ['meta' => ['count' => $this->context['total_count']]],
+          ]);
         }
       }
     }
+
+    // This is the top-level JSON API document, therefore the rasterized value
+    // must include the rasterized includes: there is no further level to bubble
+    // them to!
+    $included = array_filter($this->rasterizeIncludes());
+    if (!empty($included)) {
+      foreach ($included as $included_item) {
+        if ($included_item['data'] === FALSE) {
+          unset($included_item['data']);
+          $rasterized = NestedArray::mergeDeep($rasterized, $included_item);
+        }
+        else {
+          $rasterized['included'][] = $included_item['data'];
+        }
+      }
+    }
+
+    if (empty($rasterized['links'])) {
+      unset($rasterized['links']);
+    }
+
     return $rasterized;
   }
 
@@ -158,10 +201,13 @@ class JsonApiDocumentTopLevelNormalizerValue implements ValueExtractorInterface,
     return array_values(array_reduce($includes, function ($unique_includes, $include) {
       $rasterized_include = $include->rasterizeValue();
 
-      $unique_key = $rasterized_include['data'] === FALSE ?
-        $rasterized_include['meta']['errors'][0]['detail'] :
-        $rasterized_include['data']['type'] . ':' . $rasterized_include['data']['id'];
-      $unique_includes[$unique_key] = $include;
+      if ($rasterized_include['data'] === FALSE) {
+        $unique_includes[] = $include;
+      }
+      else {
+        $unique_key = $rasterized_include['data']['type'] . ':' . $rasterized_include['data']['id'];
+        $unique_includes[$unique_key] = $include;
+      }
       return $unique_includes;
     }, []));
   }
