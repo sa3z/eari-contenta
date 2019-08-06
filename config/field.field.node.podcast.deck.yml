@@ -1,0 +1,19 @@
+uuid: a191cdc0-272e-40ae-9190-c0c40bf6978f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.deck
+    - node.type.podcast
+id: node.podcast.deck
+field_name: deck
+entity_type: node
+bundle: podcast
+label: Deck
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

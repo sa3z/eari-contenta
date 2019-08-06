@@ -1,0 +1,21 @@
+uuid: 6bd8fc93-7b48-4439-95bb-8aca37d9694c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.kicker
+    - node.type.advanced_page
+  module:
+    - options
+id: node.advanced_page.kicker
+field_name: kicker
+entity_type: node
+bundle: advanced_page
+label: Kicker
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

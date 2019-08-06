@@ -1,0 +1,23 @@
+uuid: 09ec8fec-faa3-4940-a083-9eec489f933e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.publish_slides
+    - node.type.webinar
+id: node.webinar.publish_slides
+field_name: publish_slides
+entity_type: node
+bundle: webinar
+label: 'Publish Slides'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

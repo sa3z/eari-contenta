@@ -1,0 +1,19 @@
+uuid: 645cb42a-e2fe-4047-b0c2-8af26cc8a9c3
+langcode: en
+status: true
+dependencies:
+  module:
+    - link
+    - node
+id: node.audio_file_link
+field_name: audio_file_link
+entity_type: node
+type: link
+settings: {  }
+module: link
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

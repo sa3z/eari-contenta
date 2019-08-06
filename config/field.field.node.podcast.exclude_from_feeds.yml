@@ -1,0 +1,23 @@
+uuid: d401459b-555c-4433-9698-3b0b0a4a7e09
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.exclude_from_feeds
+    - node.type.podcast
+id: node.podcast.exclude_from_feeds
+field_name: exclude_from_feeds
+entity_type: node
+bundle: podcast
+label: 'Exclude from feeds'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

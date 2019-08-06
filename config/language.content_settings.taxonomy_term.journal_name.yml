@@ -1,0 +1,11 @@
+uuid: 444fcb1e-c773-403a-8b24-2d7906152589
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.journal_name
+id: taxonomy_term.journal_name
+target_entity_type_id: taxonomy_term
+target_bundle: journal_name
+default_langcode: site_default
+language_alterable: false

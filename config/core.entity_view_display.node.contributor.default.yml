@@ -1,0 +1,35 @@
+uuid: 6dbf48d8-f8ff-49bc-ab42-ab706e30d908
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.contributor.body
+    - node.type.contributor
+  module:
+    - text
+    - user
+id: node.contributor.default
+targetEntityType: node
+bundle: contributor
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  links:
+    weight: 100
+    region: content
+  title:
+    label: hidden
+    type: string
+    weight: -5
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+hidden:
+  langcode: true

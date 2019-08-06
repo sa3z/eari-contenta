@@ -1,0 +1,19 @@
+uuid: f8f408f9-1889-4dd1-b874-70ae39ef6ae5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.teaser
+    - node.type.webinar
+id: node.webinar.teaser
+field_name: teaser
+entity_type: node
+bundle: webinar
+label: Teaser
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

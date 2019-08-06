@@ -1,0 +1,21 @@
+uuid: 0229f38a-a75b-48e7-8266-8eb1252cd8d0
+langcode: en
+status: true
+dependencies:
+  module:
+    - entity_reference_revisions
+    - field_collection
+    - node
+id: field_collection_item.speaker_name
+field_name: speaker_name
+entity_type: field_collection_item
+type: entity_reference_revisions
+settings:
+  target_type: node
+module: entity_reference_revisions
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

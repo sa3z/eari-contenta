@@ -1,0 +1,27 @@
+uuid: c9d12866-dda7-4dae-aec9-28d066793215
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.slides
+    - node.type.webinar
+  module:
+    - file
+id: node.webinar.slides
+field_name: slides
+entity_type: node
+bundle: webinar
+label: Slides
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  file_directory: '[date:custom:Y]-[date:custom:m]'
+  file_extensions: txt
+  max_filesize: ''
+  description_field: false
+  handler: 'default:file'
+  handler_settings: {  }
+field_type: file

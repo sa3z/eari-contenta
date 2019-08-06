@@ -2,6 +2,8 @@ uuid: 0b7d0021-c2f6-4af6-a27c-27a47ea74660
 langcode: und
 status: true
 dependencies:
+  config:
+    - image.style.media_entity_browser_thumbnail
   module:
     - entity_browser
     - image
@@ -559,7 +561,7 @@ display:
         groups:
           1: AND
     cache_metadata:
-      max-age: -1
+      max-age: 0
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
@@ -575,7 +577,7 @@ display:
     display_options:
       display_extenders: {  }
     cache_metadata:
-      max-age: -1
+      max-age: 0
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'

@@ -1,0 +1,19 @@
+uuid: 2c5023b1-134a-49f0-b9a8-3e29e1f8ab02
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.coveritlive
+    - node.type.webinar
+id: node.webinar.coveritlive
+field_name: coveritlive
+entity_type: node
+bundle: webinar
+label: CoveritLive
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

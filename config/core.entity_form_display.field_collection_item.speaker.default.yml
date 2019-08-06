@@ -1,0 +1,24 @@
+uuid: 4a7367ff-f2fa-4d0a-b5fa-fffe095af866
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.field_collection_item.speaker.speaker_name
+    - field_collection.field_collection.speaker
+  module:
+    - entity_reference_revisions
+id: field_collection_item.speaker.default
+targetEntityType: field_collection_item
+bundle: speaker
+mode: default
+content:
+  speaker_name:
+    weight: 0
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: entity_reference_revisions_autocomplete
+    region: content
+hidden: {  }
