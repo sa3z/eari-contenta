@@ -3,6 +3,7 @@
 namespace Drupal\jsonapi_extras\Plugin\jsonapi\FieldEnhancer;
 
 use Drupal\jsonapi_extras\Plugin\DateTimeEnhancerBase;
+use Shaper\Util\Context;
 
 /**
  * Perform additional manipulations to datetime fields.
@@ -18,9 +19,9 @@ class DateTimeFromStringEnhancer extends DateTimeEnhancerBase {
   /**
    * {@inheritdoc}
    */
-  public function postProcess($value) {
+  protected function doUndoTransform($data, Context $context) {
     $storage_timezone = new \DateTimezone(DATETIME_STORAGE_TIMEZONE);
-    $date = new \DateTime($value, $storage_timezone);
+    $date = new \DateTime($data, $storage_timezone);
 
     $configuration = $this->getConfiguration();
 
@@ -33,8 +34,8 @@ class DateTimeFromStringEnhancer extends DateTimeEnhancerBase {
   /**
    * {@inheritdoc}
    */
-  public function prepareForInput($value) {
-    $date = new \DateTime($value);
+  protected function doTransform($data, Context $context) {
+    $date = new \DateTime($data);
 
     // Adjust the date for storage.
     $storage_timezone = new \DateTimezone(DATETIME_STORAGE_TIMEZONE);

@@ -2,7 +2,9 @@
 
 namespace Drupal\jsonapi_extras\Plugin\jsonapi\FieldEnhancer;
 
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\jsonapi_extras\Plugin\DateTimeEnhancerBase;
+use Shaper\Util\Context;
 
 /**
  * Perform additional manipulations to timestamp fields.
@@ -18,9 +20,12 @@ class DateTimeEnhancer extends DateTimeEnhancerBase {
   /**
    * {@inheritdoc}
    */
-  public function postProcess($value) {
+  protected function doUndoTransform($data, Context $context) {
     $date = new \DateTime();
-    $date->setTimestamp($value);
+    $date->setTimestamp(is_int($data)
+      ? $data
+      : (new DrupalDateTime($data))->getTimestamp()
+    );
     $configuration = $this->getConfiguration();
 
     return $date->format($configuration['dateTimeFormat']);
@@ -29,9 +34,8 @@ class DateTimeEnhancer extends DateTimeEnhancerBase {
   /**
    * {@inheritdoc}
    */
-  public function prepareForInput($value) {
-    $date = new \DateTime($value);
-
+  protected function doTransform($data, Context $context) {
+    $date = new \DateTime($data);
     return (int) $date->format('U');
   }
 

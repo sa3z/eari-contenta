@@ -19,17 +19,7 @@ abstract class DateTimeEnhancerBase extends ResourceFieldEnhancerBase {
   /**
    * {@inheritdoc}
    */
-  abstract public function postProcess($value);
-
-  /**
-   * {@inheritdoc}
-   */
-  abstract public function prepareForInput($value);
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getJsonSchema() {
+  public function getOutputJsonSchema() {
     return [
       'type' => 'string',
     ];

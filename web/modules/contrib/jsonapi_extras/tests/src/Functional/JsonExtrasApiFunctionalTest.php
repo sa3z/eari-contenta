@@ -67,7 +67,6 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
     ]);
     $field_config->save();
 
-
     $config = \Drupal::configFactory()->getEditable('jsonapi_extras.settings');
     $config->set('path_prefix', 'api');
     $config->set('include_count', TRUE);
@@ -76,7 +75,11 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
     static::overrideResources();
     $this->resetAll();
     $role = $this->user->get('roles')[0]->entity;
-    $this->grantPermissions($role, ['administer nodes', 'administer site configuration']);
+    $this->grantPermissions($role, [
+      'administer nodes',
+      'administer site configuration',
+      'access user profiles',
+    ]);
   }
 
   /**
@@ -178,7 +181,7 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 13. Test a disabled related resource of single cardinality.
     $this->drupalGet('/api/taxonomy_term/tags/' . $this->tags[0]->uuid() . '/vid');
     $this->assertSession()->statusCodeEquals(404);
-    $this->drupalGet('/api/taxonomy_term/tags/' . $this->tags[0]->uuid() . '/relationships/vid');
+    Json::decode($this->drupalGet('/api/taxonomy_term/tags/' . $this->tags[0]->uuid() . '/relationships/vid'));
     $this->assertSession()->statusCodeEquals(404);
 
     // 14. Test a disabled related resource of multiple cardinality.
@@ -258,7 +261,7 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode((string) $response->getBody());
@@ -275,12 +278,12 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
     $relationships_url = Url::fromUserInput('/api/articles/' . $uuid . '/relationships/tags');
     $body = [
       'data' => [
-        ['type' => 'taxonomy_term--tags', 'id' => $this->tags[2]->uuid()]
+        ['type' => 'taxonomy_term--tags', 'id' => $this->tags[2]->uuid()],
       ],
     ];
     $response = $this->request('POST', $relationships_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode((string) $response->getBody());
@@ -291,12 +294,13 @@ class JsonExtrasApiFunctionalTest extends JsonApiFunctionalTestBase {
    * Creates the JSON API Resource Config entities to override the resources.
    */
   protected static function overrideResources() {
-    // Disable the user resource.
+    // Disable the taxonomy_vocabulary resource.
     JsonapiResourceConfig::create([
       'id' => 'taxonomy_vocabulary--taxonomy_vocabulary',
       'disabled' => TRUE,
       'path' => 'taxonomy_vocabulary/taxonomy_vocabulary',
       'resourceType' => 'taxonomy_vocabulary--taxonomy_vocabulary',
+      'resourceFields' => [],
     ])->save();
     // Override paths and fields in the articles resource.
     JsonapiResourceConfig::create([

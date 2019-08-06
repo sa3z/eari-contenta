@@ -1,7 +1,7 @@
 name: Material Admin
 type: theme
 description: 'Material Design Admin Theme'
-# core: 8.x
+core: 8.x
 base theme: classy
 
 # Image appears on admin/appearance
@@ -59,9 +59,3 @@ regions:
   sidebar_first: 'First sidebar'
 regions_hidden:
   - sidebar_first
-
-# Information added by Drupal.org packaging script on 2018-11-28
-version: '8.x-1.0-alpha7'
-core: '8.x'
-project: 'material_admin'
-datestamp: 1543440189

@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Url;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository;
+use Drupal\jsonapi_extras\ResourceType\NullJsonapiResourceConfig;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -192,7 +193,7 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
       /** @var \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig $resource_config */
       $resource_config = $resource_type->getJsonapiResourceConfig();
-      if ($resource_config->id()) {
+      if (!$resource_config instanceof NullJsonapiResourceConfig) {
         $row['state']['#value'] = $this->t('Overwritten');
         $row['state']['#attributes']['class'][] = 'label--overwritten';
         $row['operations']['#links'] = $this->getDefaultOperations($resource_config);

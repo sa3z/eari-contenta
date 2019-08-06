@@ -161,10 +161,7 @@ class JsonapiResourceConfigForm extends EntityForm {
         return $form;
       }
       $form['bundle_wrapper']['fields_wrapper'] = $this->buildOverridesForm($resource_type, $entity);
-      $form['id'] = [
-        '#type' => 'hidden',
-        '#value' => sprintf('%s--%s', $entity_type_id, $bundle),
-      ];
+      $form['id'] = ['#type' => 'hidden', '#value' => $resource_config_id];
     }
 
     return $form;
@@ -224,6 +221,7 @@ class JsonapiResourceConfigForm extends EntityForm {
    */
   protected function buildOverridesForm(ResourceType $resource_type, JsonapiResourceConfig $entity) {
     $entity_type_id = $resource_type->getEntityTypeId();
+    /** @var \Drupal\Core\Config\Entity\ConfigEntityTypeInterface $entity_type */
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
     $bundle = $resource_type->getBundle();
     if ($entity_type instanceof ContentEntityTypeInterface) {
@@ -231,9 +229,12 @@ class JsonapiResourceConfigForm extends EntityForm {
         return $field_definition->getName();
       }, $this->fieldManager->getFieldDefinitions($entity_type_id, $bundle));
     }
-    else {
-      $field_names = array_keys($entity_type->getPropertiesToExport());
+    elseif ($properties = $entity_type->getPropertiesToExport()) {
+      $field_names = array_keys($properties);
       array_unshift($field_names, $entity_type->getKey('id'));
+    }
+    else {
+      $field_names = [];
     }
 
     $overrides_form['overrides']['entity'] = [
@@ -309,16 +310,22 @@ class JsonapiResourceConfigForm extends EntityForm {
 
     $overrides_form['overrides']['fields']['resourceFields'] = [
       '#type' => 'table',
+      '#theme' => 'expandable_rows_table',
       '#header' => [
         'disabled' => $this->t('Disabled'),
         'fieldName' => $this->t('Field name'),
         'publicName' => $this->t('Alias'),
-        'enhancer' => $this->t('Enhancer'),
+        'advancedOptions' => '',
       ],
       '#empty' => $this->t('No fields available.'),
       '#states' => [
         'visible' => [
           ':input[name="disabled"]' => ['checked' => FALSE],
+        ],
+      ],
+      '#attached' => [
+        'library' => [
+          'jsonapi_extras/expandable_rows_table',
         ],
       ],
     ];
@@ -358,7 +365,8 @@ class JsonapiResourceConfigForm extends EntityForm {
    *   The partial form.
    */
   protected function buildOverridesField($field_name, JsonapiResourceConfig $entity) {
-    $resource_fields = array_filter($entity->get('resourceFields'), function (array $resource_field) use ($field_name) {
+    $rfs = $entity->get('resourceFields') ?: [];
+    $resource_fields = array_filter($rfs, function (array $resource_field) use ($field_name) {
       return $resource_field['fieldName'] == $field_name;
     });
     $resource_field = array_shift($resource_fields);
@@ -387,8 +395,22 @@ class JsonapiResourceConfigForm extends EntityForm {
         ],
       ],
     ];
+    $overrides_form['advancedOptions'] = [
+      '#markup' => t('Advanced'),
+    ];
+
+    $overrides_form['advancedOptionsIcon'] = [
+      // Here we are just printing an arrow.
+      '#markup' => '&#x21B3;',
+    ];
+
+    $overrides_form['enhancer_label'] = [
+      '#markup' => $this->t('Enhancer for: %name', ['%name' => $field_name]),
+    ];
+
     // Build the select field for the list of enhancers.
     $overrides_form['enhancer'] = [
+      '#wrapper_attributes' => ['colspan' => 2],
       '#type' => 'fieldgroup',
       '#states' => [
         'visible' => [
@@ -404,7 +426,7 @@ class JsonapiResourceConfigForm extends EntityForm {
         $carry[$definition['id']] = $definition['label'];
         return $carry;
       },
-      ['' => $this->t('- Select -')]
+      ['' => $this->t('- None -')]
     );
     $id = empty($resource_field['enhancer']['id'])
       ? ''
@@ -450,6 +472,19 @@ class JsonapiResourceConfigForm extends EntityForm {
     $field_name = rtrim($parts[1], ']');
     // Now return the sub-tree for the settings on the enhancer plugin.
     return $form['bundle_wrapper']['fields_wrapper']['overrides']['fields']['resourceFields'][$field_name]['enhancer']['settings'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function actionsElement(array $form, FormStateInterface $form_state) {
+    // We want to display "Revert" instead of "Delete" on the Resource Config
+    // Form.
+    $element = parent::actionsElement($form, $form_state);
+    if (isset($element['delete'])) {
+      $element['delete']['#title'] = $this->t('Revert');
+    }
+    return $element;
   }
 
 }

@@ -10,6 +10,8 @@
         }
     ],
     "require": {
-        "drupal/jsonapi": "^1.12"
+        "drupal/core": "^8.5",
+        "drupal/jsonapi": "^1.22",
+        "e0ipso/shaper": "^1"
     }
 }

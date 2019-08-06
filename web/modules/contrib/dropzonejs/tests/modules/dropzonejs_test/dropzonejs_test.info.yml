@@ -5,10 +5,10 @@ package: Testing
 # version: VERSION
 # core: 8.x
 dependencies:
- - dropzonejs
+ - dropzonejs:dropzonejs
 
-# Information added by Drupal.org packaging script on 2019-03-29
-version: '8.x-1.0-alpha9'
+# Information added by Drupal.org packaging script on 2019-04-16
+version: '8.x-2.0-alpha4'
 core: '8.x'
 project: 'dropzonejs'
-datestamp: 1553860385
+datestamp: 1555407787

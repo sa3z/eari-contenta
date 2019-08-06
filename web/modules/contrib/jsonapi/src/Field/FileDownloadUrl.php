@@ -17,7 +17,7 @@ class FileDownloadUrl extends FieldItemList {
   use ComputedItemListTrait;
 
   /**
-   * Creates URL out of a URI.
+   * Creates a relative URL out of a URI.
    *
    * This is a wrapper to the procedural code for testing purposes. For obvious
    * reasons this method will not be unit tested, but that is fine since it's
@@ -29,10 +29,10 @@ class FileDownloadUrl extends FieldItemList {
    * @return string
    *   The transformed relative URL.
    */
-  protected function fileCreateUrl($uri) {
+  protected function fileCreateRootRelativeUrl($uri) {
     $wrapper = \Drupal::service('stream_wrapper_manager')->getViaUri($uri);
     if ($wrapper && ($wrapper->getType() & StreamWrapperInterface::VISIBLE)) {
-      return file_create_url($uri);
+      return file_url_transform_relative(file_create_url($uri));
     }
 
     // For testing purposes, return the $uri when the scheme is not a wrapper or
@@ -55,7 +55,7 @@ class FileDownloadUrl extends FieldItemList {
   protected function computeValue() {
     $url_list = [];
     foreach ($this->getEntity()->get('uri') as $delta => $uri_item) {
-      $path = $this->fileCreateUrl($uri_item->value);
+      $path = $this->fileCreateRootRelativeUrl($uri_item->value);
       $url_list[$delta] = $this->createItem($delta, $path);
     }
     $this->list = $url_list;

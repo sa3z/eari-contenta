@@ -194,6 +194,7 @@ class EntityReferenceWidgetTest extends EntityBrowserWebDriverTestBase {
         'auto_open' => FALSE,
       ]);
     $browser->save();
+
     // We'll need a third node to be able to make a new selection.
     $target_node2 = Node::create([
       'title' => 'Target example node 2',

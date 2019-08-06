@@ -3,6 +3,12 @@
 namespace Drupal\jsonapi_extras\Plugin;
 
 use Drupal\Core\Plugin\PluginBase;
+use JsonSchema\Constraints\Constraint;
+use JsonSchema\Validator;
+use Shaper\DataAdaptor\DataAdaptorTransformerTrait;
+use Shaper\DataAdaptor\DataAdaptorValidatorTrait;
+use Shaper\Validator\AcceptValidator;
+use Shaper\Validator\JsonSchemaValidator;
 
 /**
  * Common base class for resourceFieldEnhancer plugins.
@@ -15,6 +21,9 @@ use Drupal\Core\Plugin\PluginBase;
  * @ingroup third_party
  */
 abstract class ResourceFieldEnhancerBase extends PluginBase implements ResourceFieldEnhancerInterface {
+
+  use DataAdaptorValidatorTrait;
+  use DataAdaptorTransformerTrait;
 
   /**
    * Holds the plugin configuration.
@@ -60,6 +69,28 @@ abstract class ResourceFieldEnhancerBase extends PluginBase implements ResourceF
    */
   public function getSettingsForm(array $resource_field_info) {
     return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getInternalValidator() {
+    return new AcceptValidator();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getInputValidator() {
+    // @TODO: Implement a getInputJsonSchema method.
+    return new AcceptValidator();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOutputValidator() {
+    return new JsonSchemaValidator($this->getOutputJsonSchema(), new Validator(), Constraint::CHECK_MODE_TYPE_CAST);
   }
 
 }

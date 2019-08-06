@@ -38,16 +38,16 @@ trait PriorityTaggedServiceTrait
      */
     private function findAndSortTaggedServices($tagName, ContainerBuilder $container)
     {
-        $services = array();
+        $services = [];
 
-        foreach ($container->findTaggedServiceIds($tagName) as $serviceId => $attributes) {
+        foreach ($container->findTaggedServiceIds($tagName, true) as $serviceId => $attributes) {
             $priority = isset($attributes[0]['priority']) ? $attributes[0]['priority'] : 0;
             $services[$priority][] = new Reference($serviceId);
         }
 
         if ($services) {
             krsort($services);
-            $services = call_user_func_array('array_merge', $services);
+            $services = \call_user_func_array('array_merge', $services);
         }
 
         return $services;

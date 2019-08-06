@@ -5,6 +5,7 @@ namespace Drupal\jsonapi_extras\Plugin\jsonapi\FieldEnhancer;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\jsonapi_extras\Plugin\ResourceFieldEnhancerBase;
+use Shaper\Util\Context;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -48,20 +49,20 @@ class UuidLinkEnhancer extends ResourceFieldEnhancerBase implements ContainerFac
   /**
    * {@inheritdoc}
    */
-  public function postProcess($value) {
-    if (isset($value['uri'])) {
+  protected function doUndoTransform($data, Context $context) {
+    if (isset($data['uri'])) {
       // Check if it is a link to an entity.
-      preg_match("/entity:(.*)\/(.*)/", $value['uri'], $parsed_uri);
+      preg_match("/entity:(.*)\/(.*)/", $data['uri'], $parsed_uri);
       if (!empty($parsed_uri)) {
         $entity_type = $parsed_uri[1];
         $entity_id = $parsed_uri[2];
         $entity = $this->entityTypeManager->getStorage($entity_type)->load($entity_id);
         if (!is_null($entity)) {
-          $value['uri'] = 'entity:' . $entity_type . '/' . $entity->bundle() . '/' . $entity->uuid();
+          $data['uri'] = 'entity:' . $entity_type . '/' . $entity->bundle() . '/' . $entity->uuid();
         }
         // Remove the value.
         else {
-          $value = [
+          $data = [
             'uri' => '',
             'title' => '',
             'options' => [],
@@ -70,13 +71,13 @@ class UuidLinkEnhancer extends ResourceFieldEnhancerBase implements ContainerFac
       }
     }
 
-    return $value;
+    return $data;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function prepareForInput($value) {
+  protected function doTransform($value, Context $context) {
     if (isset($value['uri'])) {
       // Check if it is a link to an entity.
       preg_match("/entity:(.*)\/(.*)\/(.*)/", $value['uri'], $parsed_uri);
@@ -101,7 +102,7 @@ class UuidLinkEnhancer extends ResourceFieldEnhancerBase implements ContainerFac
   /**
    * {@inheritdoc}
    */
-  public function getJsonSchema() {
+  public function getOutputJsonSchema() {
     return [
       'type' => 'object',
     ];

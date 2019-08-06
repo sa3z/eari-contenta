@@ -11,7 +11,7 @@ dependencies:
   - drupal:views
 
 # Information added by Drupal.org packaging script on 2019-07-04
-version: '8.x-1.8'
+version: '8.x-2.2'
 core: '8.x'
 project: 'entity_browser'
-datestamp: 1562241187
+datestamp: 1562240594

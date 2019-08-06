@@ -2,6 +2,7 @@
 
 namespace Drupal\jsonapi_extras;
 
+use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository;
@@ -22,9 +23,16 @@ class JsonapiExtrasServiceProvider extends ServiceProviderBase {
       $definition->setClass(ConfigurableResourceTypeRepository::class);
       // The configurable service expects the entity repository and the enhancer
       // plugin manager.
-      $definition->addArgument(new Reference('entity.repository'));
-      $definition->addArgument(new Reference('plugin.manager.resource_field_enhancer'));
-      $definition->addArgument(new Reference('config.factory'));
+      $definition->addMethodCall('setEntityRepository', [new Reference('entity.repository')]);
+      $definition->addMethodCall('setEnhancerManager', [new Reference('plugin.manager.resource_field_enhancer')]);
+      $definition->addMethodCall('setConfigFactory', [new Reference('config.factory')]);
+    }
+
+    $settings = BootstrapConfigStorageFactory::get()
+      ->read('jsonapi_extras.settings');
+
+    if ($settings !== FALSE) {
+      $container->setParameter('jsonapi.base_path', '/' . $settings['path_prefix']);
     }
   }
 

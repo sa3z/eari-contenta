@@ -4,8 +4,9 @@ dependencies:
   enforced:
     module:
       - recipes_magazin
+      - image
   module:
-    - media_entity
+    - media
     - node
 id: node.field_image
 field_name: field_image
