@@ -6,7 +6,6 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\file\Entity\File;
-use Drupal\jsonapi\LinkManager\LinkManager;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
@@ -16,7 +15,6 @@ use Drupal\Tests\jsonapi\Kernel\JsonapiKernelTestBase;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
-use Prophecy\Argument;
 
 /**
  * @coversDefaultClass \Drupal\jsonapi_extras\EntityToJsonApi
@@ -140,20 +138,6 @@ class EntityToJsonApiTest extends JsonapiKernelTestBase {
 
     $this->node->save();
 
-    $link_manager = $this->prophesize(LinkManager::class);
-    $link_manager
-      ->getEntityLink(
-        Argument::any(),
-        Argument::any(),
-        Argument::type('array'),
-        Argument::type('string')
-      )
-      ->willReturn('dummy_entity_link');
-    $link_manager
-      ->getRequestLink(Argument::any())
-      ->willReturn('dummy_document_link');
-    $this->container->set('jsonapi.link_manager', $link_manager->reveal());
-
     $this->nodeType = NodeType::load('article');
 
     $this->role = Role::create([
@@ -180,7 +164,7 @@ class EntityToJsonApiTest extends JsonapiKernelTestBase {
             'type' => 'taxonomy_term--tags',
             'id' => $this->term1->uuid(),
             'attributes' => [
-              'tid' => (int) $this->term1->id(),
+              'drupal_internal__tid' => (int) $this->term1->id(),
               'name' => $this->term1->label(),
             ],
           ],
@@ -188,7 +172,7 @@ class EntityToJsonApiTest extends JsonapiKernelTestBase {
             'type' => 'taxonomy_term--tags',
             'id' => $this->term2->uuid(),
             'attributes' => [
-              'tid' => (int) $this->term2->id(),
+              'drupal_internal__tid' => (int) $this->term2->id(),
               'name' => $this->term2->label(),
             ],
           ],
@@ -198,9 +182,7 @@ class EntityToJsonApiTest extends JsonapiKernelTestBase {
       [$this->file, [], []],
       [$this->term1, [], []],
       // Make sure we also support configuration entities.
-      [$this->vocabulary, [], []],
       [$this->nodeType, [], []],
-      [$this->role, [], []],
     ];
 
     array_walk(
@@ -244,23 +226,26 @@ class EntityToJsonApiTest extends JsonapiKernelTestBase {
   }
 
   /**
-   * Helper to assert if a string is valid JSON API.
+   * Helper to assert if a string is valid JSON:API.
    *
    * @param array $structured
-   *   The JSON API data to check.
+   *   The JSON:API data to check.
    */
   protected function assertJsonApi(array $structured) {
     static::assertNotEmpty($structured['data']['type']);
     static::assertNotEmpty($structured['data']['id']);
     static::assertNotEmpty($structured['data']['attributes']);
-    static::assertInternalType('string', $structured['links']['self']);
+    static::assertInternalType(
+      'string',
+      $structured['data']['links']['self']['href']
+    );
   }
 
   /**
    * Shallowly checks the list of includes.
    *
    * @param array $structured
-   *   The JSON API data to check.
+   *   The JSON:API data to check.
    * @param array[] $includes
    *   The list of partial structures of the "included" key.
    */

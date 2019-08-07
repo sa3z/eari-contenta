@@ -45,24 +45,6 @@ class ConfigurableResourceType extends ResourceType {
   protected $cache = [];
 
   /**
-   * {@inheritdoc}
-   *
-   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
-   */
-  public function getPublicName($field_name) {
-    return $this->translateFieldName($field_name, 'fieldName', 'publicName');
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
-   */
-  public function getInternalName($field_name) {
-    return $this->translateFieldName($field_name, 'publicName', 'fieldName');
-  }
-
-  /**
    * Returns the jsonapi_resource_config.
    *
    * @return \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig
@@ -88,18 +70,6 @@ class ConfigurableResourceType extends ResourceType {
 
   /**
    * {@inheritdoc}
-   *
-   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
-   */
-  public function isFieldEnabled($field_name) {
-    $resource_field = $this->getResourceFieldConfiguration($field_name);
-    return $resource_field
-      ? empty($resource_field['disabled'])
-      : parent::isFieldEnabled($field_name);
-  }
-
-  /**
-   * {@inheritdoc}
    */
   public function includeCount() {
     return $this->configFactory
@@ -119,7 +89,7 @@ class ConfigurableResourceType extends ResourceType {
     if (!$config_path) {
       return parent::getPath();
     }
-    return $config_path;
+    return '/' . ltrim($config_path, '/');
   }
 
   /**
@@ -173,18 +143,6 @@ class ConfigurableResourceType extends ResourceType {
   }
 
   /**
-   * Setter for the $internal flag.
-   *
-   * @param bool $is_internal
-   *   Indicates if the resource is not public.
-   *
-   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
-   */
-  public function setInternal($is_internal) {
-    $this->internal = $is_internal;
-  }
-
-  /**
    * Get the field enhancer plugin.
    *
    * @param string $field_name
@@ -221,28 +179,6 @@ class ConfigurableResourceType extends ResourceType {
       return NULL;
     }
 
-  }
-
-  /**
-   * Given the internal or public field name, get the other one.
-   *
-   * @param string $field_name
-   *   The name of the field.
-   * @param string $from
-   *   The realm of the provided field name.
-   * @param string $to
-   *   The realm of the desired field name.
-   *
-   * @return string
-   *   The field name in the desired realm.
-   *
-   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
-   */
-  private function translateFieldName($field_name, $from, $to) {
-    $resource_field = $this->getResourceFieldConfiguration($field_name, $from);
-    return empty($resource_field[$to])
-      ? $field_name
-      : $resource_field[$to];
   }
 
 }

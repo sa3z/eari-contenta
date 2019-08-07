@@ -4,6 +4,7 @@
   <testsuites>
     <testsuite name="jsonapi_extras">
       <directory>./src/</directory>
+      <directory>../modules/jsonapi_defaults/tests/src/</directory>
     </testsuite>
   </testsuites>
   <!-- Filter for coverage reports. -->

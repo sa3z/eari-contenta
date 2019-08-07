@@ -3,8 +3,12 @@
 namespace Drupal\jsonapi\Normalizer\Value;
 
 /**
- * Helps normalize exceptions in compliance with the JSON API spec.
+ * Helps normalize exceptions in compliance with the JSON:API spec.
  *
- * @internal
+ * @internal JSON:API maintains no PHP API since its API is the HTTP API. This
+ *   class may change at any time and this will break any dependencies on it.
+ *
+ * @see https://www.drupal.org/project/jsonapi/issues/3032787
+ * @see jsonapi.api.php
  */
-class HttpExceptionNormalizerValue extends FieldNormalizerValue {}
+class HttpExceptionNormalizerValue extends CacheableNormalization {}

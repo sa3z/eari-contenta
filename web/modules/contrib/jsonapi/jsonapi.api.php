@@ -2,25 +2,25 @@
 
 /**
  * @file
- * Documentation related to JSON API.
+ * Documentation related to JSON:API.
  */
 
 use Drupal\Core\Access\AccessResult;
 
 /**
- * @defgroup jsonapi_normalizer_architecture JSON API Normalizer Architecture
+ * @defgroup jsonapi_architecture JSON:API Architecture
  * @{
  *
  * @section overview Overview
- * The JSON API module is a Drupal-centric implementation of the JSON API
- * specification. By its own definition, the JSON API specification is "is a
+ * The JSON:API module is a Drupal-centric implementation of the JSON:API
+ * specification. By its own definition, the JSON:API specification "is a
  * specification for how a client should request that resources be fetched or
  * modified, and how a server should respond to those requests. [It] is designed
  * to minimize both the number of requests and the amount of data transmitted
  * between clients and servers. This efficiency is achieved without compromising
  * readability, flexibility, or discoverability."
  *
- * While "Drupal-centric", the JSON API module is committed to strict compliance
+ * While "Drupal-centric", the JSON:API module is committed to strict compliance
  * with the specification. Wherever possible, the module attempts to implement
  * the specification in a way which is compatible and familiar with the patterns
  * and concepts inherent to Drupal. However, when "Drupalisms" cannot be
@@ -29,76 +29,129 @@ use Drupal\Core\Access\AccessResult;
  *
  * @see http://jsonapi.org/
  *
- *
  * @section resources Resources
  * Every unit of data in the specification is a "resource". The specification
  * defines how a client should interact with a server to fetch and manipulate
  * these resources.
  *
- * The JSON API module maps every entity type + bundle to a resource type.
+ * The JSON:API module maps every entity type + bundle to a resource type.
  * Since the specification does not have a concept of resource type inheritance
- * or composition, the JSON API module implements different bundles of the same
+ * or composition, the JSON:API module implements different bundles of the same
  * entity type as *distinct* resource types.
  *
  * While it is theoretically possible to expose arbitrary data as resources, the
- * JSON API module only exposes resources from (config and content) entities.
+ * JSON:API module only exposes resources from (config and content) entities.
  * This eliminates the need for another abstraction layer in order implement
  * certain features of the specification.
  *
- *
  * @section relationships Relationships
  * The specification defines semantics for the "relationships" between
- * resources. Since the JSON API module defines every entity type + bundle as a
+ * resources. Since the JSON:API module defines every entity type + bundle as a
  * resource type and does not allow non-entity resources, it is able to use
  * entity references to automatically define and represent the relationships
  * between all resources.
  *
+ * @section revisions Resource versioning
+ * The JSON:API module exposes entity revisions in a manner inspired by RFC5829:
+ * Link Relation Types for Simple Version Navigation between Web Resources.
  *
- * @section normalizers Normalizers
- * The JSON API module reuses as many of Drupal core's Serialization module's
- * normalizers as possible.
+ * Revision support is not an official part of the JSON:API specification.
+ * However, a number of "profiles" are being developed (also not officially part
+ * in the spec, but already committed to JSON:API v1.1) to standardize any
+ * custom behaviors that the JSON:API module has developed (all of which are
+ * still specification-compliant).
  *
- * The JSON API specification requires special handling for resources
- * (entities), relationships between those resources (entity references) and
- * resource IDs (entity UUIDs), it must override some of the Serialization
- * module's normalizers for entities and fields (most notably, entity
- * reference fields).
+ * @see https://github.com/json-api/json-api/pull/1268
+ * @see https://github.com/json-api/json-api/pull/1311
+ * @see https://www.drupal.org/project/jsonapi/issues/2955020
  *
- * This means that modules which provide additional field types must implement
- * normalizers at the "DataType" plugin level. This is a level below "FieldType"
- * plugins. Normalizers which are not implemented at this level will not be used
- * by the JSON API module.
+ * By implementing revision support as a profile, the JSON:API module should be
+ * maximally compatible with other systems.
  *
- * A benefit of implementing normalizers at this lower level is that they will
- * work automatically for both the JSON API module and core's REST module.
+ * A "version" in the JSON:API module is any revision that was previously, or is
+ * currently, a default revision. Not all revisions are considered to be a
+ * "version". Revisions that are not marked as a "default" revision are
+ * considered "working copies" since they are not usually publicly available
+ * and are the revisions to which most new work is applied.
  *
+ * When the Content Moderation module is installed, it is possible that the
+ * most recent default revision is *not* the latest revision.
+ *
+ * Requesting a resource version is done via a URL query parameter. It has the
+ * following form:
+ *
+ * @code
+ *              version-identifier
+ *                    __|__
+ *                   /     \
+ * ?resource_version=foo:bar
+ *                   \_/ \_/
+ *                    |   |
+ *    version-negotiator  |
+ *                version-argument
+ * @endcode
+ *
+ * A version identifier is a string with enough information to load a
+ * particular revision. The version negotiator component names the negotiation
+ * mechanism for loading a revision. Currently, this can be either `id` or
+ * `rel`. The `id` negotiator takes a version argument which is the desired
+ * revision ID. The `rel` negotiator takes a version argument which is either
+ * the string `latest-version` or the string `working-copy`.
+ *
+ * In the future, other negotiatiors may be developed, such as negotiatiors that
+ * are UUID-, timestamp-, or workspace-based.
+ *
+ * To illustrate how a particular entity revision is requested, imagine a node
+ * that has a "Published" revision and a subsequent "Draft" revision.
+ *
+ * Using JSON:API, one could request the "Published" node by requesting
+ * `/jsonapi/node/page/{{uuid}}?resource_version=rel:latest-version`.
+ *
+ * To preview an entity that is still a work-in-progress (i.e. the "Draft"
+ * revision) one could request
+ * `/jsonapi/node/page/{{uuid}}?resource_version=rel:working-copy`.
+ *
+ * To request a specific revision ID, one can request
+ * `/jsonapi/node/page/{{uuid}}?resource_version=id:{{revision_id}}`.
+ *
+ * It is not yet possible to request a collection of revisions. This is still
+ * under development in issue [#3009588].
+ *
+ * @see https://www.drupal.org/project/jsonapi/issues/3009588.
+ * @see https://tools.ietf.org/html/rfc5829
+ * @see https://www.drupal.org/docs/8/modules/jsonapi/revisions
+ *
+ * @section translations Resource translations
+ *
+ * Some multilingual features currently do not work well with JSON:API. See
+ * JSON:API modules's multilingual support documentation online for more
+ * information on the current status of multilingual support.
+ *
+ * @see https://www.drupal.org/docs/8/modules/jsonapi/translations
  *
  * @section api API
- * The JSON API module provides an HTTP API that adheres to the JSON API
+ * The JSON:API module provides an HTTP API that adheres to the JSON:API
  * specification.
  *
- * The JSON API module provides *no PHP API to modify its behavior.* It is
+ * The JSON:API module provides *no PHP API to modify its behavior.* It is
  * designed to have zero configuration.
  *
  * - Adding new resources/resource types is unsupported: all entities/entity
  *   types are exposed automatically. If you want to expose more data via the
- *   JSON API module, the data must be defined as entity. See the "Resources"
+ *   JSON:API module, the data must be defined as entity. See the "Resources"
  *   section.
- * - Custom field normalization is not supported; only normalizers at the
- *   "DataType" plugin level are supported (these are a level below field
- *   types).
+ * - Custom field type normalization is not supported because the JSON:API
+ *   specification requires specific representations for resources (entities),
+ *   attributes on resources (non-entity reference fields) and relationships
+ *   between those resources (entity reference fields). A field contains
+ *   properties, and properties are of a certain data type. All non-internal
+ *   properties on a field are normalized.
+ * - The same data type normalizers as those used by core's Serialization and
+ *   REST modules are also used by the JSON:API module.
  * - All available authentication mechanisms are allowed.
  *
- * The JSON API module does provide a PHP API to generate a JSON API
- * representation of entities:
- *
- * @code
- * \Drupal::service('jsonapi.entity.to_jsonapi')->serialize($entity)
- * @endcode
- *
- *
  * @section tests Test Coverage
- * The JSON API module comes with extensive unit and kernel tests. But most
+ * The JSON:API module comes with extensive unit and kernel tests. But most
  * importantly for end users, it also has comprehensive integration tests. These
  * integration tests are designed to:
  *
@@ -107,29 +160,30 @@ use Drupal\Core\Access\AccessResult;
  * - guarantee 100% of Drupal core's entity types work as expected
  *
  * The integration tests test the same common cases and edge cases using
- * @code \Drupal\Tests\jsonapi\Functional\ResourceTestBase @endcode, which is a
- * base class subclassed for every entity type that Drupal core ships with. It
- * is ensured that 100% of Drupal core's entity types are tested thanks to
- * @code \Drupal\Tests\jsonapi\Functional\TestCoverageTest @endcode.
+ * \Drupal\Tests\jsonapi\Functional\ResourceTestBase, which is a base class
+ * subclassed for every entity type that Drupal core ships with. It is ensured
+ * that 100% of Drupal core's entity types are tested thanks to
+ * \Drupal\Tests\jsonapi\Functional\TestCoverageTest.
  *
  * Custom entity type developers can get the same assurances by subclassing it
  * for their entity types.
- *
  *
  * @section bc Backwards Compatibility
  * PHP API: there is no PHP API except for three security-related hooks. This
  * means that this module's implementation details are entirely free to
  * change at any time.
  *
- * Please note, *normalizers are internal implementation details.* While
+ * Note that *normalizers are internal implementation details.* While
  * normalizers are services, they are *not* to be used directly. This is due to
- * the design of the Symfony Serialization component, not because the JSON API
+ * the design of the Symfony Serialization component, not because the JSON:API
  * module wanted to publicly expose services.
  *
  * HTTP API: URLs and JSON response structures are considered part of this
- * module's public API. However, inconsistencies with the JSON API specification
+ * module's public API. However, inconsistencies with the JSON:API specification
  * will be considered bugs. Fixes which bring the module into compliance with
- * the specification are *not* guaranteed to be backwards compatible.
+ * the specification are *not* guaranteed to be backwards-compatible. When
+ * compliance bugs are found, clients are expected to be made compatible with
+ * both the pre-fix and post-fix representations.
  *
  * What this means for developing consumers of the HTTP API is that *clients
  * should be implemented from the specification first and foremost.* This should
@@ -137,18 +191,18 @@ use Drupal\Core\Access\AccessResult;
  * with the specification that are specific to this module.
  *
  * To help develop compatible clients, every response indicates the version of
- * the JSON API specification used under its "jsonapi" key. Future releases
+ * the JSON:API specification used under its "jsonapi" key. Future releases
  * *may* increment the minor version number if the module implements features of
- * a later specification. Remember that he specification stipulates that future
- * versions *will* remain backwards compatible as only additions may be
+ * a later specification. Remember that the specification stipulates that future
+ * versions *will* remain backwards-compatible as only additions may be
  * released.
  *
  * @see http://jsonapi.org/faq/#what-is-the-meaning-of-json-apis-version
  *
  * Tests: subclasses of base test classes may contain BC breaks between minor
- * releases, to allow minor releases to A) comply better with the JSON API spec,
+ * releases, to allow minor releases to A) comply better with the JSON:API spec,
  * B) guarantee that all resource types (and therefore entity types) function as
- * expected, C) update to future versions of the JSON API spec.
+ * expected, C) update to future versions of the JSON:API spec.
  *
  * @}
  */
@@ -177,10 +231,10 @@ use Drupal\Core\Access\AccessResult;
  * As a rule, clients should only be able to filter by data that they can
  * view.
  *
- * Conventionally, @code $entity->access('view') @endcode is how entity access
- * is checked. This call invokes the corresponding hooks. However, these access
- * checks require an @code $entity @endcode object. This means that they cannot
- * be called prior to executing a database query.
+ * Conventionally, `$entity->access('view')` is how entity access is checked.
+ * This call invokes the corresponding hooks. However, these access checks
+ * require an `$entity` object. This means that they cannot be called prior to
+ * executing a database query.
  *
  * In order to safely enable filtering across a relationship, modules
  * responsible for entity access must do two things:
@@ -259,11 +313,10 @@ function hook_jsonapi_ENTITY_TYPE_filter_access(\Drupal\Core\Entity\EntityTypeIn
  *
  * Some fields may contain sensitive information. In these cases, modules are
  * supposed to implement hook_entity_field_access(). However, this hook receives
- * an optional @code $items @endcode argument and often must return
- * AccessResult::neutral() when @code $items === NULL @endcode. This is because
- * access may or may not be allowed based on the field items or based on the
- * entity on which the field is attached (if the user is the entity owner, for
- * example).
+ * an optional `$items` argument and often must return AccessResult::neutral()
+ * when `$items === NULL`. This is because access may or may not be allowed
+ * based on the field items or based on the entity on which the field is
+ * attached (if the user is the entity owner, for example).
  *
  * Since JSON:API must check field access prior to having a field item list
  * instance available (access must be checked before a database query is made),
@@ -274,8 +327,8 @@ function hook_jsonapi_ENTITY_TYPE_filter_access(\Drupal\Core\Entity\EntityTypeIn
  * JSON:API requests where necessary.
  *
  * If a corresponding implementation of hook_entity_field_access() *can* be
- * forbidden for one or more values of the @code $items @endcode argument, this
- * hook *MUST* return AccessResult::forbidden().
+ * forbidden for one or more values of the `$items` argument, this hook *MUST*
+ * return AccessResult::forbidden().
  *
  * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
  *   The field definition of the field to be filtered upon.

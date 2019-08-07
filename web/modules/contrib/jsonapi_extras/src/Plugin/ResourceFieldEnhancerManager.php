@@ -35,4 +35,27 @@ class ResourceFieldEnhancerManager extends DefaultPluginManager {
     $this->setCacheBackend($cache_backend, 'resource_field_enhancer_plugins');
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function alterDefinitions(&$definitions) {
+    // Loop through all definitions.
+    foreach ($definitions as $definition_key => $definition_info) {
+      // Check to see if dependencies key is set.
+      if (!empty($definition_info['dependencies'])) {
+        $definition_dependencies = $definition_info['dependencies'];
+        // Loop through dependencies to confirm if enabled.
+        foreach ($definition_dependencies as $dependency) {
+          // If dependency is not enabled removed from list of definitions.
+          if (!$this->moduleHandler->moduleExists($dependency)) {
+            unset($definitions[$definition_key]);
+            continue;
+          }
+        }
+      }
+    }
+
+    parent::alterDefinitions($definitions);
+  }
+
 }

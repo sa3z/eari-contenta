@@ -3,7 +3,7 @@
 namespace Drupal\Tests\jsonapi\Kernel\Serializer;
 
 use Drupal\Core\Render\Markup;
-use Drupal\jsonapi\Normalizer\Value\FieldNormalizerValue;
+use Drupal\jsonapi\Normalizer\Value\CacheableNormalization;
 use Drupal\jsonapi_test_data_type\TraversableObject;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -11,7 +11,7 @@ use Drupal\Tests\jsonapi\Kernel\JsonapiKernelTestBase;
 use Drupal\user\Entity\User;
 
 /**
- * Tests the JSON API serializer.
+ * Tests the JSON:API serializer.
  *
  * @coversClass \Drupal\jsonapi\Serializer\Serializer
  * @group jsonapi
@@ -79,7 +79,8 @@ class SerializerTest extends JsonapiKernelTestBase {
       'uid' => $this->user->id(),
     ]);
     $this->node->save();
-    $this->sut = $this->container->get('jsonapi.serializer_do_not_use_removal_imminent');
+    $this->container->setAlias('sut', 'jsonapi.serializer');
+    $this->sut = $this->container->get('sut');
   }
 
   /**
@@ -89,7 +90,7 @@ class SerializerTest extends JsonapiKernelTestBase {
     $context = ['account' => $this->user];
 
     $value = $this->sut->normalize($this->node->field_text, 'api_json', $context);
-    $this->assertTrue($value instanceof FieldNormalizerValue);
+    $this->assertTrue($value instanceof CacheableNormalization);
 
     $nested_field = [
       $this->node->field_text,
@@ -101,10 +102,10 @@ class SerializerTest extends JsonapiKernelTestBase {
     $value = $this->sut->normalize($traversableObject, 'api_json', $context);
     $this->assertEquals($traversableObject->property, $value);
 
-    // When wrapped in an array, we should still be using the JSON API
+    // When wrapped in an array, we should still be using the JSON:API
     // serializer.
     $value = $this->sut->normalize($nested_field, 'api_json', $context);
-    $this->assertTrue($value[0] instanceof FieldNormalizerValue);
+    $this->assertTrue($value[0] instanceof CacheableNormalization);
 
     // Continue to use the fallback normalizer when we need it.
     $data = Markup::create('<h2>Test Markup</h2>');

@@ -9,7 +9,7 @@ use Drupal\Core\ProxyClass\Routing\RouteBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Configure JSON API settings for this site.
+ * Configure JSON:API settings for this site.
  */
 class JsonapiExtrasSettingsForm extends ConfigFormBase {
 
@@ -63,7 +63,7 @@ class JsonapiExtrasSettingsForm extends ConfigFormBase {
       '#type' => 'textfield',
       '#required' => TRUE,
       '#field_prefix' => '/',
-      '#description' => $this->t('The path prefix for JSON API.'),
+      '#description' => $this->t('The path prefix for JSON:API.'),
       '#default_value' => $config->get('path_prefix'),
     ];
 

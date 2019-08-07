@@ -2,14 +2,18 @@
 
 namespace Drupal\jsonapi_extras\Form;
 
+use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Config\TypedConfigManagerInterface;
-use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeRepositoryInterface;
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
@@ -31,7 +35,7 @@ class JsonapiResourceConfigForm extends EntityForm {
   protected $bundleInfo;
 
   /**
-   * The JSON API resource type repository.
+   * The JSON:API resource type repository.
    *
    * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepository
    */
@@ -59,7 +63,7 @@ class JsonapiResourceConfigForm extends EntityForm {
   protected $enhancerManager;
 
   /**
-   * The JSON API extras config.
+   * The JSON:API extras config.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
@@ -85,7 +89,7 @@ class JsonapiResourceConfigForm extends EntityForm {
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundle_info
    *   Bundle information service.
    * @param \Drupal\jsonapi\ResourceType\ResourceTypeRepository $resource_type_repository
-   *   The JSON API resource type repository.
+   *   The JSON:API resource type repository.
    * @param \Drupal\Core\Entity\EntityFieldManager $field_manager
    *   The entity field manager.
    * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $entity_type_repository
@@ -152,7 +156,7 @@ class JsonapiResourceConfigForm extends EntityForm {
     }
 
     if ($entity_type_id && $resource_type = $this->resourceTypeRepository->get($entity_type_id, $bundle)) {
-      // Get the JSON API resource type.
+      // Get the JSON:API resource type.
       $resource_config_id = sprintf('%s--%s', $entity_type_id, $bundle);
       $existing_entity = $this->entityTypeManager
         ->getStorage('jsonapi_resource_config')->load($resource_config_id);
@@ -160,7 +164,14 @@ class JsonapiResourceConfigForm extends EntityForm {
         drupal_set_message($this->t('This override already exists, please edit it instead.'));
         return $form;
       }
-      $form['bundle_wrapper']['fields_wrapper'] = $this->buildOverridesForm($resource_type, $entity);
+      try {
+        $fields_wrapper = $this->buildOverridesForm($resource_type, $entity);
+        $form['bundle_wrapper']['fields_wrapper'] = $fields_wrapper;
+      }
+      catch (PluginNotFoundException $exception) {
+        // Log the exception and continue.
+        watchdog_exception('jsonapi_extras', $exception);
+      }
       $form['id'] = ['#type' => 'hidden', '#value' => $resource_config_id];
     }
 
@@ -195,13 +206,13 @@ class JsonapiResourceConfigForm extends EntityForm {
 
     switch ($status) {
       case SAVED_NEW:
-        drupal_set_message($this->t('Created the %label JSON API Resource overwrites.', [
+        drupal_set_message($this->t('Created the %label JSON:API Resource overwrites.', [
           '%label' => $resource_config->label(),
         ]));
         break;
 
       default:
-        drupal_set_message($this->t('Saved the %label JSON API Resource overwrites.', [
+        drupal_set_message($this->t('Saved the %label JSON:API Resource overwrites.', [
           '%label' => $resource_config->label(),
         ]));
     }
@@ -218,30 +229,22 @@ class JsonapiResourceConfigForm extends EntityForm {
    *
    * @return array
    *   The partial form.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   protected function buildOverridesForm(ResourceType $resource_type, JsonapiResourceConfig $entity) {
     $entity_type_id = $resource_type->getEntityTypeId();
     /** @var \Drupal\Core\Config\Entity\ConfigEntityTypeInterface $entity_type */
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
     $bundle = $resource_type->getBundle();
-    if ($entity_type instanceof ContentEntityTypeInterface) {
-      $field_names = array_map(function (FieldDefinitionInterface $field_definition) {
-        return $field_definition->getName();
-      }, $this->fieldManager->getFieldDefinitions($entity_type_id, $bundle));
-    }
-    elseif ($properties = $entity_type->getPropertiesToExport()) {
-      $field_names = array_keys($properties);
-      array_unshift($field_names, $entity_type->getKey('id'));
-    }
-    else {
-      $field_names = [];
-    }
+    $field_names = $this->getAllFieldNames($entity_type, $bundle);
 
     $overrides_form['overrides']['entity'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Entity'),
+      '#type' => 'fieldset',
+      '#title' => $this->t('Resource'),
       '#description' => $this->t('Override configuration for the resource entity.'),
       '#open' => !$entity->get('resourceType') || !$entity->get('path'),
+      '#weight' => 0,
     ];
 
     $overrides_form['overrides']['entity']['disabled'] = [
@@ -293,6 +296,7 @@ class JsonapiResourceConfigForm extends EntityForm {
       '#type' => 'details',
       '#title' => $this->t('Fields'),
       '#open' => TRUE,
+      '#weight' => 1,
     ];
 
     $markup = '';
@@ -331,7 +335,19 @@ class JsonapiResourceConfigForm extends EntityForm {
     ];
 
     foreach ($field_names as $field_name) {
-      $overrides_form['overrides']['fields']['resourceFields'][$field_name] = $this->buildOverridesField($field_name, $entity);
+      try {
+        $overrides = $this->buildOverridesField($field_name, $entity);
+      }
+      catch (PluginException $exception) {
+        // Log exception and continue.
+        watchdog_exception('jsonapi_extras', $exception);
+        continue;
+      }
+      NestedArray::setValue(
+        $overrides_form,
+        ['overrides', 'fields', 'resourceFields', $field_name],
+        $overrides
+      );
     }
 
     return $overrides_form;
@@ -363,6 +379,8 @@ class JsonapiResourceConfigForm extends EntityForm {
    *
    * @return array
    *   The partial form.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
   protected function buildOverridesField($field_name, JsonapiResourceConfig $entity) {
     $rfs = $entity->get('resourceFields') ?: [];
@@ -485,6 +503,43 @@ class JsonapiResourceConfigForm extends EntityForm {
       $element['delete']['#title'] = $this->t('Revert');
     }
     return $element;
+  }
+
+  /**
+   * Gets all field names for a given entity type and bundle.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type for which to get all field names.
+   * @param string $bundle
+   *   The bundle for which to get all field names.
+   *
+   * @todo This is a copy of ResourceTypeRepository::getAllFieldNames. We can't
+   * reuse that code because it's protected.
+   *
+   * @return string[]
+   *   All field names.
+   */
+  protected function getAllFieldNames(EntityTypeInterface $entity_type, $bundle) {
+    if (is_a($entity_type->getClass(), FieldableEntityInterface::class, TRUE)) {
+      $field_definitions = $this->fieldManager->getFieldDefinitions(
+        $entity_type->id(),
+        $bundle
+      );
+      return array_keys($field_definitions);
+    }
+    elseif (is_a($entity_type->getClass(), ConfigEntityInterface::class, TRUE)) {
+      // @todo Uncomment the first line, remove everything else once https://www.drupal.org/project/drupal/issues/2483407 lands.
+      // return array_keys($entity_type->getPropertiesToExport());
+      $export_properties = $entity_type->getPropertiesToExport();
+      if ($export_properties !== NULL) {
+        return array_keys($export_properties);
+      }
+      else {
+        return ['id', 'type', 'uuid', '_core'];
+      }
+    }
+
+    return [];
   }
 
 }

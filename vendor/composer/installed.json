@@ -1065,36 +1065,35 @@
     },
     {
         "name": "contentacms/contenta_jsonapi",
-        "version": "v1.608",
-        "version_normalized": "1.608.0.0",
+        "version": "v3.0.666",
+        "version_normalized": "3.0.666.0",
         "source": {
             "type": "git",
             "url": "https://github.com/contentacms/contenta_jsonapi.git",
-            "reference": "17dd080643c7a62255f407ff0dbbc8dd94857e5d"
+            "reference": "8499d9765e20a3e36fc70d1348c5f789ea0a0fc9"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/contentacms/contenta_jsonapi/zipball/17dd080643c7a62255f407ff0dbbc8dd94857e5d",
-            "reference": "17dd080643c7a62255f407ff0dbbc8dd94857e5d",
+            "url": "https://api.github.com/repos/contentacms/contenta_jsonapi/zipball/8499d9765e20a3e36fc70d1348c5f789ea0a0fc9",
+            "reference": "8499d9765e20a3e36fc70d1348c5f789ea0a0fc9",
             "shasum": ""
         },
         "require": {
             "cweagans/composer-patches": "^1.6.0",
             "drupal/admin_toolbar": "^1.23",
-            "drupal/consumer_image_styles": "^2.0@rc",
-            "drupal/consumers": "^1.0",
+            "drupal/consumer_image_styles": "^3.0@beta",
+            "drupal/consumers": "^1.8",
             "drupal/contentajs": "^1.0@beta",
             "drupal/core": "^8.6.0",
-            "drupal/decoupled_router": "^1.0",
+            "drupal/decoupled_router": "^1.1",
             "drupal/dropzonejs": "^2.0@alpha",
             "drupal/entity_browser": "^2.0@alpha",
-            "drupal/graphql": "^3.0@beta",
             "drupal/image_widget_crop": "^2.1",
             "drupal/inline_entity_form": "^1.0@beta",
-            "drupal/jsonapi": "^1.23",
-            "drupal/jsonapi_extras": "^2.9",
+            "drupal/jsonapi": "^2.1",
+            "drupal/jsonapi_extras": "^3.3",
             "drupal/jsonrpc": "^1.0@beta",
-            "drupal/material_admin": "1.x-dev",
+            "drupal/material_admin": "^1.0@alpha",
             "drupal/media_entity_browser": "^2.0@alpha",
             "drupal/openapi": "^1.0@beta",
             "drupal/openapi_ui": "^1.0@rc",
@@ -1111,7 +1110,7 @@
             "drupal/features": "^3.5",
             "guzzlehttp/guzzle": "~6.0"
         },
-        "time": "2018-11-13T22:34:52+00:00",
+        "time": "2019-02-15T06:06:20+00:00",
         "type": "drupal-profile",
         "extra": {
             "installer-paths": {
@@ -1139,10 +1138,6 @@
                     "Exclude disabled JSON API resources": "https://www.drupal.org/files/issues/2018-09-18/3000458--exclude-disabled-resource-types--2.patch",
                     "Documentation for JSON API collections needs minor adjustments": "https://www.drupal.org/files/issues/2018-09-18/3000609--jsonapi-collections-fixes--2.patch",
                     "Improve path method descriptions": "https://www.drupal.org/files/issues/2018-09-29/3001993--initial-description--7.patch"
-                },
-                "drupal/jsonapi": {
-                    "Only serialize sparse_fieldset fields": "https://www.drupal.org/files/issues/2018-11-05/3011099-12-8.x-1.x.patch",
-                    "Error: Call to a member function getIncludes() on null": "https://www.drupal.org/files/issues/2018-11-07/getIncludes-on-null-error-3011836-2.patch"
                 }
             }
         },
@@ -2697,32 +2692,33 @@
     },
     {
         "name": "drupal/consumer_image_styles",
-        "version": "2.0.0-rc6",
-        "version_normalized": "2.0.0.0-RC6",
+        "version": "3.0.0-rc2",
+        "version_normalized": "3.0.0.0-RC2",
         "source": {
             "type": "git",
             "url": "https://git.drupalcode.org/project/consumer_image_styles.git",
-            "reference": "8.x-2.0-rc6"
+            "reference": "8.x-3.0-rc2"
         },
         "dist": {
             "type": "zip",
-            "url": "https://ftp.drupal.org/files/projects/consumer_image_styles-8.x-2.0-rc6.zip",
-            "reference": "8.x-2.0-rc6",
-            "shasum": "eb9c4e6bdd2f21334358cef1470b317a5fc6423b"
+            "url": "https://ftp.drupal.org/files/projects/consumer_image_styles-8.x-3.0-rc2.zip",
+            "reference": "8.x-3.0-rc2",
+            "shasum": "2c064326fd56a0a890f7d61322a3367e03a93d4f"
         },
         "require": {
-            "drupal/consumers": "^1.0@beta",
+            "drupal/consumers": "^1.2",
             "drupal/core": "*",
-            "drupal/jsonapi": "^1.14"
+            "drupal/jsonapi": "*",
+            "drupal/jsonapi_extras": "^3.3"
         },
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
-                "dev-2.x": "2.x-dev"
+                "dev-3.x": "3.x-dev"
             },
             "drupal": {
-                "version": "8.x-2.0-rc6",
-                "datestamp": "1532189881",
+                "version": "8.x-3.0-rc2",
+                "datestamp": "1556657885",
                 "security-coverage": {
                     "status": "not-covered",
                     "message": "RC releases are not covered by Drupal security advisories."
@@ -3588,64 +3584,6 @@
         }
     },
     {
-        "name": "drupal/graphql",
-        "version": "3.0.0-rc3",
-        "version_normalized": "3.0.0.0-RC3",
-        "source": {
-            "type": "git",
-            "url": "https://git.drupalcode.org/project/graphql.git",
-            "reference": "8.x-3.0-rc3"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://ftp.drupal.org/files/projects/graphql-8.x-3.0-rc3.zip",
-            "reference": "8.x-3.0-rc3",
-            "shasum": "9764fe0c8c2288cb114e3c58b8c3abc5008432dc"
-        },
-        "require": {
-            "drupal/core": "~8.0",
-            "webonyx/graphql-php": "^0.12.5"
-        },
-        "type": "drupal-module",
-        "extra": {
-            "branch-alias": {
-                "dev-3.x": "3.x-dev"
-            },
-            "drupal": {
-                "version": "8.x-3.0-rc3",
-                "datestamp": "1555138081",
-                "security-coverage": {
-                    "status": "not-covered",
-                    "message": "RC releases are not covered by Drupal security advisories."
-                }
-            }
-        },
-        "installation-source": "dist",
-        "notification-url": "https://packages.drupal.org/8/downloads",
-        "license": [
-            "GPL-2.0+"
-        ],
-        "authors": [
-            {
-                "name": "fubhy",
-                "homepage": "https://www.drupal.org/user/761344"
-            },
-            {
-                "name": "klausi",
-                "homepage": "https://www.drupal.org/user/262198"
-            },
-            {
-                "name": "pmelab",
-                "homepage": "https://www.drupal.org/user/555322"
-            }
-        ],
-        "description": "Exposes your Drupal data model through a GraphQL schema.",
-        "homepage": "http://drupal.org/project/graphql",
-        "support": {
-            "source": "https://git.drupalcode.org/project/graphql"
-        }
-    },
-    {
         "name": "drupal/image_widget_crop",
         "version": "2.2.0",
         "version_normalized": "2.2.0.0",
@@ -3801,18 +3739,18 @@
     },
     {
         "name": "drupal/jsonapi",
-        "version": "1.26.0",
-        "version_normalized": "1.26.0.0",
+        "version": "2.4.0",
+        "version_normalized": "2.4.0.0",
         "source": {
             "type": "git",
             "url": "https://git.drupalcode.org/project/jsonapi.git",
-            "reference": "8.x-1.26"
+            "reference": "8.x-2.4"
         },
         "dist": {
             "type": "zip",
-            "url": "https://ftp.drupal.org/files/projects/jsonapi-8.x-1.26.zip",
-            "reference": "8.x-1.26",
-            "shasum": "1b1e9c62d87662b65c64e101e540b57f458176a4"
+            "url": "https://ftp.drupal.org/files/projects/jsonapi-8.x-2.4.zip",
+            "reference": "8.x-2.4",
+            "shasum": "5f710c1c602378748fa3b21ceec0977de62359ed"
         },
         "require": {
             "drupal/core": "^8.5.11"
@@ -3825,19 +3763,15 @@
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
-                "dev-1.x": "1.x-dev"
+                "dev-2.x": "2.x-dev"
             },
             "drupal": {
-                "version": "8.x-1.26",
-                "datestamp": "1550761694",
+                "version": "8.x-2.4",
+                "datestamp": "1553554702",
                 "security-coverage": {
                     "status": "covered",
                     "message": "Covered by Drupal's security advisory policy"
                 }
-            },
-            "patches_applied": {
-                "Only serialize sparse_fieldset fields": "https://www.drupal.org/files/issues/2018-11-05/3011099-12-8.x-1.x.patch",
-                "Error: Call to a member function getIncludes() on null": "https://www.drupal.org/files/issues/2018-11-07/getIncludes-on-null-error-3011836-2.patch"
             }
         },
         "installation-source": "dist",
@@ -3871,32 +3805,35 @@
     },
     {
         "name": "drupal/jsonapi_extras",
-        "version": "2.15.0",
-        "version_normalized": "2.15.0.0",
+        "version": "3.8.0",
+        "version_normalized": "3.8.0.0",
         "source": {
             "type": "git",
             "url": "https://git.drupalcode.org/project/jsonapi_extras.git",
-            "reference": "8.x-2.15"
+            "reference": "8.x-3.8"
         },
         "dist": {
             "type": "zip",
-            "url": "https://ftp.drupal.org/files/projects/jsonapi_extras-8.x-2.15.zip",
-            "reference": "8.x-2.15",
-            "shasum": "b003318eb70af5b7a4e3fa0065e2c06088d60733"
+            "url": "https://ftp.drupal.org/files/projects/jsonapi_extras-8.x-3.8.zip",
+            "reference": "8.x-3.8",
+            "shasum": "d2f793ca5e6ac7ec2db42f1ca05e468d3d20a568"
         },
         "require": {
-            "drupal/core": "^8.5",
-            "drupal/jsonapi": "^1.22",
+            "drupal/core": "~8.0",
+            "drupal/jsonapi": "*",
             "e0ipso/shaper": "^1"
+        },
+        "require-dev": {
+            "drupal/jsonapi": "*"
         },
         "type": "drupal-module",
         "extra": {
             "branch-alias": {
-                "dev-2.x": "2.x-dev"
+                "dev-3.x": "3.x-dev"
             },
             "drupal": {
-                "version": "8.x-2.15",
-                "datestamp": "1545810180",
+                "version": "8.x-3.8",
+                "datestamp": "1560872886",
                 "security-coverage": {
                     "status": "covered",
                     "message": "Covered by Drupal's security advisory policy"
@@ -3913,9 +3850,17 @@
                 "name": "Mateu Aguiló Bosch",
                 "homepage": "https://www.drupal.org/user/550110",
                 "email": "mateu.aguilo.bosch@gmail.com"
+            },
+            {
+                "name": "Martin Kolar",
+                "homepage": "https://www.drupal.org/u/mkolar"
+            },
+            {
+                "name": "Karel Majzlik",
+                "homepage": "https://www.drupal.org/u/karlos007"
             }
         ],
-        "description": "JSON API Extras provides a means to override and provide limited configurations to the default zero-configuration implementation provided by the JSON API module.",
+        "description": "JSON:API Extras provides a means to override and provide limited configurations to the default zero-configuration implementation provided by the JSON:API module.",
         "homepage": "https://www.drupal.org/project/jsonapi_extras",
         "support": {
             "source": "https://git.drupalcode.org/project/jsonapi_extras"
@@ -3979,12 +3924,18 @@
     },
     {
         "name": "drupal/material_admin",
-        "version": "dev-1.x",
-        "version_normalized": "dev-1.x",
+        "version": "1.0.0-alpha7",
+        "version_normalized": "1.0.0.0-alpha7",
         "source": {
             "type": "git",
             "url": "https://git.drupalcode.org/project/material_admin.git",
-            "reference": "cdd7b5229c2b58585a39f4b6447ae5bbbae128b1"
+            "reference": "8.x-1.0-alpha7"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://ftp.drupal.org/files/projects/material_admin-8.x-1.0-alpha7.zip",
+            "reference": "8.x-1.0-alpha7",
+            "shasum": "58943c015c315559f820ca4ec4ce1a5d9bdbf243"
         },
         "require": {
             "drupal/core": "~8.0"
@@ -3995,8 +3946,8 @@
                 "dev-1.x": "1.x-dev"
             },
             "drupal": {
-                "version": "8.x-1.0-alpha6+17-dev",
-                "datestamp": "1533559680",
+                "version": "8.x-1.0-alpha7",
+                "datestamp": "1543440180",
                 "security-coverage": {
                     "status": "not-covered",
                     "message": "Project has not opted into security advisory coverage!"
@@ -9495,53 +9446,6 @@
             }
         ],
         "description": "A robust cross-platform utility for normalizing, comparing and modifying file paths."
-    },
-    {
-        "name": "webonyx/graphql-php",
-        "version": "v0.12.6",
-        "version_normalized": "0.12.6.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/webonyx/graphql-php.git",
-            "reference": "4c545e5ec4fc37f6eb36c19f5a0e7feaf5979c95"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/webonyx/graphql-php/zipball/4c545e5ec4fc37f6eb36c19f5a0e7feaf5979c95",
-            "reference": "4c545e5ec4fc37f6eb36c19f5a0e7feaf5979c95",
-            "shasum": ""
-        },
-        "require": {
-            "ext-mbstring": "*",
-            "php": ">=5.6"
-        },
-        "require-dev": {
-            "phpunit/phpunit": "^4.8",
-            "psr/http-message": "^1.0",
-            "react/promise": "2.*"
-        },
-        "suggest": {
-            "psr/http-message": "To use standard GraphQL server",
-            "react/promise": "To leverage async resolving on React PHP platform"
-        },
-        "time": "2018-09-02T14:59:54+00:00",
-        "type": "library",
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "GraphQL\\": "src/"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "description": "A PHP port of GraphQL reference implementation",
-        "homepage": "https://github.com/webonyx/graphql-php",
-        "keywords": [
-            "api",
-            "graphql"
-        ]
     },
     {
         "name": "zendframework/zend-diactoros",

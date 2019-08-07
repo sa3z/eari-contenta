@@ -2,83 +2,75 @@
 
 namespace Drupal\jsonapi_extras;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\jsonapi\Resource\JsonApiDocumentTopLevel;
+use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Url;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
-use Drupal\jsonapi\Routing\Routes;
-use Drupal\jsonapi\Serializer\Serializer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
- * Simplifies the process of generating a JSON API version of an entity.
+ * Simplifies the process of generating a JSON:API version of an entity.
  *
  * @api
  */
 class EntityToJsonApi {
 
   /**
-   * The currently logged in user.
+   * The HTTP kernel.
    *
-   * @var \Drupal\Core\Session\AccountInterface
+   * @var \Symfony\Component\HttpKernel\HttpKernelInterface
    */
-  protected $currentUser;
+  protected $httpKernel;
 
   /**
-   * Serializer object.
-   *
-   * @var \Drupal\jsonapi\Serializer\Serializer
-   */
-  protected $serializer;
-
-  /**
-   * The JSON API resource type repository.
+   * The JSON:API Resource Type Repository.
    *
    * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface
    */
   protected $resourceTypeRepository;
 
   /**
-   * The master request.
+   * A Session object.
    *
-   * @var \Symfony\Component\HttpFoundation\Request
+   * @var \Symfony\Component\HttpFoundation\Session\SessionInterface
    */
-  protected $masterRequest;
+  protected $session;
 
   /**
-   * The JSON API base path.
+   * The current request.
    *
-   * @var string
+   * @var \Symfony\Component\HttpFoundation\Request|null
    */
-  protected $jsonApiBasePath;
+  protected $currentRequest;
 
   /**
    * EntityToJsonApi constructor.
    *
-   * @param \Symfony\Component\Serializer\SerializerInterface $serializer
-   *   The serializer.
+   * @param \Symfony\Component\HttpKernel\HttpKernelInterface $http_kernel
+   *   The HTTP kernel.
    * @param \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface $resource_type_repository
    *   The resource type repository.
-   * @param \Drupal\Core\Session\AccountInterface $current_user
-   *   The currently logged in user.
+   * @param \Symfony\Component\HttpFoundation\Session\SessionInterface $session
+   *   The session object.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *   The request stack.
-   * @param string $jsonapi_base_path
-   *   The JSON API base path.
+   *   The stack of requests.
    */
-  public function __construct(SerializerInterface $serializer, ResourceTypeRepositoryInterface $resource_type_repository, AccountInterface $current_user, RequestStack $request_stack, $jsonapi_base_path) {
-    assert($serializer instanceof Serializer);
-    $this->serializer = $serializer;
+  public function __construct(
+    HttpKernelInterface $http_kernel,
+    ResourceTypeRepositoryInterface $resource_type_repository,
+    SessionInterface $session,
+    RequestStack $request_stack
+  ) {
+    $this->httpKernel = $http_kernel;
     $this->resourceTypeRepository = $resource_type_repository;
-    $this->currentUser = $current_user;
-    $this->masterRequest = $request_stack->getMasterRequest();
-    assert(is_string($jsonapi_base_path));
-    assert($jsonapi_base_path[0] === '/');
-    assert(isset($jsonapi_base_path[1]));
-    assert(substr($jsonapi_base_path, -1) !== '/');
-    $this->jsonApiBasePath = $jsonapi_base_path;
+    $this->currentRequest = $request_stack->getCurrentRequest();
+    $this->session = $this->currentRequest->hasPreviousSession()
+      ? $this->currentRequest->getSession()
+      : $session;
   }
 
   /**
@@ -91,17 +83,36 @@ class EntityToJsonApi {
    *
    * @return string
    *   The raw JSON string of the requested resource.
+   *
+   * @throws \Exception
    */
   public function serialize(EntityInterface $entity, array $includes = []) {
-    $referenced_entities = [];
-    foreach ($includes as $field_name) {
-      $referenced_entities = array_merge($referenced_entities, $entity->get($field_name)->referencedEntities());
+    $resource_type = $this->resourceTypeRepository->get($entity->getEntityTypeId(), $entity->bundle());
+    $route_name = sprintf('jsonapi.%s.individual', $resource_type->getTypeName());
+    $route_options = [];
+    if ($resource_type->isVersionable() && $entity instanceof RevisionableInterface && $revision_id = $entity->getRevisionId()) {
+      $route_options['query']['resourceVersion'] = 'id:' . $revision_id;
     }
-    $document = new JsonApiDocumentTopLevel($entity);
-    return $this->serializer->serialize($document,
-      'api_json',
-      $this->calculateContext($entity, $includes)
+    $jsonapi_url = Url::fromRoute($route_name, ['entity' => $entity->uuid()], $route_options)
+      ->toString(TRUE)
+      ->getGeneratedUrl();
+    $query = [];
+    if ($includes) {
+      $query = ['include' => implode(',', $includes)];
+    }
+    $request = Request::create(
+      $jsonapi_url,
+      'GET',
+      $query,
+      $this->currentRequest->cookies->all(),
+      [],
+      $this->currentRequest->server->all()
     );
+    if ($this->session) {
+      $request->setSession($this->session);
+    }
+    $response = $this->httpKernel->handle($request, HttpKernelInterface::SUB_REQUEST);
+    return $response->getContent();
   }
 
   /**
@@ -114,64 +125,11 @@ class EntityToJsonApi {
    *
    * @return array
    *   The JSON structure of the requested resource.
+   *
+   * @throws \Exception
    */
   public function normalize(EntityInterface $entity, array $includes = []) {
-    $referenced_entities = [];
-    foreach ($includes as $field_name) {
-      $referenced_entities = array_merge($referenced_entities, $entity->get($field_name)->referencedEntities());
-    }
-    $document = new JsonApiDocumentTopLevel($entity);
-    return $this->serializer->normalize($document,
-      'api_json',
-      $this->calculateContext($entity, $includes)
-    )->rasterizeValue();
-  }
-
-  /**
-   * Calculate the arguments for the serialize/normalize operation.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to generate the JSON from.
-   * @param string[] $includes
-   *   The list of includes.
-   *
-   * @return array
-   *   The list of arguments for serialize/normalize operation.
-   */
-  protected function calculateContext(
-    EntityInterface $entity,
-    array $includes = []
-  ) {
-    $entity_type_id = $entity->getEntityTypeId();
-    $resource_type = $this->resourceTypeRepository->get(
-      $entity_type_id,
-      $entity->bundle()
-    );
-    // The overridden resource type implementation of "jsonapi_extras" may
-    // return a value containing a leading slash. Since this was initial
-    // behavior we won't going to break the things and ready to tackle both
-    // cases: with or without a leading slash.
-    $resource_path = ltrim($resource_type->getPath(), '/');
-    $path = sprintf(
-      '%s/%s/%s',
-      rtrim($this->jsonApiBasePath, '/'),
-      rtrim($resource_path, '/'),
-      $entity->uuid()
-    );
-    $request = Request::create($this->masterRequest->getUriForPath($path));
-
-    // We don't have to filter the "$include" since this will be done later.
-    // @see JsonApiDocumentTopLevelNormalizer::expandContext()
-    $request->query->set('include', implode(',', $includes));
-    $request->attributes->set($entity_type_id, $entity);
-    $request->attributes->set(Routes::RESOURCE_TYPE_KEY, $resource_type);
-    $request->attributes->set(Routes::JSON_API_ROUTE_FLAG_KEY, TRUE);
-
-    return [
-      'account' => $this->currentUser,
-      'resource_type' => $resource_type,
-      'request' => $request,
-    ];
+    return Json::decode($this->serialize($entity, $includes));
   }
 
 }

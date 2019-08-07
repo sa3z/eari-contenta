@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\jsonapi\Functional;
 
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
@@ -9,7 +10,7 @@ use Drupal\Tests\rest\Functional\BcTimestampNormalizerUnixTestTrait;
 use Drupal\user\Entity\User;
 
 /**
- * JSON API integration test for the "EntityTest" content entity type.
+ * JSON:API integration test for the "EntityTest" content entity type.
  *
  * @group jsonapi
  */
@@ -71,7 +72,10 @@ class EntityTestTest extends ResourceTestBase {
     // Set flag so that internal field 'internal_string_field' is created.
     // @see entity_test_entity_base_field_info()
     $this->container->get('state')->set('entity_test.internal_field', TRUE);
-    \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+    $field_storage_definition = BaseFieldDefinition::create('string')
+      ->setLabel('Internal field')
+      ->setInternal(TRUE);
+    \Drupal::entityDefinitionUpdateManager()->installFieldStorageDefinition('internal_string_field', 'entity_test', 'entity_test', $field_storage_definition);
 
     $entity_test = EntityTest::create([
       'name' => 'Llama',
@@ -95,34 +99,31 @@ class EntityTestTest extends ResourceTestBase {
   protected function getExpectedDocument() {
     $self_url = Url::fromUri('base:/jsonapi/entity_test/entity_test/' . $this->entity->uuid())->setAbsolute()->toString(TRUE)->getGeneratedUrl();
     $author = User::load(0);
-    $normalization = [
+    return [
       'jsonapi' => [
         'meta' => [
           'links' => [
-            'self' => 'http://jsonapi.org/format/1.0/',
+            'self' => ['href' => 'http://jsonapi.org/format/1.0/'],
           ],
         ],
         'version' => '1.0',
       ],
       'links' => [
-        'self' => $self_url,
+        'self' => ['href' => $self_url],
       ],
       'data' => [
         'id' => $this->entity->uuid(),
         'type' => 'entity_test--entity_test',
         'links' => [
-          'self' => $self_url,
+          'self' => ['href' => $self_url],
         ],
         'attributes' => [
-          'id' => 1,
-          'created' => (int) $this->entity->get('created')->value,
-          // @todo uncomment this in https://www.drupal.org/project/jsonapi/issues/2929932
-          /* 'created' => $this->formatExpectedTimestampItemValues((int) $this->entity->get('created')->value), */
+          'created' => (new \DateTime())->setTimestamp($this->entity->get('created')->value)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'field_test_text' => NULL,
           'langcode' => 'en',
           'name' => 'Llama',
-          'type' => 'entity_test',
-          'uuid' => $this->entity->uuid(),
+          'entity_test_type' => 'entity_test',
+          'drupal_internal__id' => 1,
         ],
         'relationships' => [
           'user_id' => [
@@ -131,18 +132,13 @@ class EntityTestTest extends ResourceTestBase {
               'type' => 'user--user',
             ],
             'links' => [
-              'related' => $self_url . '/user_id',
-              'self' => $self_url . '/relationships/user_id',
+              'related' => ['href' => $self_url . '/user_id'],
+              'self' => ['href' => $self_url . '/relationships/user_id'],
             ],
           ],
         ],
       ],
     ];
-    // @todo Remove this modification when JSON API requires Drupal 8.5 or newer, and do an early return above instead.
-    if (floatval(\Drupal::VERSION) < 8.5) {
-      unset($normalization['data']['attributes']['internal_string_field']);
-    }
-    return $normalization;
   }
 
   /**
@@ -190,8 +186,8 @@ class EntityTestTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static function getExpectedCollectionCacheability(array $collection, array $sparse_fieldset = NULL, AccountInterface $account, $filtered = FALSE) {
-    $cacheability = parent::getExpectedCollectionCacheability($collection, $sparse_fieldset, $account, $filtered);
+  protected static function getExpectedCollectionCacheability(AccountInterface $account, array $collection, array $sparse_fieldset = NULL, $filtered = FALSE) {
+    $cacheability = parent::getExpectedCollectionCacheability($account, $collection, $sparse_fieldset, $filtered);
     if ($filtered) {
       $cacheability->addCacheTags(['state:jsonapi__entity_test_filter_access_blacklist']);
     }

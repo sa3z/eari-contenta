@@ -7,7 +7,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 
 /**
- * JSON API integration test for the "Block" config entity type.
+ * JSON:API integration test for the "Block" config entity type.
  *
  * @group jsonapi
  */
@@ -86,22 +86,21 @@ class BlockTest extends ResourceTestBase {
       'jsonapi' => [
         'meta' => [
           'links' => [
-            'self' => 'http://jsonapi.org/format/1.0/',
+            'self' => ['href' => 'http://jsonapi.org/format/1.0/'],
           ],
         ],
         'version' => '1.0',
       ],
       'links' => [
-        'self' => $self_url,
+        'self' => ['href' => $self_url],
       ],
       'data' => [
         'id' => $this->entity->uuid(),
         'type' => 'block--block',
         'links' => [
-          'self' => $self_url,
+          'self' => ['href' => $self_url],
         ],
         'attributes' => [
-          'id' => 'llama',
           'weight' => NULL,
           'langcode' => 'en',
           'status' => TRUE,
@@ -121,7 +120,7 @@ class BlockTest extends ResourceTestBase {
             'label_display' => 'visible',
           ],
           'visibility' => [],
-          'uuid' => $this->entity->uuid(),
+          'drupal_internal__id' => 'llama',
         ],
       ],
     ];
@@ -176,14 +175,14 @@ class BlockTest extends ResourceTestBase {
         'http_response',
         'user:2',
       ])
-      ->setCacheContexts(['user.roles']);
+      ->setCacheContexts(['url.site', 'user.roles']);
   }
 
   /**
    * {@inheritdoc}
    */
-  protected static function getExpectedCollectionCacheability(array $collection, array $sparse_fieldset = NULL, AccountInterface $account, $filtered = FALSE) {
-    return parent::getExpectedCollectionCacheability($collection, $sparse_fieldset, $account, $filtered)
+  protected static function getExpectedCollectionCacheability(AccountInterface $account, array $collection, array $sparse_fieldset = NULL, $filtered = FALSE) {
+    return parent::getExpectedCollectionCacheability($account, $collection, $sparse_fieldset, $filtered)
       ->addCacheTags(['user:2'])
       ->addCacheContexts(['user.roles']);
   }

@@ -1,6 +1,6 @@
 /**
  * @file
- * JSON API Extras table with collapsible rows behaviors.
+ * JSON:API Extras table with collapsible rows behaviors.
  */
 
 (function ($, Drupal) {

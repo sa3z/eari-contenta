@@ -70,7 +70,7 @@ class ConfigSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Associates JSON API Extras' config cache tag with all JSON API responses.
+   * Associates JSON:API Extras' config cache tag with all JSON:API responses.
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   The response event.
@@ -99,7 +99,7 @@ class ConfigSubscriber implements EventSubscriberInterface {
     $events[ConfigEvents::SAVE][] = ['onSave'];
     // Run before
     // \Drupal\jsonapi\EventSubscriber\ResourceResponseSubscriber::onResponse()
-    // (priority 128), so we can add JSON API's config cache tag.
+    // (priority 128), so we can add JSON:API's config cache tag.
     $events[KernelEvents::RESPONSE][] = ['onResponse', 150];
     return $events;
   }

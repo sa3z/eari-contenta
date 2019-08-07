@@ -12,7 +12,8 @@ use Shaper\Util\Context;
  * @ResourceFieldEnhancer(
  *   id = "date_time",
  *   label = @Translation("Date Time (Timestamp field)"),
- *   description = @Translation("Formats a date based the configured date format for timestamp fields.")
+ *   description = @Translation("Formats a date based the configured date format for timestamp fields."),
+ *   dependencies = {"datetime"}
  * )
  */
 class DateTimeEnhancer extends DateTimeEnhancerBase {

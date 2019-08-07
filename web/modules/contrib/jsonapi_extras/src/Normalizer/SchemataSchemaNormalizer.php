@@ -12,7 +12,7 @@ use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
 class SchemataSchemaNormalizer extends SchemataJsonSchemaSchemataSchemaNormalizer {
 
   /**
-   * The JSON API resource type repository.
+   * The JSON:API resource type repository.
    *
    * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepository
    */
@@ -47,7 +47,12 @@ class SchemataSchemaNormalizer extends SchemataJsonSchemaSchemataSchemaNormalize
     }
 
     // Alter the attributes according to the resource config.
-    $root = &$normalized['properties']['data']['properties'];
+    if (!empty($normalized['definitions'])) {
+      $root = &$normalized['definitions'];
+    }
+    else {
+      $root = &$normalized['properties']['data']['properties'];
+    }
     foreach (['attributes', 'relationships'] as $property_type) {
       if (!isset($root[$property_type]['required'])) {
         $root[$property_type]['required'] = [];

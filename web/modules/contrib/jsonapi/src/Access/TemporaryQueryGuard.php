@@ -23,8 +23,18 @@ use Drupal\workspaces\WorkspaceInterface;
  * This class will be removed when new Drupal core APIs have been put in place
  * to make it obsolete.
  *
- * @deprecated
- * @internal
+ * @internal JSON:API maintains no PHP API. The API is the HTTP API. This class
+ *   may change at any time and could break any dependencies on it.
+ *
+ * @todo These additional security measures should eventually reside in the
+ *   Entity API subsystem but were introduced here to address a security
+ *   vulnerability. The following two issues should obsolesce this class:
+ *
+ * @see https://www.drupal.org/project/drupal/issues/2809177
+ * @see https://www.drupal.org/project/drupal/issues/777578
+ *
+ * @see https://www.drupal.org/project/jsonapi/issues/3032787
+ * @see jsonapi.api.php
  */
 class TemporaryQueryGuard {
 
@@ -179,7 +189,7 @@ class TemporaryQueryGuard {
    *   The query to which access conditions should be applied.
    * @param string $entity_type_id
    *   The entity type for which to access conditions should be applied.
-   * @param string $field_prefix|null
+   * @param string|null $field_prefix
    *   A prefix to add before any query condition fields. NULL if no prefix
    *   should be added.
    * @param \Drupal\Core\Cache\CacheableMetadata $cacheability

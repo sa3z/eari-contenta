@@ -2,21 +2,22 @@
 
 namespace Drupal\jsonapi\Normalizer;
 
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\jsonapi\Normalizer\Value\FieldItemNormalizerValue;
 use Drupal\jsonapi\Normalizer\Value\HttpExceptionNormalizerValue;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
- * Normalizes an HttpException in compliance with the JSON API specification.
+ * Normalizes an HttpException in compliance with the JSON:API specification.
+ *
+ * @internal JSON:API maintains no PHP API since its API is the HTTP API. This
+ *   class may change at any time and this will break any dependencies on it.
+ *
+ * @see https://www.drupal.org/project/jsonapi/issues/3032787
+ * @see jsonapi.api.php
  *
  * @see http://jsonapi.org/format/#error-objects
- *
- * @internal
  */
 class HttpExceptionNormalizer extends NormalizerBase {
 
@@ -48,24 +49,11 @@ class HttpExceptionNormalizer extends NormalizerBase {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
-    $errors = $this->buildErrorObjects($object);
-
-    $errors = array_map(function ($error) {
-      // @todo Either this should not use FieldItemNormalizerValue, or FieldItemNormalizerValue needs to be renamed to not be semantically coupled to "fields".
-      return new FieldItemNormalizerValue([$error], new CacheableMetadata());
-    }, $errors);
-
-    // @todo The access result, cardinality and property type make no sense for HTTP exceptions, but it's because HttpExceptionNormalizerValue inappropriately subclasses FieldNormalizerValue
-    return new HttpExceptionNormalizerValue(
-      AccessResult::allowed(),
-      $errors,
-      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      'attributes'
-    );
+    return new HttpExceptionNormalizerValue(new CacheableMetadata(), $this->buildErrorObjects($object));
   }
 
   /**
-   * Builds the normalized JSON API error objects for the response.
+   * Builds the normalized JSON:API error objects for the response.
    *
    * @param \Symfony\Component\HttpKernel\Exception\HttpException $exception
    *   The Exception.
@@ -80,13 +68,20 @@ class HttpExceptionNormalizer extends NormalizerBase {
       $error['title'] = Response::$statusTexts[$status_code];
     }
     $error += [
-      'status' => $status_code,
+      'status' => (string) $status_code,
       'detail' => $exception->getMessage(),
     ];
-    if ($info_url = $this->getInfoUrl($status_code)) {
-      $error['links']['info'] = $info_url;
+    $error['links']['via']['href'] = \Drupal::request()->getUri();
+    // Provide an "info" link by default: if the exception carries a single
+    // "Link" header, use that, otherwise fall back to the HTTP spec section
+    // covering the exception's status code.
+    $headers = $exception->getHeaders();
+    if (isset($headers['Link']) && !is_array($headers['Link'])) {
+      $error['links']['info']['href'] = $headers['Link'];
     }
-    $error['code'] = $exception->getCode();
+    elseif ($info_url = $this->getInfoUrl($status_code)) {
+      $error['links']['info']['href'] = $info_url;
+    }
     // Exceptions thrown without an explicitly defined code get assigned zero by
     // default. Since this is no helpful information, omit it.
     if ($exception->getCode() !== 0) {

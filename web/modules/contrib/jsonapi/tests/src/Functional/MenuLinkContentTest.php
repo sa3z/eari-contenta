@@ -4,17 +4,15 @@ namespace Drupal\Tests\jsonapi\Functional;
 
 use Drupal\Core\Url;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
-use Drupal\Tests\rest\Functional\BcTimestampNormalizerUnixTestTrait;
 use Drupal\Tests\jsonapi\Traits\CommonCollectionFilterAccessTestPatternsTrait;
 
 /**
- * JSON API integration test for the "MenuLinkContent" content entity type.
+ * JSON:API integration test for the "MenuLinkContent" content entity type.
  *
  * @group jsonapi
  */
 class MenuLinkContentTest extends ResourceTestBase {
 
-  use BcTimestampNormalizerUnixTestTrait;
   use CommonCollectionFilterAccessTestPatternsTrait;
 
   /**
@@ -75,35 +73,32 @@ class MenuLinkContentTest extends ResourceTestBase {
    */
   protected function getExpectedDocument() {
     $self_url = Url::fromUri('base:/jsonapi/menu_link_content/menu_link_content/' . $this->entity->uuid())->setAbsolute()->toString(TRUE)->getGeneratedUrl();
-    return [
+    $expected_document = [
       'jsonapi' => [
         'meta' => [
           'links' => [
-            'self' => 'http://jsonapi.org/format/1.0/',
+            'self' => ['href' => 'http://jsonapi.org/format/1.0/'],
           ],
         ],
         'version' => '1.0',
       ],
       'links' => [
-        'self' => $self_url,
+        'self' => ['href' => $self_url],
       ],
       'data' => [
         'id' => $this->entity->uuid(),
         'type' => 'menu_link_content--menu_link_content',
         'links' => [
-          'self' => $self_url,
+          'self' => ['href' => $self_url],
         ],
         'attributes' => [
           'bundle' => 'menu_link_content',
-          'id' => 1,
           'link' => [
             'uri' => 'https://nl.wikipedia.org/wiki/Llama',
             'title' => NULL,
             'options' => [],
           ],
-          'changed' => $this->entity->getChangedTime(),
-          // @todo uncomment this in https://www.drupal.org/project/jsonapi/issues/2929932
-          /* 'changed' => $this->formatExpectedTimestampItemValues($this->entity->getChangedTime()), */
+          'changed' => (new \DateTime())->setTimestamp($this->entity->getChangedTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'default_langcode' => TRUE,
           'description' => 'Llama Gabilondo',
           'enabled' => TRUE,
@@ -114,11 +109,32 @@ class MenuLinkContentTest extends ResourceTestBase {
           'parent' => NULL,
           'rediscover' => FALSE,
           'title' => 'Llama Gabilondo',
-          'uuid' => $this->entity->uuid(),
           'weight' => 0,
+          'drupal_internal__id' => 1,
         ],
       ],
     ];
+
+    if (floatval(\Drupal::VERSION) >= 8.7) {
+      $expected_document['data']['attributes']['drupal_internal__revision_id'] = 1;
+      $expected_document['data']['attributes']['revision_created'] = (new \DateTime())->setTimestamp($this->entity->getRevisionCreationTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339);
+      $expected_document['data']['attributes']['revision_log_message'] = NULL;
+      // @todo Attempt to remove this in https://www.drupal.org/project/drupal/issues/2933518.
+      $expected_document['data']['attributes']['revision_translation_affected'] = TRUE;
+      $expected_document['data']['relationships']['revision_user'] = [
+        'data' => NULL,
+        'links' => [
+          'related' => [
+            'href' => $self_url . '/revision_user',
+          ],
+          'self' => [
+            'href' => $self_url . '/relationships/revision_user',
+          ],
+        ],
+      ];
+    }
+
+    return $expected_document;
   }
 
   /**
@@ -149,6 +165,13 @@ class MenuLinkContentTest extends ResourceTestBase {
       default:
         return parent::getExpectedUnauthorizedAccessMessage($method);
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function testRelated() {
+    $this->markTestSkipped('Remove this in https://www.drupal.org/project/jsonapi/issues/2940339');
   }
 
   /**

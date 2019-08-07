@@ -2,15 +2,22 @@
 
 namespace Drupal\jsonapi\Query;
 
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Http\Exception\CacheableBadRequestHttpException;
+
 /**
  * Value object for containing the requested offset and page parameters.
  *
- * @internal
+ * @internal JSON:API maintains no PHP API since its API is the HTTP API. This
+ *   class may change at any time and this will break any dependencies on it.
+ *
+ * @see https://www.drupal.org/project/jsonapi/issues/3032787
+ * @see jsonapi.api.php
  */
 class OffsetPage {
 
   /**
-   * The JSON API pagination key name.
+   * The JSON:API pagination key name.
    *
    * @var string
    */
@@ -89,6 +96,33 @@ class OffsetPage {
    */
   public function getSize() {
     return $this->size;
+  }
+
+  /**
+   * Creates an OffsetPage object from a query parameter.
+   *
+   * @param mixed $parameter
+   *   The `page` query parameter from the Symfony request object.
+   *
+   * @return \Drupal\jsonapi\Query\OffsetPage
+   *   An OffsetPage object with defaults.
+   */
+  public static function createFromQueryParameter($parameter) {
+    if (!is_array($parameter)) {
+      $cacheability = (new CacheableMetadata())->addCacheContexts(['url.query_args:page']);
+      throw new CacheableBadRequestHttpException($cacheability, 'The page parameter needs to be an array.');
+    }
+
+    $expanded = $parameter + [
+      static::OFFSET_KEY => static::DEFAULT_OFFSET,
+      static::SIZE_KEY => static::SIZE_MAX,
+    ];
+
+    if ($expanded[static::SIZE_KEY] > static::SIZE_MAX) {
+      $expanded[static::SIZE_KEY] = static::SIZE_MAX;
+    }
+
+    return new static($expanded[static::OFFSET_KEY], $expanded[static::SIZE_KEY]);
   }
 
 }

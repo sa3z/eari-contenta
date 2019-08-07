@@ -10,7 +10,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\jsonapi\Context\FieldResolver;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\Normalizer\JsonApiDocumentTopLevelNormalizer;
-use Drupal\jsonapi\LinkManager\LinkManager;
 use Drupal\Tests\UnitTestCase;
 use Prophecy\Argument;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -37,7 +36,6 @@ class JsonApiDocumentTopLevelNormalizerTest extends UnitTestCase {
    * {@inheritdoc}
    */
   public function setUp() {
-    $link_manager = $this->prophesize(LinkManager::class);
     $resource_type_repository = $this->prophesize(ResourceTypeRepository::class);
     $field_resolver = $this->prophesize(FieldResolver::class);
 
@@ -69,7 +67,6 @@ class JsonApiDocumentTopLevelNormalizerTest extends UnitTestCase {
     $entity_type_manager->getDefinition('node')->willReturn($entity_type->reveal());
 
     $this->normalizer = new JsonApiDocumentTopLevelNormalizer(
-      $link_manager->reveal(),
       $entity_type_manager->reveal(),
       $resource_type_repository->reveal(),
       $field_resolver->reveal()
@@ -92,9 +89,9 @@ class JsonApiDocumentTopLevelNormalizerTest extends UnitTestCase {
    * @dataProvider denormalizeProvider
    */
   public function testDenormalize($input, $expected) {
-    $context = [
-      'resource_type' => new ResourceType($this->randomMachineName(), $this->randomMachineName(), FieldableEntityInterface::class),
-    ];
+    $resource_type = new ResourceType('node', 'article', FieldableEntityInterface::class);
+    $resource_type->setRelatableResourceTypes([]);
+    $context = ['resource_type' => $resource_type];
     $denormalized = $this->normalizer->denormalize($input, NULL, 'api_json', $context);
     $this->assertSame($expected, $denormalized);
   }
@@ -227,8 +224,8 @@ class JsonApiDocumentTopLevelNormalizerTest extends UnitTestCase {
 
     $denormalized = $this->normalizer->denormalize($data, NULL, 'api_json', [
       'resource_type' => new ResourceType(
-        $this->randomMachineName(),
-        $this->randomMachineName(),
+        'node',
+        'article',
         FieldableEntityInterface::class
       ),
     ]);

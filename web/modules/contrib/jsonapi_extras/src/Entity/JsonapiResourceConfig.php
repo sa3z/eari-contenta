@@ -7,11 +7,18 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 
 /**
- * Defines the JSON API Resource Config entity.
+ * Defines the JSON:API Resource Config entity.
  *
  * @ConfigEntityType(
  *   id = "jsonapi_resource_config",
- *   label = @Translation("JSON API Resource Config"),
+ *   label = @Translation("JSON:API Resource override"),
+ *   label_collection = @Translation("JSON:API Resource overrides"),
+ *   label_singular = @Translation("JSON:API resource override"),
+ *   label_plural = @Translation("JSON:API resource overrides"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count JSON:API resource override",
+ *     plural = "@count JSON:API resource overrides",
+ *   ),
  *   handlers = {
  *     "list_builder" = "Drupal\jsonapi_extras\JsonapiResourceConfigListBuilder",
  *     "form" = {
@@ -32,17 +39,17 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "add-form" = "/admin/config/services/jsonapi/add/{entity_type_id}/{bundle}",
- *     "edit-form" = "/admin/config/services/jsonapi/{jsonapi_resource_config}/edit",
- *     "delete-form" = "/admin/config/services/jsonapi/{jsonapi_resource_config}/delete",
- *     "collection" = "/admin/config/services/jsonapi"
+ *     "add-form" = "/admin/config/services/jsonapi/add/resource_types/{entity_type_id}/{bundle}",
+ *     "edit-form" = "/admin/config/services/jsonapi/resource_types/{jsonapi_resource_config}/edit",
+ *     "delete-form" = "/admin/config/services/jsonapi/resource_types/{jsonapi_resource_config}/delete",
+ *     "collection" = "/admin/config/services/jsonapi/resource_types"
  *   }
  * )
  */
 class JsonapiResourceConfig extends ConfigEntityBase {
 
   /**
-   * The JSON API Resource Config ID.
+   * The JSON:API Resource Config ID.
    *
    * @var string
    */
@@ -90,7 +97,7 @@ class JsonapiResourceConfig extends ConfigEntityBase {
   }
 
   /**
-   * Triggers rebuilding of JSON API routes.
+   * Triggers rebuilding of JSON:API routes.
    */
   protected static function rebuildRoutes() {
     try {
@@ -100,6 +107,33 @@ class JsonapiResourceConfig extends ConfigEntityBase {
     catch (ServiceNotFoundException $exception) {
       // This is intentionally empty.
     }
+  }
+
+  /**
+   * Returns a field mapping as expected by JSON:API 2.x' ResourceType class.
+   *
+   * @see \Drupal\jsonapi\ResourceType\ResourceType::__construct()
+   */
+  public function getFieldMapping() {
+    $resource_fields = $this->get('resourceFields') ?: [];
+
+    $mapping = [];
+    foreach ($resource_fields as $resource_field) {
+      $field_name = $resource_field['fieldName'];
+      if ($resource_field['disabled'] === TRUE) {
+        $mapping[$field_name] = FALSE;
+        continue;
+      }
+
+      if (($alias = $resource_field['publicName']) && $alias !== $field_name) {
+        $mapping[$field_name] = $alias;
+        continue;
+      }
+
+      $mapping[$field_name] = TRUE;
+    }
+
+    return $mapping;
   }
 
 }

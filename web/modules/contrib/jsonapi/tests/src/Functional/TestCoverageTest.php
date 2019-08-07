@@ -6,7 +6,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Checks that all core content/config entity types have JSON API test coverage.
+ * Checks that all core content/config entity types have JSON:API test coverage.
  *
  * @group jsonapi
  */
@@ -29,12 +29,11 @@ class TestCoverageTest extends BrowserTestBase {
     $stable_core_modules = array_filter($all_modules, function ($module) {
       // Filter out contrib, hidden, testing, and experimental modules. We also
       // don't need to enable modules that are already enabled.
-      return
-        $module->origin === 'core' &&
-        empty($module->info['hidden']) &&
-        $module->status == FALSE &&
-        $module->info['package'] !== 'Testing' &&
-        $module->info['package'] !== 'Core (Experimental)';
+      return $module->origin === 'core'
+        && empty($module->info['hidden'])
+        && $module->status == FALSE
+        && $module->info['package'] !== 'Testing'
+        && $module->info['package'] !== 'Core (Experimental)';
     });
 
     $this->container->get('module_installer')->install(array_keys($stable_core_modules));
@@ -42,12 +41,7 @@ class TestCoverageTest extends BrowserTestBase {
 
     $this->definitions = $this->container->get('entity_type.manager')->getDefinitions();
 
-    // @todo Remove this when JSON API requires Drupal 8.5 or newer.
-    if (floatval(\Drupal::VERSION) < 8.5) {
-      return;
-    }
-
-    // Entity types marked as "internal" are not exposed by JSON API and hence
+    // Entity types marked as "internal" are not exposed by JSON:API and hence
     // also don't need test coverage.
     $this->definitions = array_filter($this->definitions, function (EntityTypeInterface $entity_type) {
       return !$entity_type->isInternal();
@@ -55,7 +49,7 @@ class TestCoverageTest extends BrowserTestBase {
   }
 
   /**
-   * Tests that all core entity types have JSON API test coverage.
+   * Tests that all core entity types have JSON:API test coverage.
    */
   public function testEntityTypeRestTestCoverage() {
     $problems = [];
@@ -105,7 +99,7 @@ class TestCoverageTest extends BrowserTestBase {
       _________________________
      /           Hi!           \\
     |  It's llame to not have   |
-    |  complete JSON API tests! |
+    |  complete JSON:API tests! |
     |                           |
     |     Progress: $g/$a.      |
     | _________________________/
