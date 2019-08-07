@@ -20,6 +20,7 @@
     "drupal/core": "^8",
     "drupal/ctools": "^3.2",
     "drupal/dropzonejs": "^2.0@alpha",
+    "drupal/entity_browser": "^2.2",
     "drupal/fieldable_path": "^1.0@RC",
     "drupal/graphql": "^3.0@RC",
     "drupal/graphql_core": "^3.0@RC",
