@@ -94,8 +94,7 @@
         "extra": {
             "branch-alias": {
                 "dev-master": "1.2-dev"
-            },
-            "patches_applied": []
+            }
         },
         "installation-source": "dist",
         "autoload": {
@@ -4908,14 +4907,14 @@
         "authors": [
             {
                 "name": "Nicholas Humfrey",
+                "role": "Developer",
                 "email": "njh@aelius.com",
-                "homepage": "http://www.aelius.com/njh/",
-                "role": "Developer"
+                "homepage": "http://www.aelius.com/njh/"
             },
             {
                 "name": "Alexey Zakhlestin",
-                "email": "indeyets@gmail.com",
-                "role": "Developer"
+                "role": "Developer",
+                "email": "indeyets@gmail.com"
             }
         ],
         "description": "EasyRdf is a PHP library designed to make it easy to consume and produce RDF.",
@@ -6391,8 +6390,8 @@
         "authors": [
             {
                 "name": "Sebastian Bergmann",
-                "email": "sb@sebastian-bergmann.de",
-                "role": "lead"
+                "role": "lead",
+                "email": "sb@sebastian-bergmann.de"
             }
         ],
         "description": "Library that provides collection, processing, and rendering functionality for PHP code coverage information.",
@@ -6485,8 +6484,8 @@
         "authors": [
             {
                 "name": "Sebastian Bergmann",
-                "email": "sebastian@phpunit.de",
-                "role": "lead"
+                "role": "lead",
+                "email": "sebastian@phpunit.de"
             }
         ],
         "description": "Simple template engine.",
@@ -6536,8 +6535,8 @@
         "authors": [
             {
                 "name": "Sebastian Bergmann",
-                "email": "sb@sebastian-bergmann.de",
-                "role": "lead"
+                "role": "lead",
+                "email": "sb@sebastian-bergmann.de"
             }
         ],
         "description": "Utility class for timing",
@@ -6659,8 +6658,8 @@
         "authors": [
             {
                 "name": "Sebastian Bergmann",
-                "email": "sebastian@phpunit.de",
-                "role": "lead"
+                "role": "lead",
+                "email": "sebastian@phpunit.de"
             }
         ],
         "description": "The PHP Unit Testing framework.",
@@ -7419,8 +7418,8 @@
         "authors": [
             {
                 "name": "Sebastian Bergmann",
-                "email": "sebastian@phpunit.de",
-                "role": "lead"
+                "role": "lead",
+                "email": "sebastian@phpunit.de"
             }
         ],
         "description": "Library that helps with managing the version number of Git-hosted PHP projects",

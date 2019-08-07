@@ -1,89 +1,114 @@
---- src/Plugin/openapi/OpenApiGenerator/JsonApiGenerator.php
-+++ src/Plugin/openapi/OpenApiGenerator/JsonApiGenerator.php
-@@ -2,6 +2,8 @@
- 
- namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
- 
-+use Drupal\Core\Link;
-+use Drupal\Core\Url;
- use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
- use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
- use Drupal\Core\Authentication\AuthenticationCollectorInterface;
-@@ -207,7 +209,7 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
-         $method = strtolower($method);
-         $path_method = [];
-         $path_method['summary'] = $this->getRouteMethodSummary($route, $route_name, $method);
--        $path_method['description'] = '@todo Add descriptions';
-+        $path_method['description'] = $this->getRouteMethodDescription($route_name, $method, $resource_type->getTypeName());
-         $path_method['parameters'] = $this->getMethodParameters($route, $resource_type, $method);
-         $path_method['tags'] = [$this->getBundleTag($entity_type_id, $bundle_name)];
-         $path_method['responses'] = $this->getEntityResponses($entity_type_id, $method, $bundle_name, $route_name);
-@@ -264,10 +266,67 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
-   protected function getRouteMethodSummary(Route $route, $route_name, $method) {
-     // @todo Make a better summary.
-     if ($route_type = $this->getRoutTypeFromName($route_name)) {
--      return "$route_type $method";
-+      return $this->t('@route @method', [
-+        '@route' => ucfirst($route_type),
-+        '@method' => strtoupper($method),
-+      ]);
-     }
-     return '@todo';
-+  }
- 
-+  /**
-+   * Gets description of a method on a route.
-+   *
-+   * @param string $route_name
-+   *   The route name.
-+   * @param string $method
-+   *   The method.
-+   * @param string $resource_type_name
-+   *   The resource type name
-+   *
-+   * @return string
-+   *   The method description.
-+   */
-+  protected function getRouteMethodDescription($route_name, $method, $resource_type_name) {
-+    $route_type = $this->getRoutTypeFromName($route_name);
-+    if (!$route_type || $method !== 'get') {
-+      return NULL;
-+    }
-+    if ($route_type === 'collection') {
-+      $message = '%link_co for the @name resource type. Collections are a list';
-+      $message .= ' of %link_ro for a particular resource type. In the JSON ';
-+      $message .= 'API module for Drupal all collections are homogeneous, ';
-+      $message .= 'which means that all the items in a collection are of the ';
-+      $message .= 'same type.';
-+      return $this->t($message, [
-+        '%link_co' => Link::fromTextAndUrl(
-+          $this->t('Collection endpoint'),
-+          Url::fromUri('http://jsonapi.org/format/#fetching')
-+        )->toString(),
-+        '@name' => $resource_type_name,
-+        '%link_ro' => Link::fromTextAndUrl(
-+          $this->t('resource objects'),
-+          Url::fromUri('http://jsonapi.org/format/#document-resource-objects')
-+        )->toString(),
-+      ]);
-+    }
-+    else if ($route_type === 'individual') {
-+      $message = '%link_in for the @name resource type. The individual ';
-+      $message .= 'endpoint contains a %link_ro with the data for a particular';
-+      $message .= ' resource or entity.';
-+      return $this->t($message, [
-+        '%link_in' => Link::fromTextAndUrl(
-+          $this->t('Individual endpoint'),
-+          Url::fromUri('http://jsonapi.org/format/#fetching')
-+        )->toString(),
-+        '@name' => $resource_type_name,
-+        '%link_ro' => Link::fromTextAndUrl(
-+          $this->t('resource object'),
-+          Url::fromUri('http://jsonapi.org/format/#document-resource-objects')
-+        )->toString(),
-+      ]);
-+    }
-+    return NULL;
-   }
- 
-   /**
+***************
+*** 2,7 ****
+  
+  namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
+  
+  use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
+  use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
+  use Drupal\Core\Authentication\AuthenticationCollectorInterface;
+--- 2,9 ----
+  
+  namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
+  
++ use Drupal\Core\Link;
++ use Drupal\Core\Url;
+  use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
+  use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
+  use Drupal\Core\Authentication\AuthenticationCollectorInterface;
+***************
+*** 207,213 ****
+          $method = strtolower($method);
+          $path_method = [];
+          $path_method['summary'] = $this->getRouteMethodSummary($route, $route_name, $method);
+-         $path_method['description'] = '@todo Add descriptions';
+          $path_method['parameters'] = $this->getMethodParameters($route, $resource_type, $method);
+          $path_method['tags'] = [$this->getBundleTag($entity_type_id, $bundle_name)];
+          $path_method['responses'] = $this->getEntityResponses($entity_type_id, $method, $bundle_name, $route_name);
+--- 209,215 ----
+          $method = strtolower($method);
+          $path_method = [];
+          $path_method['summary'] = $this->getRouteMethodSummary($route, $route_name, $method);
++         $path_method['description'] = $this->getRouteMethodDescription($route_name, $method, $resource_type->getTypeName());
+          $path_method['parameters'] = $this->getMethodParameters($route, $resource_type, $method);
+          $path_method['tags'] = [$this->getBundleTag($entity_type_id, $bundle_name)];
+          $path_method['responses'] = $this->getEntityResponses($entity_type_id, $method, $bundle_name, $route_name);
+***************
+*** 264,273 ****
+    protected function getRouteMethodSummary(Route $route, $route_name, $method) {
+      // @todo Make a better summary.
+      if ($route_type = $this->getRoutTypeFromName($route_name)) {
+-       return "$route_type $method";
+      }
+      return '@todo';
+  
+    }
+  
+    /**
+--- 266,332 ----
+    protected function getRouteMethodSummary(Route $route, $route_name, $method) {
+      // @todo Make a better summary.
+      if ($route_type = $this->getRoutTypeFromName($route_name)) {
++       return $this->t('@route @method', [
++         '@route' => ucfirst($route_type),
++         '@method' => strtoupper($method),
++       ]);
+      }
+      return '@todo';
++   }
+  
++   /**
++    * Gets description of a method on a route.
++    *
++    * @param string $route_name
++    *   The route name.
++    * @param string $method
++    *   The method.
++    * @param string $resource_type_name
++    *   The resource type name
++    *
++    * @return string
++    *   The method description.
++    */
++   protected function getRouteMethodDescription($route_name, $method, $resource_type_name) {
++     $route_type = $this->getRoutTypeFromName($route_name);
++     if (!$route_type || $method !== 'get') {
++       return NULL;
++     }
++     if ($route_type === 'collection') {
++       $message = '%link_co for the @name resource type. Collections are a list';
++       $message .= ' of %link_ro for a particular resource type. In the JSON ';
++       $message .= 'API module for Drupal all collections are homogeneous, ';
++       $message .= 'which means that all the items in a collection are of the ';
++       $message .= 'same type.';
++       return $this->t($message, [
++         '%link_co' => Link::fromTextAndUrl(
++           $this->t('Collection endpoint'),
++           Url::fromUri('http://jsonapi.org/format/#fetching')
++         )->toString(),
++         '@name' => $resource_type_name,
++         '%link_ro' => Link::fromTextAndUrl(
++           $this->t('resource objects'),
++           Url::fromUri('http://jsonapi.org/format/#document-resource-objects')
++         )->toString(),
++       ]);
++     }
++     else if ($route_type === 'individual') {
++       $message = '%link_in for the @name resource type. The individual ';
++       $message .= 'endpoint contains a %link_ro with the data for a particular';
++       $message .= ' resource or entity.';
++       return $this->t($message, [
++         '%link_in' => Link::fromTextAndUrl(
++           $this->t('Individual endpoint'),
++           Url::fromUri('http://jsonapi.org/format/#fetching')
++         )->toString(),
++         '@name' => $resource_type_name,
++         '%link_ro' => Link::fromTextAndUrl(
++           $this->t('resource object'),
++           Url::fromUri('http://jsonapi.org/format/#document-resource-objects')
++         )->toString(),
++       ]);
++     }
++     return NULL;
+    }
+  
+    /**
