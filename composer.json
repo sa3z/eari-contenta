@@ -38,9 +38,6 @@
     "phpunit/phpunit": "^4.8",
     "symfony/css-selector": "^2.8"
   },
-  "conflict": {
-      "drupal/drupal": "*"
-  },
   "minimum-stability": "dev",
   "prefer-stable": true,
   "autoload": {
@@ -108,7 +105,7 @@
     "discard-changes": true,
     "sort-packages": true,
     "platform": {
-      "php": "7.2"
+      "php": "7.0"
     }
   }
 }
