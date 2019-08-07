@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b1ab72d1576ee222642da90c60d0c25c",
+    "content-hash": "74b84ae31a90ff6e0d82a7b9ee590ff1",
     "packages": [
         {
             "name": "alchemy/zippy",
@@ -2549,6 +2549,51 @@
             ],
             "description": "Exposes your Drupal data model through a GraphQL schema.",
             "homepage": "http://drupal.org/project/graphql",
+            "support": {
+                "source": "https://git.drupalcode.org/project/graphql"
+            }
+        },
+        {
+            "name": "drupal/graphql_core",
+            "version": "3.0.0-rc3",
+            "require": {
+                "drupal/core": "~8.0",
+                "drupal/graphql": "self.version"
+            },
+            "type": "metapackage",
+            "extra": {
+                "branch-alias": {
+                    "dev-3.x": "3.x-dev"
+                },
+                "drupal": {
+                    "version": "8.x-3.0-rc3",
+                    "datestamp": "1555138081",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "RC releases are not covered by Drupal security advisories."
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "fubhy",
+                    "homepage": "https://www.drupal.org/user/761344"
+                },
+                {
+                    "name": "klausi",
+                    "homepage": "https://www.drupal.org/user/262198"
+                },
+                {
+                    "name": "pmelab",
+                    "homepage": "https://www.drupal.org/user/555322"
+                }
+            ],
+            "description": "Provides type system plugins and derivers on behalf of core modules.",
+            "homepage": "https://www.drupal.org/project/graphql",
             "support": {
                 "source": "https://git.drupalcode.org/project/graphql"
             }
@@ -9335,6 +9380,7 @@
     "stability-flags": {
         "drupal/fieldable_path": 5,
         "drupal/graphql": 5,
+        "drupal/graphql_core": 5,
         "drupal/simple_block": 10
     },
     "prefer-stable": true,
