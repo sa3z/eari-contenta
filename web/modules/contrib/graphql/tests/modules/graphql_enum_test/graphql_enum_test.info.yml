@@ -1,0 +1,14 @@
+type: module
+name: GraphQL Enumeration Test
+description: Test enumeration plugins.
+package: Testing
+# core: 8.x
+hidden: TRUE
+dependencies:
+- graphql
+
+# Information added by Drupal.org packaging script on 2019-04-13
+version: '8.x-3.0-rc3'
+core: '8.x'
+project: 'graphql'
+datestamp: 1555138086
