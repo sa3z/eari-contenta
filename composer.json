@@ -19,6 +19,7 @@
     "drupal/console": "^1",
     "drupal/core": "^8",
     "drupal/ctools": "^3.2",
+    "drupal/fieldable_path": "^1.0@RC",
     "drupal/simple_block": "^1.0@beta",
     "drush/drush": "~8",
     "rvtraveller/qs-composer-installer": "^1.1",

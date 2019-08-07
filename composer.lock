@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "022256d314188a7cb325dd9b39fa55d4",
+    "content-hash": "dafd8cb0657348774e05bfe2fedebba9",
     "packages": [
         {
             "name": "alchemy/zippy",
@@ -2445,6 +2445,56 @@
             "homepage": "https://www.drupal.org/project/decoupled_router",
             "support": {
                 "source": "https://git.drupalcode.org/project/decoupled_router"
+            }
+        },
+        {
+            "name": "drupal/fieldable_path",
+            "version": "1.0.0-rc5",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/fieldable_path.git",
+                "reference": "8.x-1.0-rc5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/fieldable_path-8.x-1.0-rc5.zip",
+                "reference": "8.x-1.0-rc5",
+                "shasum": "c271d4a5fead0bbb1e2dd810bfa8883a32a97322"
+            },
+            "require": {
+                "drupal/core": "*"
+            },
+            "require-dev": {
+                "drupal/pathauto": "*"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "branch-alias": {
+                    "dev-1.x": "1.x-dev"
+                },
+                "drupal": {
+                    "version": "8.x-1.0-rc5",
+                    "datestamp": "1535539680",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "RC releases are not covered by Drupal security advisories."
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Spleshka",
+                    "homepage": "https://www.drupal.org/user/810676"
+                }
+            ],
+            "description": "Provides a fieldable mirror of \"path\" property for entities.",
+            "homepage": "https://www.drupal.org/project/fieldable_path",
+            "support": {
+                "source": "https://git.drupalcode.org/project/fieldable_path"
             }
         },
         {
@@ -9182,6 +9232,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "drupal/fieldable_path": 5,
         "drupal/simple_block": 10
     },
     "prefer-stable": true,
