@@ -97,7 +97,7 @@
             },
             "patches_applied": []
         },
-        "installation-source": "dist",
+        "installation-source": "source",
         "autoload": {
             "psr-4": {
                 "Asm89\\Stack\\": "src/Asm89/Stack/"
