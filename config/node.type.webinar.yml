@@ -1,0 +1,18 @@
+uuid: bdaad2c7-997f-4d99-94af-685bfbe0873a
+langcode: en
+status: true
+dependencies:
+  module:
+    - menu_ui
+third_party_settings:
+  menu_ui:
+    available_menus:
+      - main
+    parent: 'main:'
+name: Webinar
+type: webinar
+description: ''
+help: ''
+new_revision: true
+preview_mode: 1
+display_submitted: true

@@ -44,13 +44,18 @@ function consumer_image_styles_consumers_list_alter(&$data, $context) {
   if ($context['type'] === 'header') {
     $data['image_styles'] = t('Image Styles');
   }
-  else if ($context['type'] === 'row') {
+  elseif ($context['type'] === 'row') {
     $entity = $context['entity'];
     $data['image_styles'] = [
       'data' => ['#theme' => 'item_list', '#items' => []],
     ];
-    foreach ($entity->get('image_styles') as $image_style) {
-      $data['image_styles']['data']['#items'][] = $image_style->entity->label();
+
+    // Add all image style labels.
+    /* @var $image_styles_provider \Drupal\consumer_image_styles\ImageStylesProvider */
+    $image_styles_provider = \Drupal::service('consumer_image_styles.image_styles_provider');
+    $image_styles = $image_styles_provider->loadStyles($entity);
+    foreach ($image_styles as $image_style) {
+      $data['image_styles']['data']['#items'][] = $image_style->label();
     }
   }
 }

@@ -67,11 +67,11 @@ class UserSearch extends SearchPluginBase implements AccessibleInterface {
   /**
    * Creates a UserSearch object.
    *
-   * @param Connection $database
+   * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param ModuleHandlerInterface $module_handler
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
@@ -146,7 +146,7 @@ class UserSearch extends SearchPluginBase implements AccessibleInterface {
     foreach ($accounts as $account) {
       $result = [
         'title' => $account->getDisplayName(),
-        'link' => $account->url('canonical', ['absolute' => TRUE]),
+        'link' => $account->toUrl('canonical', ['absolute' => TRUE])->toString(),
       ];
       if ($this->currentUser->hasPermission('administer users')) {
         $result['title'] .= ' (' . $account->getEmail() . ')';

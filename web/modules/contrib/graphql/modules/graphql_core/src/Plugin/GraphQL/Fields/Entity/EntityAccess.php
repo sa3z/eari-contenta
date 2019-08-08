@@ -2,14 +2,12 @@
 
 namespace Drupal\graphql_core\Plugin\GraphQL\Fields\Entity;
 
-use Drupal\Core\Access\AccessibleInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
- * GraphQL field resolving for entity access for the current user.
- *
  * @GraphQLField(
  *   id = "entity_access",
  *   secure = true,
@@ -17,7 +15,7 @@ use Youshido\GraphQL\Execution\ResolveInfo;
  *   type = "Boolean",
  *   parents = {"Entity"},
  *   arguments = {
- *     "operation" = "String"
+ *     "operation" = "String!"
  *   }
  * )
  */
@@ -26,7 +24,7 @@ class EntityAccess extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function resolveValues($value, array $args, ResolveInfo $info) {
+  public function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
     if ($value instanceof EntityInterface) {
       yield $value->access($args['operation']);
     }

@@ -389,14 +389,11 @@ class BigPipe {
    */
   protected function sendNoJsPlaceholders($html, $no_js_placeholders, AttachedAssetsInterface $cumulative_assets) {
     // Split the HTML on every no-JS placeholder string.
-    $prepare_for_preg_split = function ($placeholder_string) {
-      return '(' . preg_quote($placeholder_string, '/') . ')';
-    };
-    $preg_placeholder_strings = array_map($prepare_for_preg_split, array_keys($no_js_placeholders));
-    $fragments = preg_split('/' . implode('|', $preg_placeholder_strings) . '/', $html, NULL, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+    $placeholder_strings = array_keys($no_js_placeholders);
+    $fragments = static::splitHtmlOnPlaceholders($html, $placeholder_strings);
 
     // Determine how many occurrences there are of each no-JS placeholder.
-    $placeholder_occurrences = array_count_values(array_intersect($fragments, array_keys($no_js_placeholders)));
+    $placeholder_occurrences = array_count_values(array_intersect($fragments, $placeholder_strings));
 
     // Set up a variable to store the content of placeholders that have multiple
     // occurrences.
@@ -420,7 +417,7 @@ class BigPipe {
       }
 
       $placeholder = $fragment;
-      assert('isset($no_js_placeholders[$placeholder])');
+      assert(isset($no_js_placeholders[$placeholder]));
       $token = Crypt::randomBytesBase64(55);
 
       // Render the placeholder, but include the cumulative settings assets, so
@@ -445,7 +442,6 @@ class BigPipe {
           continue;
         }
       }
-
 
       // Create a new HtmlResponse. Ensure the CSS and (non-bottom) JS is sent
       // before the HTML they're associated with. In other words: ensure the
@@ -482,7 +478,6 @@ class BigPipe {
           continue;
         }
       }
-
 
       // Send this embedded HTML response.
       $this->sendChunk($html_response);
@@ -631,7 +626,7 @@ EOF;
    *   AJAX page state.
    */
   protected function filterEmbeddedResponse(Request $fake_request, Response $embedded_response) {
-    assert('$embedded_response instanceof \Drupal\Core\Render\HtmlResponse || $embedded_response instanceof \Drupal\Core\Ajax\AjaxResponse');
+    assert($embedded_response instanceof HtmlResponse || $embedded_response instanceof AjaxResponse);
     return $this->filterResponse($fake_request, HttpKernelInterface::SUB_REQUEST, $embedded_response);
   }
 
@@ -651,7 +646,7 @@ EOF;
    *   The filtered response.
    */
   protected function filterResponse(Request $request, $request_type, Response $response) {
-    assert('$request_type === \Symfony\Component\HttpKernel\HttpKernelInterface::MASTER_REQUEST || $request_type === \Symfony\Component\HttpKernel\HttpKernelInterface::SUB_REQUEST');
+    assert($request_type === HttpKernelInterface::MASTER_REQUEST || $request_type === HttpKernelInterface::SUB_REQUEST);
     $this->requestStack->push($request);
     $event = new FilterResponseEvent($this->httpKernel, $request, $request_type, $response);
     $this->eventDispatcher->dispatch(KernelEvents::RESPONSE, $event);
@@ -732,8 +727,8 @@ EOF;
     // being rendered: any code can add messages to render.
     // This violates the principle that each lazy builder must be able to render
     // itself in isolation, and therefore in any order. However, we cannot
-    // change the way drupal_set_message() works in the Drupal 8 cycle. So we
-    // have to accommodate its special needs.
+    // change the way \Drupal\Core\Messenger\MessengerInterface::addMessage()
+    // works in the Drupal 8 cycle. So we have to accommodate its special needs.
     // Allowing placeholders to be rendered in a particular order (in this case:
     // last) would violate this isolation principle. Thus a monopoly is granted
     // to this one special case, with this hard-coded solution.
@@ -754,6 +749,41 @@ EOF;
       array_intersect($placeholder_ids, $message_placeholder_ids)
     );
     return $ordered_placeholder_ids;
+  }
+
+  /**
+   * Splits a HTML string into fragments.
+   *
+   * Creates an array of HTML fragments, separated by placeholders. The result
+   * includes the placeholders themselves. The original order is respected.
+   *
+   * @param string $html_string
+   *   The HTML to split.
+   * @param string[] $html_placeholders
+   *   The HTML placeholders to split on.
+   *
+   * @return string[]
+   *   The resulting HTML fragments.
+   */
+  private static function splitHtmlOnPlaceholders($html_string, array $html_placeholders) {
+    $prepare_for_preg_split = function ($placeholder_string) {
+      return '(' . preg_quote($placeholder_string, '/') . ')';
+    };
+    $preg_placeholder_strings = array_map($prepare_for_preg_split, $html_placeholders);
+    $pattern = '/' . implode('|', $preg_placeholder_strings) . '/';
+    if (strlen($pattern) < 31000) {
+      // Only small (<31K characters) patterns can be handled by preg_split().
+      $flags = PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE;
+      $result = preg_split($pattern, $html_string, NULL, $flags);
+    }
+    else {
+      // For large amounts of placeholders we use a simpler but slower approach.
+      foreach ($html_placeholders as $placeholder) {
+        $html_string = str_replace($placeholder, "\x1F" . $placeholder . "\x1F", $html_string);
+      }
+      $result = array_filter(explode("\x1F", $html_string));
+    }
+    return $result;
   }
 
 }

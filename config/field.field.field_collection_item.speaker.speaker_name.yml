@@ -1,0 +1,30 @@
+uuid: 537eb7e8-6d14-47ac-9584-a79b8e766376
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.field_collection_item.speaker_name
+    - field_collection.field_collection.speaker
+    - node.type.contributor
+  module:
+    - entity_reference_revisions
+id: field_collection_item.speaker.speaker_name
+field_name: speaker_name
+entity_type: field_collection_item
+bundle: speaker
+label: 'Speaker Name'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      contributor: contributor
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference_revisions

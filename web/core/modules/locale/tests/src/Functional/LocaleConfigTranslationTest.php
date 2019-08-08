@@ -38,6 +38,7 @@ class LocaleConfigTranslationTest extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
+      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
 
     // Add custom language.
@@ -111,7 +112,7 @@ class LocaleConfigTranslationTest extends BrowserTestBase {
 
     // Formatting the date 8 / 27 / 1985 @ 13:37 EST with pattern D should
     // display "Tue".
-    $formatted_date = format_date(494015820, $type = 'medium', NULL, 'America/New_York', $this->langcode);
+    $formatted_date = $this->container->get('date.formatter')->format(494015820, $type = 'medium', NULL, 'America/New_York', $this->langcode);
     $this->assertEqual($formatted_date, 'Tue', 'Got the right formatted date using the date format translation pattern.');
 
     // Assert strings from image module config are not available.
@@ -231,7 +232,7 @@ class LocaleConfigTranslationTest extends BrowserTestBase {
     }
 
     // Check the optional default configuration in node module.
-    $string = $this->storage->findString(['source' => 'No front page content has been created yet.', 'context' => '', 'type' => 'configuration']);
+    $string = $this->storage->findString(['source' => 'No front page content has been created yet.<br/>Follow the <a target="_blank" href="https://www.drupal.org/docs/user_guide/en/index.html">User Guide</a> to start building your site.', 'context' => '', 'type' => 'configuration']);
     if ($optional) {
       $this->assertFalse($this->config('views.view.frontpage')->isNew());
       $this->assertTrue($string, 'Node view text can be found with node and views modules.');

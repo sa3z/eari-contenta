@@ -2,9 +2,10 @@
 
 namespace Drupal\graphql_core\Plugin\Deriver\Types;
 
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
+use Drupal\graphql\Utility\StringHelper;
 use Drupal\graphql_core\Plugin\Deriver\EntityFieldDeriverBase;
-use Drupal\graphql_core\Plugin\GraphQL\Types\Entity\EntityFieldType;
 
 /**
  * Derive GraphQL types for raw values of drupal fields.
@@ -14,17 +15,28 @@ class EntityFieldTypeDeriver extends EntityFieldDeriverBase {
   /**
    * {@inheritdoc}
    */
-  protected function getDerivativeDefinitionsFromFieldDefinition($entityTypeId, FieldStorageDefinitionInterface $fieldDefinition, array $basePluginDefinition) {
-    if ($this->isSinglePropertyField($fieldDefinition)) {
+  protected function getDerivativeDefinitionsFromFieldDefinition(FieldDefinitionInterface $fieldDefinition, array $basePluginDefinition) {
+    $itemDefinition = $fieldDefinition->getItemDefinition();
+    if (!($itemDefinition instanceof ComplexDataDefinitionInterface) || !$propertyDefinitions = $itemDefinition->getPropertyDefinitions()) {
       return [];
     }
 
-    $fieldName = $fieldDefinition->getName();
+    $propertyDefinitions = $itemDefinition->getPropertyDefinitions();
+    if (count($propertyDefinitions) <= 1) {
+      return [];
+    }
 
-    return ["$entityTypeId-$fieldName" => [
-      'name' => EntityFieldType::getId($entityTypeId, $fieldName),
+    $entityTypeId = $fieldDefinition->getTargetEntityTypeId();
+    $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
+    $supportsBundles = $entityType->hasKey('bundle');
+    $fieldName = $fieldDefinition->getName();
+    $fieldBundle = $fieldDefinition->getTargetBundle() ?: '';
+
+    return ["$entityTypeId-$fieldName-$fieldBundle" => [
+      'name' => StringHelper::camelCase('field', $entityTypeId, $supportsBundles ? $fieldBundle : '', $fieldName),
       'description' => $fieldDefinition->getDescription(),
       'entity_type' => $entityTypeId,
+      'entity_bundle' => $fieldBundle ?: NULL,
       'field_name' => $fieldName,
     ] + $basePluginDefinition];
   }

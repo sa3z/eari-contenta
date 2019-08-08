@@ -63,7 +63,6 @@ class EntityDisplayFormBaseTest extends KernelTestBase {
       ])
       ->shouldBeCalled();
 
-
     // An initially visible field, with a submitted region change.
     $entity->getComponent('field_start_visible_change_region')
       ->willReturn([
@@ -119,8 +118,12 @@ class EntityDisplayFormBaseTest extends KernelTestBase {
       })
       ->shouldBeCalled();
 
-    $form_object = new EntityViewDisplayEditForm($this->container->get('plugin.manager.field.field_type'), $this->container->get('plugin.manager.field.formatter'));
-    $form_object->setEntityManager($this->container->get('entity.manager'));
+    $form_object = new EntityViewDisplayEditForm(
+      $this->container->get('plugin.manager.field.field_type'),
+      $this->container->get('plugin.manager.field.formatter'),
+      $this->container->get('entity_display.repository'),
+      $this->container->get('entity_field.manager')
+    );
     $form_object->setEntity($entity->reveal());
 
     $form = [

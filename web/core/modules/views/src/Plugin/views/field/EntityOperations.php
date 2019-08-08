@@ -2,7 +2,9 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RedirectDestinationTrait;
@@ -21,13 +23,33 @@ class EntityOperations extends FieldPluginBase {
 
   use EntityTranslationRenderTrait;
   use RedirectDestinationTrait;
+  use DeprecatedServicePropertyTrait;
 
   /**
-   * The entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * {@inheritdoc}
    */
-  protected $entityManager;
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
+   * The entity repository service.
+   *
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
+   */
+  protected $entityRepository;
+
+  /**
+   * The entity display repository.
+   *
+   * @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface
+   */
+  protected $entityDisplayRepository;
 
   /**
    * The language manager.
@@ -37,7 +59,7 @@ class EntityOperations extends FieldPluginBase {
   protected $languageManager;
 
   /**
-   * Constructor.
+   * Constructs a new EntityOperations object.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -45,16 +67,24 @@ class EntityOperations extends FieldPluginBase {
    *   The plugin_id for the plugin instance.
    * @param array $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity manager.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityTypeManagerInterface $entity_type_manager, LanguageManagerInterface $language_manager, EntityRepositoryInterface $entity_repository = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->entityManager = $entity_manager;
+    $this->entityTypeManager = $entity_type_manager;
     $this->languageManager = $language_manager;
+
+    if (!$entity_repository) {
+      @trigger_error('Calling EntityOperations::__construct() with the $entity_repository argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_repository = \Drupal::service('entity.repository');
+    }
+    $this->entityRepository = $entity_repository;
   }
 
   /**
@@ -65,8 +95,9 @@ class EntityOperations extends FieldPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager'),
-      $container->get('language_manager')
+      $container->get('entity_type.manager'),
+      $container->get('language_manager'),
+      $container->get('entity.repository')
     );
   }
 
@@ -84,7 +115,7 @@ class EntityOperations extends FieldPluginBase {
     $options = parent::defineOptions();
 
     $options['destination'] = [
-      'default' => TRUE,
+      'default' => FALSE,
     ];
 
     return $options;
@@ -99,7 +130,7 @@ class EntityOperations extends FieldPluginBase {
     $form['destination'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Include destination'),
-      '#description' => $this->t('Include a <code>destination</code> parameter in the link to return the user to the original view upon completing the link action.'),
+      '#description' => $this->t('Enforce a <code>destination</code> parameter in the link to return the user to the original view upon completing the link action. Most operations include a destination by default and this setting is no longer needed.'),
       '#default_value' => $this->options['destination'],
     ];
   }
@@ -109,7 +140,7 @@ class EntityOperations extends FieldPluginBase {
    */
   public function render(ResultRow $values) {
     $entity = $this->getEntityTranslation($this->getEntity($values), $values);
-    $operations = $this->entityManager->getListBuilder($entity->getEntityTypeId())->getOperations($entity);
+    $operations = $this->entityTypeManager->getListBuilder($entity->getEntityTypeId())->getOperations($entity);
     if ($this->options['destination']) {
       foreach ($operations as &$operation) {
         if (!isset($operation['query'])) {
@@ -149,7 +180,23 @@ class EntityOperations extends FieldPluginBase {
    * {@inheritdoc}
    */
   protected function getEntityManager() {
+    // This relies on DeprecatedServicePropertyTrait to trigger a deprecation
+    // message in case it is accessed.
     return $this->entityManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityTypeManager() {
+    return $this->entityTypeManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityRepository() {
+    return $this->entityRepository;
   }
 
   /**
@@ -158,6 +205,7 @@ class EntityOperations extends FieldPluginBase {
   protected function getLanguageManager() {
     return $this->languageManager;
   }
+
   /**
    * {@inheritdoc}
    */

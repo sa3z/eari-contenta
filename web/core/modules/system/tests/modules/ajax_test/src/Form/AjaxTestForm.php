@@ -2,11 +2,14 @@
 
 namespace Drupal\ajax_test\Form;
 
+use Drupal\Core\Url;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Dummy form for testing DialogRenderer with _form routes.
+ *
+ * @internal
  */
 class AjaxTestForm extends FormBase {
 
@@ -22,7 +25,7 @@ class AjaxTestForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $form['#action'] = \Drupal::url('ajax_test.dialog');
+    $form['#action'] = Url::fromRoute('ajax_test.dialog')->toString();
 
     $form['description'] = [
       '#markup' => '<p>' . $this->t("Ajax Form contents description.") . '</p>',

@@ -5,7 +5,7 @@ namespace Drupal\Core\Field;
 use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
+use Drupal\Core\Entity\FieldableEntityStorageInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -44,6 +44,13 @@ class FieldStorageDefinitionListener implements FieldStorageDefinitionListenerIn
   protected $entityFieldManager;
 
   /**
+   * The deleted fields repository.
+   *
+   * @var \Drupal\Core\Field\DeletedFieldsRepositoryInterface
+   */
+  protected $deletedFieldsRepository;
+
+  /**
    * Constructs a new FieldStorageDefinitionListener.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -54,12 +61,15 @@ class FieldStorageDefinitionListener implements FieldStorageDefinitionListenerIn
    *   The entity last installed schema repository.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   The entity field manager.
+   * @param \Drupal\Core\Field\DeletedFieldsRepositoryInterface $deleted_fields_repository
+   *   The deleted fields repository.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EventDispatcherInterface $event_dispatcher, EntityLastInstalledSchemaRepositoryInterface $entity_last_installed_schema_repository, EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, EventDispatcherInterface $event_dispatcher, EntityLastInstalledSchemaRepositoryInterface $entity_last_installed_schema_repository, EntityFieldManagerInterface $entity_field_manager, DeletedFieldsRepositoryInterface $deleted_fields_repository) {
     $this->entityTypeManager = $entity_type_manager;
     $this->eventDispatcher = $event_dispatcher;
     $this->entityLastInstalledSchemaRepository = $entity_last_installed_schema_repository;
     $this->entityFieldManager = $entity_field_manager;
+    $this->deletedFieldsRepository = $deleted_fields_repository;
   }
 
   /**
@@ -70,17 +80,7 @@ class FieldStorageDefinitionListener implements FieldStorageDefinitionListenerIn
 
     // @todo Forward this to all interested handlers, not only storage, once
     //   iterating handlers is possible: https://www.drupal.org/node/2332857.
-    $storage = clone $this->entityTypeManager->getStorage($entity_type_id);
-
-    // Entity type definition updates can change the schema by adding or
-    // removing entity tables (for example when switching an entity type from
-    // non-revisionable to revisionable), so CRUD operations on a field storage
-    // definition need to use the last installed entity type schema.
-    if ($storage instanceof SqlContentEntityStorage
-       && ($last_installed_entity_type = $this->entityLastInstalledSchemaRepository->getLastInstalledDefinition($entity_type_id))) {
-      $storage->setEntityType($last_installed_entity_type);
-    }
-
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
     if ($storage instanceof FieldStorageDefinitionListenerInterface) {
       $storage->onFieldStorageDefinitionCreate($storage_definition);
     }
@@ -99,17 +99,7 @@ class FieldStorageDefinitionListener implements FieldStorageDefinitionListenerIn
 
     // @todo Forward this to all interested handlers, not only storage, once
     //   iterating handlers is possible: https://www.drupal.org/node/2332857.
-    $storage = clone $this->entityTypeManager->getStorage($entity_type_id);
-
-    // Entity type definition updates can change the schema by adding or
-    // removing entity tables (for example when switching an entity type from
-    // non-revisionable to revisionable), so CRUD operations on a field storage
-    // definition need to use the last installed entity type schema.
-    if ($storage instanceof SqlContentEntityStorage
-       && ($last_installed_entity_type = $this->entityLastInstalledSchemaRepository->getLastInstalledDefinition($entity_type_id))) {
-      $storage->setEntityType($last_installed_entity_type);
-    }
-
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
     if ($storage instanceof FieldStorageDefinitionListenerInterface) {
       $storage->onFieldStorageDefinitionUpdate($storage_definition, $original);
     }
@@ -128,15 +118,15 @@ class FieldStorageDefinitionListener implements FieldStorageDefinitionListenerIn
 
     // @todo Forward this to all interested handlers, not only storage, once
     //   iterating handlers is possible: https://www.drupal.org/node/2332857.
-    $storage = clone $this->entityTypeManager->getStorage($entity_type_id);
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
 
-    // Entity type definition updates can change the schema by adding or
-    // removing entity tables (for example when switching an entity type from
-    // non-revisionable to revisionable), so CRUD operations on a field storage
-    // definition need to use the last installed entity type schema.
-    if ($storage instanceof SqlContentEntityStorage
-       && ($last_installed_entity_type = $this->entityLastInstalledSchemaRepository->getLastInstalledDefinition($entity_type_id))) {
-      $storage->setEntityType($last_installed_entity_type);
+    // Keep the field definition in the deleted fields repository so we can use
+    // it later during field_purge_batch(), but only if the field has data.
+    if ($storage_definition instanceof BaseFieldDefinition && $storage instanceof FieldableEntityStorageInterface && $storage->countFieldData($storage_definition, TRUE)) {
+      $deleted_storage_definition = clone $storage_definition;
+      $deleted_storage_definition->setDeleted(TRUE);
+      $this->deletedFieldsRepository->addFieldDefinition($deleted_storage_definition);
+      $this->deletedFieldsRepository->addFieldStorageDefinition($deleted_storage_definition);
     }
 
     if ($storage instanceof FieldStorageDefinitionListenerInterface) {

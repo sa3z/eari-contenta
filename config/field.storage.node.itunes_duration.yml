@@ -1,0 +1,21 @@
+uuid: 26ffbf59-9586-4852-ad0b-ecf5f39073be
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.itunes_duration
+field_name: itunes_duration
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  is_ascii: false
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

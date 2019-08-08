@@ -60,7 +60,7 @@ class CommentPreviewTest extends CommentTestBase {
 
     // Add a user picture.
     $image = current($this->drupalGetTestFiles('image'));
-    $user_edit['files[user_picture_0]'] = drupal_realpath($image->uri);
+    $user_edit['files[user_picture_0]'] = \Drupal::service('file_system')->realpath($image->uri);
     $this->drupalPostForm('user/' . $this->webUser->id() . '/edit', $user_edit, t('Save'));
 
     // As the web user, fill in the comment form and preview the comment.
@@ -117,6 +117,8 @@ class CommentPreviewTest extends CommentTestBase {
 
     // Go back and re-submit the form.
     $this->getSession()->getDriver()->back();
+    $submit_button = $this->assertSession()->buttonExists('Save');
+    $submit_button->click();
     $this->assertText('Your comment has been posted.');
     $elements = $this->xpath('//section[contains(@class, "comment-wrapper")]/article');
     $this->assertEqual(2, count($elements));
@@ -137,11 +139,11 @@ class CommentPreviewTest extends CommentTestBase {
     $date = new DrupalDateTime('2008-03-02 17:23');
     $edit['subject[0][value]'] = $this->randomMachineName(8);
     $edit['comment_body[0][value]'] = $this->randomMachineName(16);
-    $edit['uid'] = $web_user->getUsername() . ' (' . $web_user->id() . ')';
+    $edit['uid'] = $web_user->getAccountName() . ' (' . $web_user->id() . ')';
     $edit['date[date]'] = $date->format('Y-m-d');
     $edit['date[time]'] = $date->format('H:i:s');
     $raw_date = $date->getTimestamp();
-    $expected_text_date = format_date($raw_date);
+    $expected_text_date = $this->container->get('date.formatter')->format($raw_date);
     $expected_form_date = $date->format('Y-m-d');
     $expected_form_time = $date->format('H:i:s');
     $comment = $this->postComment($this->node, $edit['subject[0][value]'], $edit['comment_body[0][value]'], TRUE);
@@ -151,7 +153,7 @@ class CommentPreviewTest extends CommentTestBase {
     $this->assertTitle(t('Preview comment | Drupal'), 'Page title is "Preview comment".');
     $this->assertText($edit['subject[0][value]'], 'Subject displayed.');
     $this->assertText($edit['comment_body[0][value]'], 'Comment displayed.');
-    $this->assertText($web_user->getUsername(), 'Author displayed.');
+    $this->assertText($web_user->getAccountName(), 'Author displayed.');
     $this->assertText($expected_text_date, 'Date displayed.');
 
     // Check that the subject, comment, author and date fields are displayed with the correct values.

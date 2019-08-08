@@ -17,6 +17,7 @@ use Drupal\migrate\Row;
  *
  * Available configuration keys:
  * - cache_counts: (optional) If set, cache the source count.
+ * - cache_key: (optional) Uniquely named cache key used for cache_counts.
  * - skip_count: (optional) If set, do not attempt to count the source.
  * - track_changes: (optional) If set, track changes to incoming data.
  * - high_water_property: (optional) It is an array of name & alias values
@@ -83,7 +84,7 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
   /**
    * The current row from the query.
    *
-   * @var \Drupal\Migrate\Row
+   * @var \Drupal\migrate\Row
    */
   protected $currentRow;
 
@@ -216,8 +217,8 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
   /**
    * Initializes the iterator with the source data.
    *
-   * @return array
-   *   An array of the data for this source.
+   * @return \Iterator
+   *   Returns an iteratable object of data for this source.
    */
   abstract protected function initializeIterator();
 
@@ -353,7 +354,7 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
 
       $row_data = $this->getIterator()->current() + $this->configuration;
       $this->fetchNextRow();
-      $row = new Row($row_data, $this->migration->getSourcePlugin()->getIds(), $this->migration->getDestinationIds());
+      $row = new Row($row_data, $this->getIds());
 
       // Populate the source key for this row.
       $this->currentSourceIds = $row->getSourceIdValues();
@@ -436,7 +437,10 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
    * Returns -1 if the source is not countable.
    *
    * @param bool $refresh
-   *   (optional) Whether or not to refresh the count. Defaults to FALSE.
+   *   (optional) Whether or not to refresh the count. Defaults to FALSE. Not
+   *   all implementations support the reset flag. In such instances this
+   *   parameter is ignored and the result of calling the method will always be
+   *   up to date.
    *
    * @return int
    *   The count.

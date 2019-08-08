@@ -1,0 +1,23 @@
+uuid: 8e18c830-5b44-493d-bd79-a6b529c92813
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.publish_transcript
+    - node.type.webinar
+id: node.webinar.publish_transcript
+field_name: publish_transcript
+entity_type: node
+bundle: webinar
+label: 'Publish Transcript'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

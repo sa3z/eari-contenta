@@ -3,7 +3,7 @@
 namespace Drupal\views_ui;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
@@ -11,20 +11,23 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Url;
-use Drupal\user\SharedTempStoreFactory;
+use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
 
 /**
  * Form controller for the Views edit form.
+ *
+ * @internal
  */
 class ViewEditForm extends ViewFormBase {
 
   /**
    * The views temp store.
    *
-   * @var \Drupal\user\SharedTempStore
+   * @var \Drupal\Core\TempStore\SharedTempStore
    */
   protected $tempStore;
 
@@ -52,7 +55,7 @@ class ViewEditForm extends ViewFormBase {
   /**
    * Constructs a new ViewEditForm object.
    *
-   * @param \Drupal\user\SharedTempStoreFactory $temp_store_factory
+   * @param \Drupal\Core\TempStore\SharedTempStoreFactory $temp_store_factory
    *   The factory for the temp store object.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack object.
@@ -73,7 +76,7 @@ class ViewEditForm extends ViewFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('user.shared_tempstore'),
+      $container->get('tempstore.shared'),
       $container->get('request_stack'),
       $container->get('date.formatter'),
       $container->get('element_info')
@@ -84,6 +87,7 @@ class ViewEditForm extends ViewFormBase {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state) {
+    /** @var \Drupal\views_ui\ViewUI $view */
     $view = $this->entity;
     $display_id = $this->displayID;
     // Do not allow the form to be cached, because $form_state->get('view') can become
@@ -124,20 +128,16 @@ class ViewEditForm extends ViewFormBase {
     $form['#attributes']['class'] = ['form-edit'];
 
     if ($view->isLocked()) {
-      $username = [
-        '#theme' => 'username',
-        '#account' => $this->entityManager->getStorage('user')->load($view->lock->owner),
-      ];
-      $lock_message_substitutions = [
-        '@user' => \Drupal::service('renderer')->render($username),
-        '@age' => $this->dateFormatter->formatTimeDiffSince($view->lock->updated),
-        ':url' => $view->url('break-lock-form'),
-      ];
       $form['locked'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['view-locked', 'messages', 'messages--warning']],
-        '#children' => $this->t('This view is being edited by user @user, and is therefore locked from editing by others. This lock is @age old. Click here to <a href=":url">break this lock</a>.', $lock_message_substitutions),
         '#weight' => -10,
+        'message' => [
+          '#type' => 'break_lock_link',
+          '#label' => $view->getEntityType()->getSingularLabel(),
+          '#lock' => $view->getLock(),
+          '#url' => $view->toUrl('break-lock-form'),
+        ],
       ];
     }
     else {
@@ -161,7 +161,6 @@ class ViewEditForm extends ViewFormBase {
         ],
       ],
     ];
-
 
     $form['displays']['top'] = $this->renderDisplayTop($view);
 
@@ -323,7 +322,7 @@ class ViewEditForm extends ViewFormBase {
 
     $view->save();
 
-    drupal_set_message($this->t('The view %name has been saved.', ['%name' => $view->label()]));
+    $this->messenger()->addStatus($this->t('The view %name has been saved.', ['%name' => $view->label()]));
 
     // Remove this view from cache so we can edit it properly.
     $this->tempStore->delete($view->id());
@@ -341,7 +340,7 @@ class ViewEditForm extends ViewFormBase {
     // Remove this view from cache so edits will be lost.
     $view = $this->entity;
     $this->tempStore->delete($view->id());
-    $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
+    $form_state->setRedirectUrl($this->entity->toUrl('collection'));
   }
 
   /**
@@ -417,15 +416,25 @@ class ViewEditForm extends ViewFormBase {
         // path.
         elseif ($view->status() && $view->getExecutable()->displayHandlers->get($display['id'])->hasPath()) {
           $path = $view->getExecutable()->displayHandlers->get($display['id'])->getPath();
+
           if ($path && (strpos($path, '%') === FALSE)) {
-            if (!parse_url($path, PHP_URL_SCHEME)) {
-              // @todo Views should expect and store a leading /. See:
-              //   https://www.drupal.org/node/2423913
-              $url = Url::fromUserInput('/' . ltrim($path, '/'));
+            // Wrap this in a try/catch as trying to generate links to some
+            // routes may throw a NotAcceptableHttpException if they do not
+            // respond to HTML, such as RESTExports.
+            try {
+              if (!parse_url($path, PHP_URL_SCHEME)) {
+                // @todo Views should expect and store a leading /. See:
+                //   https://www.drupal.org/node/2423913
+                $url = Url::fromUserInput('/' . ltrim($path, '/'));
+              }
+              else {
+                $url = Url::fromUri("base:$path");
+              }
             }
-            else {
-              $url = Url::fromUri("base:$path");
+            catch (NotAcceptableHttpException $e) {
+              $url = '/' . $path;
             }
+
             $build['top']['actions']['path'] = [
               '#type' => 'link',
               '#title' => $this->t('View @display_title', ['@display_title' => $display_title]),
@@ -650,7 +659,7 @@ class ViewEditForm extends ViewFormBase {
 
     // Redirect to the top-level edit page. The first remaining display will
     // become the active display.
-    $form_state->setRedirectUrl($view->urlInfo('edit-form'));
+    $form_state->setRedirectUrl($view->toUrl('edit-form'));
   }
 
   /**
@@ -706,7 +715,7 @@ class ViewEditForm extends ViewFormBase {
         ],
         'duplicate' => [
           'title' => $this->t('Duplicate view'),
-          'url' => $view->urlInfo('duplicate-form'),
+          'url' => $view->toUrl('duplicate-form'),
         ],
         'reorder' => [
           'title' => $this->t('Reorder displays'),
@@ -719,7 +728,7 @@ class ViewEditForm extends ViewFormBase {
     if ($view->access('delete')) {
       $element['extra_actions']['#links']['delete'] = [
         'title' => $this->t('Delete view'),
-        'url' => $view->urlInfo('delete-form'),
+        'url' => $view->toUrl('delete-form'),
       ];
     }
 
@@ -731,13 +740,13 @@ class ViewEditForm extends ViewFormBase {
         $element['extra_actions']['#links']['revert'] = [
           'title' => $this->t('Revert view'),
           'href' => "admin/structure/views/view/{$view->id()}/revert",
-          'query' => ['destination' => $view->url('edit-form')],
+          'query' => ['destination' => $view->toUrl('edit-form')->toString()],
         ];
       }
       else {
         $element['extra_actions']['#links']['delete'] = [
           'title' => $this->t('Delete view'),
-          'url' => $view->urlInfo('delete-form'),
+          'url' => $view->toUrl('delete-form'),
         ];
       }
     }
@@ -1086,7 +1095,7 @@ class ViewEditForm extends ViewFormBase {
       $build['fields'][$id]['#class'][] = Html::cleanCssIdentifier($display['id'] . '-' . $type . '-' . $id);
 
       if ($executable->display_handler->useGroupBy() && $handler->usesGroupBy()) {
-        $build['fields'][$id]['#settings_links'][] = $this->l(SafeMarkup::format('<span class="label">@text</span>', ['@text' => $this->t('Aggregation settings')]), new Url('views_ui.form_handler_group', [
+        $build['fields'][$id]['#settings_links'][] = $this->l(new FormattableMarkup('<span class="label">@text</span>', ['@text' => $this->t('Aggregation settings')]), new Url('views_ui.form_handler_group', [
           'js' => 'nojs',
           'view' => $view->id(),
           'display_id' => $display['id'],
@@ -1096,7 +1105,7 @@ class ViewEditForm extends ViewFormBase {
       }
 
       if ($handler->hasExtraOptions()) {
-        $build['fields'][$id]['#settings_links'][] = $this->l(SafeMarkup::format('<span class="label">@text</span>', ['@text' => $this->t('Settings')]), new Url('views_ui.form_handler_extra', [
+        $build['fields'][$id]['#settings_links'][] = $this->l(new FormattableMarkup('<span class="label">@text</span>', ['@text' => $this->t('Settings')]), new Url('views_ui.form_handler_extra', [
           'js' => 'nojs',
           'view' => $view->id(),
           'display_id' => $display['id'],
@@ -1135,7 +1144,7 @@ class ViewEditForm extends ViewFormBase {
         foreach ($contents as $key => $pid) {
           if ($key != $last) {
             $operator = $group_info['groups'][$gid] == 'OR' ? $this->t('OR') : $this->t('AND');
-            $store[$pid]['#link'] = SafeMarkup::format('@link <span>@operator</span>', ['@link' => $store[$pid]['#link'], '@operator' => $operator]);
+            $store[$pid]['#link'] = new FormattableMarkup('@link <span>@operator</span>', ['@link' => $store[$pid]['#link'], '@operator' => $operator]);
           }
           $build['fields'][$pid] = $store[$pid];
         }

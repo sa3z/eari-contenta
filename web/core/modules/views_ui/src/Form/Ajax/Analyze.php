@@ -7,6 +7,8 @@ use Drupal\views\Views;
 
 /**
  * Displays analysis information for a view.
+ *
+ * @internal
  */
 class Analyze extends ViewsFormBase {
 
@@ -54,7 +56,7 @@ class Analyze extends ViewsFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var $view \Drupal\views_ui\ViewUI */
     $view = $form_state->get('view');
-    $form_state->setRedirectUrl($view->urlInfo('edit-form'));
+    $form_state->setRedirectUrl($view->toUrl('edit-form'));
   }
 
 }

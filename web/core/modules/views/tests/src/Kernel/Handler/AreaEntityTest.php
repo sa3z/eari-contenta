@@ -4,7 +4,7 @@ namespace Drupal\Tests\views\Kernel\Handler;
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormState;
-use Drupal\simpletest\BlockCreationTrait;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
@@ -194,6 +194,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
     $this->assertEqual([
       'config' => ['block.block.test_block'],
       'content' => ['entity_test:entity_test:aa0c61cb-b7bb-4795-972a-493dabcf529c'],
+      'module' => ['views_test_data'],
     ], $dependencies);
   }
 

@@ -1,11 +1,11 @@
-uuid: 5f266c52-7e87-41fd-9d2d-b22e8bdb6c68
+uuid: 7d3e09ba-bbea-4030-a246-592db94c5c34
 langcode: en
 status: true
 dependencies:
   module:
     - file
     - image
-    - media_entity
+    - media
 id: media.field_image
 field_name: field_image
 entity_type: media

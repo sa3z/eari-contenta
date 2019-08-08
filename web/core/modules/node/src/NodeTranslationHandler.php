@@ -39,10 +39,8 @@ class NodeTranslationHandler extends ContentTranslationHandler {
         }
       }
       if (isset($status_translatable)) {
-        foreach (['publish', 'unpublish', 'submit'] as $button) {
-          if (isset($form['actions'][$button])) {
-            $form['actions'][$button]['#value'] .= ' ' . ($status_translatable ? t('(this translation)') : t('(all translations)'));
-          }
+        if (isset($form['actions']['submit'])) {
+          $form['actions']['submit']['#value'] .= ' ' . ($status_translatable ? t('(this translation)') : t('(all translations)'));
         }
       }
     }
@@ -65,7 +63,7 @@ class NodeTranslationHandler extends ContentTranslationHandler {
       $translation['status'] = $entity->isPublished();
       $account = $entity->uid->entity;
       $translation['uid'] = $account ? $account->id() : 0;
-      $translation['created'] = format_date($entity->created->value, 'custom', 'Y-m-d H:i:s O');
+      $translation['created'] = $this->dateFormatter->format($entity->created->value, 'custom', 'Y-m-d H:i:s O');
     }
     parent::entityFormEntityBuild($entity_type, $entity, $form, $form_state);
   }

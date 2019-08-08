@@ -1,0 +1,23 @@
+uuid: 1740ef3f-820c-416c-8ad7-57689e49be11
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.social_sharing
+    - node.type.webinar
+id: node.webinar.social_sharing
+field_name: social_sharing
+entity_type: node
+bundle: webinar
+label: 'Social Sharing'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

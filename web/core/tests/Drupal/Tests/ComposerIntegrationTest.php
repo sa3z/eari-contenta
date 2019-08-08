@@ -66,6 +66,7 @@ class ComposerIntegrationTest extends UnitTestCase {
       $this->root . '/core/lib/Drupal/Component/Transliteration',
       $this->root . '/core/lib/Drupal/Component/Utility',
       $this->root . '/core/lib/Drupal/Component/Uuid',
+      $this->root . '/core/lib/Drupal/Component/Version',
     ];
   }
 

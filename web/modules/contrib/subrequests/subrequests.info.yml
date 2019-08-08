@@ -6,8 +6,8 @@ dependencies:
   - drupal:serialization
 package: Web services
 
-# Information added by Drupal.org packaging script on 2017-12-15
-version: '8.x-2.0-rc1'
+# Information added by Drupal.org packaging script on 2019-04-22
+version: '8.x-2.2'
 core: '8.x'
 project: 'subrequests'
-datestamp: 1513331594
+datestamp: 1555921990

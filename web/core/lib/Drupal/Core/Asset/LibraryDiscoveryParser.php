@@ -69,8 +69,6 @@ class LibraryDiscoveryParser {
    *   Thrown when a js file defines a positive weight.
    */
   public function buildByExtension($extension) {
-    $libraries = [];
-
     if ($extension === 'core') {
       $path = 'core';
       $extension_type = 'core';
@@ -129,11 +127,11 @@ class LibraryDiscoveryParser {
         //   properly resolve dependencies for all (css) libraries per category,
         //   and only once prior to rendering out an HTML page.
         if ($type == 'css' && !empty($library[$type])) {
-          assert('\Drupal\Core\Asset\LibraryDiscoveryParser::validateCssLibrary($library[$type]) < 2', 'CSS files should be specified as key/value pairs, where the values are configuration options. See https://www.drupal.org/node/2274843.');
-          assert('\Drupal\Core\Asset\LibraryDiscoveryParser::validateCssLibrary($library[$type]) === 0', 'CSS must be nested under a category. See https://www.drupal.org/node/2274843.');
+          assert(static::validateCssLibrary($library[$type]) < 2, 'CSS files should be specified as key/value pairs, where the values are configuration options. See https://www.drupal.org/node/2274843.');
+          assert(static::validateCssLibrary($library[$type]) === 0, 'CSS must be nested under a category. See https://www.drupal.org/node/2274843.');
           foreach ($library[$type] as $category => $files) {
             $category_weight = 'CSS_' . strtoupper($category);
-            assert('defined($category_weight)', 'Invalid CSS category: ' . $category . '. See https://www.drupal.org/node/2274843.');
+            assert(defined($category_weight), 'Invalid CSS category: ' . $category . '. See https://www.drupal.org/node/2274843.');
             foreach ($files as $source => $options) {
               if (!isset($options['weight'])) {
                 $options['weight'] = 0;
@@ -228,8 +226,8 @@ class LibraryDiscoveryParser {
    * This method sets the parsed information onto the library property.
    *
    * Library information is parsed from *.libraries.yml files; see
-   * editor.library.yml for an example. Every library must have at least one js
-   * or css entry. Each entry starts with a machine name and defines the
+   * editor.libraries.yml for an example. Every library must have at least one
+   * js or css entry. Each entry starts with a machine name and defines the
    * following elements:
    * - js: A list of JavaScript files to include. Each file is keyed by the file
    *   path. An item can have several attributes (like HTML

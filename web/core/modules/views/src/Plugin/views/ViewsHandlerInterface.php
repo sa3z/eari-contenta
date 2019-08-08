@@ -31,7 +31,7 @@ interface ViewsHandlerInterface extends ViewsPluginInterface {
 
   /**
    * Determines if the handler is considered 'broken', meaning it's a
-   * a placeholder used when a handler can't be found.
+   * placeholder used when a handler can't be found.
    */
   public function broken();
 
@@ -44,7 +44,7 @@ interface ViewsHandlerInterface extends ViewsPluginInterface {
   /**
    * Check whether given user has access to this handler.
    *
-   * @param AccountInterface $account
+   * @param \Drupal\Core\Session\AccountInterface $account
    *   The user account to check.
    *
    * @return bool

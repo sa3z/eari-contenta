@@ -51,7 +51,7 @@ class ActionListBuilder extends ConfigEntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorage($entity_type->id()),
+      $container->get('entity_type.manager')->getStorage($entity_type->id()),
       $container->get('plugin.manager.action')
     );
   }
@@ -108,12 +108,12 @@ class ActionListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function render() {
+    $build['action_admin_manage_form'] = \Drupal::formBuilder()->getForm('Drupal\action\Form\ActionAdminManageForm');
     $build['action_header']['#markup'] = '<h3>' . $this->t('Available actions:') . '</h3>';
     $build['action_table'] = parent::render();
     if (!$this->hasConfigurableActions) {
       unset($build['action_table']['table']['#header']['operations']);
     }
-    $build['action_admin_manage_form'] = \Drupal::formBuilder()->getForm('Drupal\action\Form\ActionAdminManageForm');
     return $build;
   }
 

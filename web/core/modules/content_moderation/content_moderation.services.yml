@@ -1,9 +1,11 @@
 services:
   paramconverter.latest_revision:
     class: Drupal\content_moderation\ParamConverter\EntityRevisionConverter
-    arguments: ['@entity.manager', '@content_moderation.moderation_information']
+    parent: paramconverter.entity
     tags:
-      - { name: paramconverter, priority: 5 }
+      # Set priority so it comes after paramconverter.configentity_admin, but
+      # before paramconverter.entity.
+      - { name: paramconverter, priority: 1 }
   content_moderation.state_transition_validation:
     class: \Drupal\content_moderation\StateTransitionValidation
     arguments: ['@content_moderation.moderation_information']
@@ -18,5 +20,10 @@ services:
   content_moderation.config_import_subscriber:
     class: Drupal\content_moderation\EventSubscriber\ConfigImportSubscriber
     arguments: ['@config.manager', '@entity_type.manager']
+    tags:
+      - { name: event_subscriber }
+  content_moderation.route_subscriber:
+    class: Drupal\content_moderation\Routing\ContentModerationRouteSubscriber
+    arguments: ['@entity_type.manager']
     tags:
       - { name: event_subscriber }

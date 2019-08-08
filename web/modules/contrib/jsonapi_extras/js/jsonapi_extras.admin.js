@@ -1,6 +1,6 @@
 /**
  * @file
- * JSON API Extras resources behaviors.
+ * JSON:API Extras resources behaviors.
  */
 
 (function ($, Drupal) {

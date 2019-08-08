@@ -2,11 +2,13 @@
 
 namespace Drupal\Tests\menu_link_content\Kernel\Plugin\migrate\process;
 
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\menu_link_content\Plugin\migrate\process\LinkUri;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests \Drupal\menu_link_content\Plugin\migrate\process\LinkUri.
@@ -16,6 +18,24 @@ use Drupal\KernelTests\KernelTestBase;
  * @coversDefaultClass \Drupal\menu_link_content\Plugin\migrate\process\LinkUri
  */
 class LinkUriTest extends KernelTestBase {
+
+  use UserCreationTrait;
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = ['node', 'user'];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp();
+    $this->setUpCurrentUser();
+    $this->installEntitySchema('node');
+  }
 
   /**
    * Tests LinkUri::transform().
@@ -99,21 +119,69 @@ class LinkUriTest extends KernelTestBase {
   }
 
   /**
+   * Tests disabling route validation in LinkUri::transform().
+   *
+   * @param array $value
+   *   The value to pass to LinkUri::transform().
+   * @param string $expected
+   *   The expected return value of LinkUri::transform().
+   *
+   * @dataProvider providerTestDisablingRouteValidation
+   *
+   * @covers ::transform
+   */
+  public function testDisablingRouteValidation(array $value, $expected) {
+    // Create a node so we have a valid route.
+    Node::create([
+      'nid' => 1,
+      'title' => 'test',
+      'type' => 'page',
+    ])->save();
+
+    $actual = $this->doTransform($value, ['validate_route' => FALSE]);
+    $this->assertSame($expected, $actual);
+  }
+
+  /**
+   * Provides test cases for LinkUriTest::testDisablingRouteValidation().
+   *
+   * @return array
+   *   An array of test cases, each which the following values:
+   *   - The value array to pass to LinkUri::transform().
+   *   - The expected path returned by LinkUri::transform().
+   */
+  public function providerTestDisablingRouteValidation() {
+    $tests = [];
+
+    $value = ['node/1'];
+    $expected = 'entity:node/1';
+    $tests['routed'] = [$value, $expected];
+
+    $value = ['node/2'];
+    $expected = 'base:node/2';
+    $tests['unrouted'] = [$value, $expected];
+
+    return $tests;
+  }
+
+  /**
    * Transforms a link path into an 'internal:' or 'entity:' URI.
    *
    * @param array $value
    *   The value to pass to LinkUri::transform().
+   * @param array $configuration
+   *   The plugin configuration.
    *
    * @return string
    *   The transformed link.
    */
-  public function doTransform(array $value) {
+  public function doTransform(array $value, $configuration = []) {
     $entityTypeManager = $this->container->get('entity_type.manager');
     $routeBuilder = $this->container->get('router.builder');
     $row = new Row();
     $executable = $this->prophesize(MigrateExecutableInterface::class)->reveal();
 
-    $plugin = new LinkUri([], 'link_uri', [], $entityTypeManager, $routeBuilder);
+    $plugin = new LinkUri($configuration, 'link_uri', [], $entityTypeManager, $routeBuilder);
     $actual = $plugin->transform($value, $executable, $row, 'destinationproperty');
 
     return $actual;

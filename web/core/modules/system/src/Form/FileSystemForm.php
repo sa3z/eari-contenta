@@ -14,6 +14,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configure file system settings for this site.
+ *
+ * @internal
  */
 class FileSystemForm extends ConfigFormBase {
 
@@ -51,7 +53,7 @@ class FileSystemForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static (
+    return new static(
       $container->get('config.factory'),
       $container->get('date.formatter'),
       $container->get('stream_wrapper_manager')

@@ -2,6 +2,8 @@
 
 namespace Drupal\Core\Cache;
 
+use Drupal\Component\Assertion\Inspector;
+
 /**
  * Defines a memory cache implementation.
  *
@@ -63,7 +65,7 @@ class MemoryBackend implements CacheBackendInterface, CacheTagsInvalidatorInterf
    * as appropriate.
    *
    * @param object $cache
-   *   An item loaded from cache_get() or cache_get_multiple().
+   *   An item loaded from self::get() or self::getMultiple().
    * @param bool $allow_invalid
    *   (optional) If TRUE, cache items may be returned even if they have expired
    *   or been invalidated.
@@ -98,7 +100,7 @@ class MemoryBackend implements CacheBackendInterface, CacheTagsInvalidatorInterf
    * {@inheritdoc}
    */
   public function set($cid, $data, $expire = Cache::PERMANENT, array $tags = []) {
-    assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($tags)', 'Cache Tags must be strings.');
+    assert(Inspector::assertAllStrings($tags), 'Cache Tags must be strings.');
     $tags = array_unique($tags);
     // Sort the cache tags so that they are stored consistently in the database.
     sort($tags);
@@ -154,10 +156,9 @@ class MemoryBackend implements CacheBackendInterface, CacheTagsInvalidatorInterf
    * {@inheritdoc}
    */
   public function invalidateMultiple(array $cids) {
-    foreach ($cids as $cid) {
-      if (isset($this->cache[$cid])) {
-        $this->cache[$cid]->expire = $this->getRequestTime() - 1;
-      }
+    $items = array_intersect_key($this->cache, array_flip($cids));
+    foreach ($items as $cid => $item) {
+      $this->cache[$cid]->expire = $this->getRequestTime() - 1;
     }
   }
 

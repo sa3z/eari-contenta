@@ -1,0 +1,19 @@
+uuid: 490c5e37-888f-4726-9e8c-58bd066abc5a
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.twitter_widget
+field_name: twitter_widget
+entity_type: node
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

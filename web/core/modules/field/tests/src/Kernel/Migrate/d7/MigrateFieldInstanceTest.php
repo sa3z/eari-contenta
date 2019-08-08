@@ -4,8 +4,6 @@ namespace Drupal\Tests\field\Kernel\Migrate\d7;
 
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\FieldConfigInterface;
-use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\migrate\Kernel\NodeCommentCombinationTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
 
 /**
@@ -15,19 +13,16 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
 
-  use NodeCommentCombinationTrait;
-
   /**
    * {@inheritdoc}
    */
   public static $modules = [
     'comment',
     'datetime',
-    'file',
     'image',
     'link',
+    'menu_ui',
     'node',
-    'system',
     'taxonomy',
     'telephone',
     'text',
@@ -38,15 +33,7 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installConfig(static::$modules);
-    $this->createNodeCommentCombination('page');
-    $this->createNodeCommentCombination('article');
-    $this->createNodeCommentCombination('blog');
-    $this->createNodeCommentCombination('book');
-    $this->createNodeCommentCombination('forum', 'comment_forum');
-    $this->createNodeCommentCombination('test_content_type');
-    Vocabulary::create(['vid' => 'test_vocabulary'])->save();
-    $this->executeMigrations(['d7_field', 'd7_field_instance']);
+    $this->migrateFields();
   }
 
   /**
@@ -93,6 +80,23 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
   }
 
   /**
+   * Asserts the settings of an entity reference field config entity.
+   *
+   * @param string $id
+   *   The entity ID in the form ENTITY_TYPE.BUNDLE.FIELD_NAME.
+   * @param string[] $target_bundles
+   *   An array of expected target bundles.
+   */
+  protected function assertEntityReferenceFields($id, array $target_bundles) {
+    $field = FieldConfig::load($id);
+    $handler_settings = $field->getSetting('handler_settings');
+    $this->assertArrayHasKey('target_bundles', $handler_settings);
+    foreach ($handler_settings['target_bundles'] as $target_bundle) {
+      $this->assertContains($target_bundle, $target_bundles);
+    }
+  }
+
+  /**
    * Tests migrating D7 field instances to field_config entities.
    */
   public function testFieldInstances() {
@@ -118,20 +122,34 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
     $this->assertEntity('node.test_content_type.field_file', 'File', 'file', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_float', 'Float', 'float', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_images', 'Images', 'image', TRUE, FALSE);
-    $this->assertEntity('node.test_content_type.field_integer', 'Integer', 'integer', TRUE, FALSE);
+    $this->assertEntity('node.test_content_type.field_integer', 'Integer', 'integer', TRUE, TRUE);
     $this->assertEntity('node.test_content_type.field_link', 'Link', 'link', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_text_list', 'Text List', 'list_string', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_integer_list', 'Integer List', 'list_integer', FALSE, FALSE);
+    $this->assertEntity('node.test_content_type.field_float_list', 'Float List', 'list_float', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_long_text', 'Long text', 'text_with_summary', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_term_reference', 'Term Reference', 'entity_reference', FALSE, FALSE);
     $this->assertEntity('node.test_content_type.field_text', 'Text', 'string', FALSE, FALSE);
-    $this->assertEntity('comment.comment_node_test_content_type.field_integer', 'Integer', 'integer', FALSE, FALSE);
+    $this->assertEntity('comment.comment_node_test_content_type.field_integer', 'Integer', 'integer', FALSE, TRUE);
     $this->assertEntity('user.user.field_file', 'File', 'file', FALSE, FALSE);
-
 
     $this->assertLinkFields('node.test_content_type.field_link', DRUPAL_OPTIONAL);
     $this->assertLinkFields('node.article.field_link', DRUPAL_DISABLED);
     $this->assertLinkFields('node.blog.field_link', DRUPAL_REQUIRED);
+
+    $this->assertEntityReferenceFields('node.article.field_tags', ['tags']);
+    $this->assertEntityReferenceFields('node.forum.taxonomy_forums', ['forums']);
+    $this->assertEntityReferenceFields('node.test_content_type.field_term_reference', ['tags', 'test_vocabulary']);
+
+    // Tests that fields created by the Title module are not migrated.
+    $title_field = FieldConfig::load('node.test_content_type.title_field');
+    $this->assertNull($title_field);
+    $subject_field = FieldConfig::load('comment.comment_node_article.subject_field');
+    $this->assertNull($subject_field);
+    $name_field = FieldConfig::load('taxonomy_term.test_vocabulary.name_field');
+    $this->assertNull($name_field);
+    $description_field = FieldConfig::load('taxonomy_term.test_vocabulary.description_field');
+    $this->assertNull($description_field);
   }
 
   /**

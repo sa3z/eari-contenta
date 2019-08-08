@@ -1,0 +1,19 @@
+uuid: 9221a025-faba-4d5a-b2f0-1f725cb77f3d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.enclosure_type
+    - node.type.podcast
+id: node.podcast.enclosure_type
+field_name: enclosure_type
+entity_type: node
+bundle: podcast
+label: 'Enclosure type'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

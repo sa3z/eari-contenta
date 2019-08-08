@@ -3,6 +3,7 @@
 namespace Drupal\jsonapi_extras\Normalizer;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceType;
 use Drupal\schemata_json_schema\Normalizer\jsonapi\FieldDefinitionNormalizer as SchemataJsonSchemaFieldDefinitionNormalizer;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
@@ -13,7 +14,7 @@ use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
 class SchemaFieldDefinitionNormalizer extends SchemataJsonSchemaFieldDefinitionNormalizer {
 
   /**
-   * The JSON API resource type repository.
+   * The JSON:API resource type repository.
    *
    * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepository
    */
@@ -32,31 +33,38 @@ class SchemaFieldDefinitionNormalizer extends SchemataJsonSchemaFieldDefinitionN
   /**
    * {@inheritdoc}
    */
-  public function normalize($entity, $format = NULL, array $context = []) {
-    $normalized = parent::normalize($entity, $format, $context);
+  public function normalize($field_definition, $format = NULL, array $context = []) {
+    assert($field_definition instanceof FieldDefinitionInterface);
+    $normalized = parent::normalize($field_definition, $format, $context);
 
     // Load the resource type for this entity type and bundle.
-    $resource_type = $this->resourceTypeRepository->get($context['entityTypeId'], $context['bundleId']);
+    $bundle = empty($context['bundleId'])
+      ? $context['entityTypeId']
+      : $context['bundleId'];
+    $resource_type = $this->resourceTypeRepository->get($context['entityTypeId'], $bundle);
 
     if (!$resource_type || !$resource_type instanceof ConfigurableResourceType) {
       return $normalized;
     }
 
     $field_name = $context['name'];
-    $enhancer = $resource_type->getFieldEnhancer($field_name);
+    $enhancer = $resource_type->getFieldEnhancer($field_definition->getName());
     if (!$enhancer) {
       return $normalized;
     }
-    $original_field_schema = $normalized['properties']['attributes']['properties'][$field_name];
-    $field_schema = &$normalized['properties']['attributes']['properties'][$field_name];
-    $field_schema = $enhancer->getJsonSchema();
-    // Copy *some* properties from the original.
-    $copied_properties = ['title', 'description'];
-    foreach ($copied_properties as $property_name) {
-      if (!empty($original_field_schema[$property_name])) {
-        $field_schema[$property_name] = $original_field_schema[$property_name];
-      }
-    }
+    $parents = ['properties', 'attributes', 'properties', $field_name];
+    $original_field_schema = NestedArray::getValue($normalized, $parents);
+    $to_copy = ['title', 'description'];
+    $field_schema = array_merge(
+      $enhancer->getOutputJsonSchema(),
+      // Copy *some* properties from the original.
+      array_intersect_key($original_field_schema, array_flip($to_copy))
+    );
+    NestedArray::setValue(
+      $normalized,
+      $parents,
+      $field_schema
+    );
 
     return $normalized;
   }

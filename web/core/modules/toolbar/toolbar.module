@@ -217,7 +217,7 @@ function toolbar_toolbar() {
  * @return array
  *   The updated renderable array.
  *
- * @see drupal_render()
+ * @see \Drupal\Core\Render\RendererInterface::render()
  */
 function toolbar_prerender_toolbar_administration_tray(array $element) {
   $menu_tree = \Drupal::service('toolbar.menu_tree');
@@ -283,9 +283,10 @@ function toolbar_preprocess_html(&$variables) {
   if (!\Drupal::currentUser()->hasPermission('access toolbar')) {
     return;
   }
-
-  $variables['attributes'] = new Attribute($variables['attributes']);
-  $variables['attributes']->addClass(['toolbar-tray-open', 'toolbar-horizontal', 'toolbar-fixed', 'toolbar-loading']);
+  $variables['attributes']['class'][] = 'toolbar-tray-open';
+  $variables['attributes']['class'][] = 'toolbar-horizontal';
+  $variables['attributes']['class'][] = 'toolbar-fixed';
+  $variables['attributes']['class'][] = 'toolbar-loading';
 }
 
 /**

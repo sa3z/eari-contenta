@@ -13,6 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 use Drupal\views\Plugin\Derivative\ViewsLocalTask;
+use Drupal\views\ViewEntityInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Entity\View;
 use Drupal\views\Render\ViewsRenderPipelineMarkup;
@@ -28,7 +29,7 @@ function views_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Views module provides a back end to fetch information from content, user accounts, taxonomy terms, and other entities from the database and present it to the user as a grid, HTML list, table, unformatted list, etc. The resulting displays are known generally as <em>views</em>.') . '</p>';
       $output .= '<p>' . t('For more information, see the <a href=":views">online documentation for the Views module</a>.', [':views' => 'https://www.drupal.org/documentation/modules/views']) . '</p>';
-      $output .= '<p>' . t('In order to create and modify your own views using the administration and configuration user interface, you will need to enable either the Views UI module in core or a contributed module that provides a user interface for Views. See the <a href=":views-ui">Views UI module help page</a> for more information.', [':views-ui' => (\Drupal::moduleHandler()->moduleExists('views_ui')) ? \Drupal::url('help.page', ['name' => 'views_ui']) : '#']) . '</p>';
+      $output .= '<p>' . t('In order to create and modify your own views using the administration and configuration user interface, you will need to enable either the Views UI module in core or a contributed module that provides a user interface for Views. See the <a href=":views-ui">Views UI module help page</a> for more information.', [':views-ui' => (\Drupal::moduleHandler()->moduleExists('views_ui')) ? Url::fromRoute('help.page', ['name' => 'views_ui'])->toString() : '#']) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Adding functionality to administrative pages') . '</dt>';
@@ -53,7 +54,7 @@ function views_views_pre_render($view) {
   // If using AJAX, send identifying data about this view.
   if ($view->ajaxEnabled() && empty($view->is_attachment) && empty($view->live_preview)) {
     $view->element['#attached']['drupalSettings']['views'] = [
-      'ajax_path' => \Drupal::url('views.ajax'),
+      'ajax_path' => Url::fromRoute('views.ajax')->toString(),
       'ajaxViews' => [
         'views_dom_id:' . $view->dom_id => [
           'view_name' => $view->storage->id(),
@@ -325,9 +326,10 @@ function views_theme_suggestions_container_alter(array &$suggestions, array $var
  *
  * @param $render_element
  *   The renderable array to which contextual links will be added. This array
- *   should be suitable for passing in to drupal_render() and will normally
- *   contain a representation of the view display whose contextual links are
- *   being requested.
+ *   should be suitable for passing in to
+ *   \Drupal\Core\Render\RendererInterface::render() and will normally contain a
+ *   representation of the view display whose contextual links are being
+ *   requested.
  * @param $location
  *   The location in which the calling function intends to render the view and
  *   its contextual links. The core system supports three options for this
@@ -357,7 +359,6 @@ function views_theme_suggestions_container_alter(array &$suggestions, array $var
  *     - #view_display_plugin_id: The plugin ID of the display.
  *
  * @see \Drupal\views\Plugin\Block\ViewsBlock::addContextualLinks()
- * @see views_preprocess_page()
  * @see template_preprocess_views_view()
  */
 function views_add_contextual_links(&$render_element, $location, $display_id, array $view_element = NULL) {
@@ -859,5 +860,42 @@ function views_view_delete(EntityInterface $entity) {
       \Drupal::service('router.builder')->setRebuildNeeded();
       break;
     }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ *
+ * Provides a BC layer for modules providing old configurations.
+ */
+function views_view_presave(ViewEntityInterface $view) {
+  $displays = $view->get('display');
+  $changed = FALSE;
+  foreach ($displays as $display_name => &$display) {
+    if (isset($display['display_options']['fields'])) {
+      foreach ($display['display_options']['fields'] as $field_name => &$field) {
+        if (isset($field['plugin_id']) && $field['plugin_id'] === 'entity_link') {
+          // Add any missing settings for entity_link.
+          if (!isset($field['output_url_as_text'])) {
+            $field['output_url_as_text'] = FALSE;
+            $changed = TRUE;
+          }
+          if (!isset($field['absolute'])) {
+            $field['absolute'] = FALSE;
+            $changed = TRUE;
+          }
+        }
+        elseif (isset($field['plugin_id']) && $field['plugin_id'] === 'node_path') {
+          // Convert the use of node_path to entity_link.
+          $field['plugin_id'] = 'entity_link';
+          $field['field'] = 'view_node';
+          $field['output_url_as_text'] = TRUE;
+          $changed = TRUE;
+        }
+      }
+    }
+  }
+  if ($changed) {
+    $view->set('display', $displays);
   }
 }

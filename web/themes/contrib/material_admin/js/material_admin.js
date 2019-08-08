@@ -7,17 +7,29 @@
   Drupal.behaviors.material_checkbox = {
     attach: function (context) {
       // limitation of drupal placing <label> before checkbox, which is bad idea and doesnt work with materialize checkboxes
-      $(context).find(':checkbox:not(.item-switch), select').once('material_checkbox').each(function () {
+      $(context).find(':checkbox:not(.item-switch)').once('material_checkbox').each(function () {
         var label = $('label[for="' + this.id + '"]');
         $(this).insertBefore(label);
       });
+    }
+  };
 
+  Drupal.behaviors.material_radio = {
+    attach: function (context) {
+      // limitation of drupal placing <label> before radio, if visisually hidden, still show the radio button.
+      $(context).find('.form-type-radio input[type=radio]').once('material_radio').each(function () {
+        var label = $('label[for="' + this.id + '"]');
+        $(this).insertBefore(label);
+        if (label.hasClass('visually-hidden')) {
+          label.addClass('show-radio-btn')
+        }
+      });
     }
   };
 
     Drupal.behaviors.material_multiple_select = {
     attach: function (context) {
-      $(context).find('select[multiple]').once('material_multiple_select').each(function () {
+      $(context).find('select[multiple]:not(.browser-default)').once('material_multiple_select').each(function () {
         $(this).prepend("<option value='' disabled > - </option>");
       })
      }

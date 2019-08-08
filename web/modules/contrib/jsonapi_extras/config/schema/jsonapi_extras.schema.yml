@@ -1,6 +1,6 @@
 jsonapi_extras.jsonapi_resource_config.*:
   type: config_entity
-  label: 'JSON API Resource Config'
+  label: 'JSON:API Resource Config'
   mapping:
     id:
       type: string
@@ -61,12 +61,12 @@ jsonapi_extras.enhancer_plugin.nested:
 
 jsonapi_extras.settings:
   type: config_object
-  label: 'JSON API Extras settings'
+  label: 'JSON:API Extras settings'
   mapping:
     path_prefix:
       type: string
       label: 'Path prefix'
-      description: 'The path prefix for JSON API'
+      description: 'The path prefix for JSON:API'
     include_count:
       type: boolean
       label: 'Include count in collection responses'

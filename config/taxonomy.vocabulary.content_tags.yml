@@ -1,0 +1,9 @@
+uuid: e2b9749c-dee6-4578-a2ca-ea2e5b571068
+langcode: en
+status: true
+dependencies: {  }
+name: 'Content Tags'
+vid: content_tags
+description: ''
+hierarchy: 0
+weight: 0

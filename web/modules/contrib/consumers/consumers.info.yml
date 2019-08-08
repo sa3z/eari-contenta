@@ -5,10 +5,10 @@ description: 'Declare all the consumers of your API'
 package: Authentication
 configure: entity.consumer.collection
 dependencies:
-  - image
+  - drupal:image
 
-# Information added by Drupal.org packaging script on 2017-09-12
-version: '8.x-1.0-beta1'
+# Information added by Drupal.org packaging script on 2019-02-10
+version: '8.x-1.9'
 core: '8.x'
 project: 'consumers'
-datestamp: 1505249047
+datestamp: 1549832285

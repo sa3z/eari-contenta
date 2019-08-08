@@ -112,13 +112,13 @@ class NodeRevisionsUiTest extends NodeTestBase {
     $this->drupalGet('node/' . $node->id() . '/revisions');
 
     // Assert the old revision message.
-    $date = format_date($nodes[0]->revision_timestamp->value, 'short');
+    $date = $this->container->get('date.formatter')->format($nodes[0]->revision_timestamp->value, 'short');
     $url = new Url('entity.node.revision', ['node' => $nodes[0]->id(), 'node_revision' => $nodes[0]->getRevisionId()]);
     $this->assertRaw(\Drupal::l($date, $url) . ' by ' . $editor);
 
     // Assert the current revision message.
-    $date = format_date($nodes[1]->revision_timestamp->value, 'short');
-    $this->assertRaw($nodes[1]->link($date) . ' by ' . $editor . '<p class="revision-log">' . $revision_log . '</p>');
+    $date = $this->container->get('date.formatter')->format($nodes[1]->revision_timestamp->value, 'short');
+    $this->assertRaw($nodes[1]->toLink($date)->toString() . ' by ' . $editor . '<p class="revision-log">' . $revision_log . '</p>');
   }
 
   /**
@@ -160,10 +160,17 @@ class NodeRevisionsUiTest extends NodeTestBase {
 
     $this->drupalGet('node/' . $node_id . '/revisions');
 
+    // Verify that the latest affected revision having been a default revision
+    // is displayed as the current one.
+    $this->assertNoLinkByHref('/node/' . $node_id . '/revisions/1/revert');
+    $elements = $this->xpath('//tr[contains(@class, "revision-current")]/td/a[1]');
+    // The site may be installed in a subdirectory, so check if the URL is
+    // contained in the retrieved one.
+    $this->assertContains('/node/1', current($elements)->getAttribute('href'));
+
     // Verify that the default revision can be an older revision than the latest
     // one.
-    // Assert that the revisions with translations changes are shown: 1 and 4.
-    $this->assertLinkByHref('/node/' . $node_id . '/revisions/1/revert');
+    // Assert that the revisions with translations changes are shown.
     $this->assertLinkByHref('/node/' . $node_id . '/revisions/4/revert');
 
     // Assert that the revisions without translations changes are filtered out:

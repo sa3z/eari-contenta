@@ -70,7 +70,11 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
     $this->drupalGet('admin/structure/menu/manage/tools');
     $this->assertNoLink(t('Translate'));
 
-    $menu_link_content = MenuLinkContent::create(['menu_name' => 'tools', 'link' => ['uri' => 'internal:/admin/structure/menu']]);
+    $menu_link_content = MenuLinkContent::create([
+      'menu_name' => 'tools',
+      'link' => ['uri' => 'internal:/admin/structure/menu'],
+      'title' => 'Link test',
+    ]);
     $menu_link_content->save();
     $this->drupalGet('admin/structure/menu/manage/tools');
     $this->assertLink(t('Translate'));
@@ -108,7 +112,7 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
       // We only want to test the title for non-english translations.
       if ($langcode != 'en') {
         $options = ['language' => $languages[$langcode]];
-        $url = $entity->urlInfo('edit-form', $options);
+        $url = $entity->toUrl('edit-form', $options);
         $this->drupalGet($url);
 
         $title = t('@title [%language translation]', [

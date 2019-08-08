@@ -2,9 +2,11 @@
 
 namespace Drupal\image\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\Plugin\Field\FieldWidget\FileWidget;
 use Drupal\image\Entity\ImageStyle;
@@ -21,6 +23,36 @@ use Drupal\image\Entity\ImageStyle;
  * )
  */
 class ImageWidget extends FileWidget {
+
+  /**
+   * The image factory service.
+   *
+   * @var \Drupal\Core\Image\ImageFactory
+   */
+  protected $imageFactory;
+
+  /**
+   * Constructs an ImageWidget object.
+   *
+   * @param string $plugin_id
+   *   The plugin_id for the widget.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The definition of the field to which the widget is associated.
+   * @param array $settings
+   *   The widget settings.
+   * @param array $third_party_settings
+   *   Any third party settings.
+   * @param \Drupal\Core\Render\ElementInfoManagerInterface $element_info
+   *   The element info manager service.
+   * @param \Drupal\Core\Image\ImageFactory $image_factory
+   *   The image factory service.
+   */
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, array $third_party_settings, ElementInfoManagerInterface $element_info, ImageFactory $image_factory = NULL) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings, $element_info);
+    $this->imageFactory = $image_factory ?: \Drupal::service('image.factory');
+  }
 
   /**
    * {@inheritdoc}
@@ -112,15 +144,21 @@ class ImageWidget extends FileWidget {
 
     $field_settings = $this->getFieldSettings();
 
+    // Add image validation.
+    $element['#upload_validators']['file_validate_is_image'] = [];
+
     // Add upload resolution validation.
     if ($field_settings['max_resolution'] || $field_settings['min_resolution']) {
       $element['#upload_validators']['file_validate_image_resolution'] = [$field_settings['max_resolution'], $field_settings['min_resolution']];
     }
 
-    // If not using custom extension validation, ensure this is an image.
-    $supported_extensions = ['png', 'gif', 'jpg', 'jpeg'];
-    $extensions = isset($element['#upload_validators']['file_validate_extensions'][0]) ? $element['#upload_validators']['file_validate_extensions'][0] : implode(' ', $supported_extensions);
-    $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
+    $extensions = $field_settings['file_extensions'];
+    $supported_extensions = $this->imageFactory->getSupportedExtensions();
+
+    // If using custom extension validation, ensure that the extensions are
+    // supported by the current image toolkit. Otherwise, validate against all
+    // toolkit supported extensions.
+    $extensions = !empty($extensions) ? array_intersect(explode(' ', $extensions), $supported_extensions) : $supported_extensions;
     $element['#upload_validators']['file_validate_extensions'][0] = implode(' ', $extensions);
 
     // Add mobile device image capture acceptance.
@@ -139,7 +177,7 @@ class ImageWidget extends FileWidget {
       $default_image = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('default_image');
     }
     // Convert the stored UUID into a file ID.
-    if (!empty($default_image['uuid']) && $entity = \Drupal::entityManager()->loadEntityByUuid('file', $default_image['uuid'])) {
+    if (!empty($default_image['uuid']) && $entity = \Drupal::service('entity.repository')->loadEntityByUuid('file', $default_image['uuid'])) {
       $default_image['fid'] = $entity->id();
     }
     $element['#default_image'] = !empty($default_image['fid']) ? $default_image : [];
@@ -224,7 +262,7 @@ class ImageWidget extends FileWidget {
       '#title' => t('Alternative text'),
       '#type' => 'textfield',
       '#default_value' => isset($item['alt']) ? $item['alt'] : '',
-      '#description' => t('This text will be used by screen readers, search engines, or when the image cannot be loaded.'),
+      '#description' => t('Short description of the image used by screen readers and displayed when the image is not loaded. This is important for accessibility.'),
       // @see https://www.drupal.org/node/465106#alt-text
       '#maxlength' => 512,
       '#weight' => -12,
@@ -256,18 +294,8 @@ class ImageWidget extends FileWidget {
   public static function validateRequiredFields($element, FormStateInterface $form_state) {
     // Only do validation if the function is triggered from other places than
     // the image process form.
-    if (!in_array('file_managed_file_submit', $form_state->getTriggeringElement()['#submit'])) {
-      // If the image is not there, we do not check for empty values.
-      $parents = $element['#parents'];
-      $field = array_pop($parents);
-      $image_field = NestedArray::getValue($form_state->getUserInput(), $parents);
-      // We check for the array key, so that it can be NULL (like if the user
-      // submits the form without using the "upload" button).
-      if (!array_key_exists($field, $image_field)) {
-        return;
-      }
-    }
-    else {
+    $triggering_element = $form_state->getTriggeringElement();
+    if (!empty($triggering_element['#submit']) && in_array('file_managed_file_submit', $triggering_element['#submit'], TRUE)) {
       $form_state->setLimitValidationErrors([]);
     }
   }

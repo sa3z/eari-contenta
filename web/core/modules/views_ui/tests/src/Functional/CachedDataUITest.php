@@ -3,7 +3,7 @@
 namespace Drupal\Tests\views_ui\Functional;
 
 /**
- * Tests the user tempstore cache in the UI.
+ * Tests the shared tempstore cache in the UI.
  *
  * @group views_ui
  */
@@ -17,12 +17,12 @@ class CachedDataUITest extends UITestBase {
   public static $testViews = ['test_view'];
 
   /**
-   * Tests the user tempstore views data in the UI.
+   * Tests the shared tempstore views data in the UI.
    */
   public function testCacheData() {
     $views_admin_user_uid = $this->fullAdminUser->id();
 
-    $temp_store = $this->container->get('user.shared_tempstore')->get('views');
+    $temp_store = $this->container->get('tempstore.shared')->get('views');
     // The view should not be locked.
     $this->assertEqual($temp_store->getMetadata('test_view'), NULL, 'The view is not locked.');
 
@@ -30,17 +30,17 @@ class CachedDataUITest extends UITestBase {
     // Make sure we have 'changes' to the view.
     $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/title', [], t('Apply'));
     $this->assertText('You have unsaved changes.');
-    $this->assertEqual($temp_store->getMetadata('test_view')->owner, $views_admin_user_uid, 'View cache has been saved.');
+    $this->assertEqual($temp_store->getMetadata('test_view')->getOwnerId(), $views_admin_user_uid, 'View cache has been saved.');
 
     $view_cache = $temp_store->get('test_view');
     // The view should be enabled.
     $this->assertTrue($view_cache->status(), 'The view is enabled.');
     // The view should now be locked.
-    $this->assertEqual($temp_store->getMetadata('test_view')->owner, $views_admin_user_uid, 'The view is locked.');
+    $this->assertEqual($temp_store->getMetadata('test_view')->getOwnerId(), $views_admin_user_uid, 'The view is locked.');
 
     // Cancel the view edit and make sure the cache is deleted.
     $this->drupalPostForm(NULL, [], t('Cancel'));
-    $this->assertEqual($temp_store->getMetadata('test_view'), NULL, 'User tempstore data has been removed.');
+    $this->assertEqual($temp_store->getMetadata('test_view'), NULL, 'Shared tempstore data has been removed.');
     // Test we are redirected to the view listing page.
     $this->assertUrl('admin/structure/views', [], 'Redirected back to the view listing page.');
 

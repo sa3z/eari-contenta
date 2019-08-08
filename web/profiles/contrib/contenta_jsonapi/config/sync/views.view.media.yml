@@ -1,4 +1,4 @@
-uuid: e1e23cdb-8c15-4afd-acfe-5ba424c21bd5
+uuid: 5ec46a16-020b-4131-9c8f-45f47b7c53ab
 langcode: en
 status: true
 dependencies:
@@ -6,7 +6,7 @@ dependencies:
     - image.style.thumbnail
   module:
     - image
-    - media_entity
+    - media
     - user
 id: media
 label: Media
@@ -26,7 +26,7 @@ display:
       access:
         type: perm
         options:
-          perm: 'access media overview'
+          perm: 'access content overview'
       cache:
         type: tag
         options: {  }
@@ -820,7 +820,7 @@ display:
       arguments: {  }
       display_extenders: {  }
     cache_metadata:
-      max-age: 0
+      max-age: -1
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
@@ -835,19 +835,10 @@ display:
     position: 1
     display_options:
       display_extenders: {  }
-      path: admin/content/media
-      menu:
-        type: tab
-        title: Media
-        description: ''
-        expanded: false
-        parent: ''
-        weight: 0
-        context: '0'
-        menu_name: main
+      path: admin/content/media-table
       display_description: ''
     cache_metadata:
-      max-age: 0
+      max-age: -1
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'

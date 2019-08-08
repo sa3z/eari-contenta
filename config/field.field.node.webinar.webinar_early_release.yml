@@ -1,0 +1,23 @@
+uuid: c03fd522-4fc0-485d-811f-b4bca0aa1095
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.webinar_early_release
+    - node.type.webinar
+id: node.webinar.webinar_early_release
+field_name: webinar_early_release
+entity_type: node
+bundle: webinar
+label: 'Webinar Early Release'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

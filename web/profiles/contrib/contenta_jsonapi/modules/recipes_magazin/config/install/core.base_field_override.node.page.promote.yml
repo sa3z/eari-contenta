@@ -1,8 +1,14 @@
+uuid: 6b2d996c-83fb-421e-8b90-d47de2df0118
 langcode: en
 status: true
 dependencies:
   config:
     - node.type.page
+  enforced:
+    module:
+      - recipes_magazin
+_core:
+  default_config_hash: xC-ekoxRmRwwxFE4Atgn6yauGAkWyjnogWYsh67z1wQ
 id: node.page.promote
 field_name: promote
 entity_type: node

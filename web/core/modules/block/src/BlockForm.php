@@ -19,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides form for block instance forms.
+ *
+ * @internal
  */
 class BlockForm extends EntityForm {
 
@@ -42,13 +44,6 @@ class BlockForm extends EntityForm {
    * @var \Drupal\Core\Condition\ConditionManager
    */
   protected $manager;
-
-  /**
-   * The event dispatcher service.
-   *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
-   */
-  protected $dispatcher;
 
   /**
    * The language manager service.
@@ -237,7 +232,8 @@ class BlockForm extends EntityForm {
     // @todo Allow list of conditions to be configured in
     //   https://www.drupal.org/node/2284687.
     $visibility = $this->entity->getVisibility();
-    foreach ($this->manager->getDefinitionsForContexts($form_state->getTemporaryValue('gathered_contexts')) as $condition_id => $definition) {
+    $definitions = $this->manager->getFilteredDefinitions('block_ui', $form_state->getTemporaryValue('gathered_contexts'), ['block' => $this->entity]);
+    foreach ($definitions as $condition_id => $definition) {
       // Don't display the current theme condition.
       if ($condition_id == 'current_theme') {
         continue;
@@ -357,7 +353,7 @@ class BlockForm extends EntityForm {
     // Save the settings of the plugin.
     $entity->save();
 
-    drupal_set_message($this->t('The block configuration has been saved.'));
+    $this->messenger()->addStatus($this->t('The block configuration has been saved.'));
     $form_state->setRedirect(
       'block.admin_display_theme',
       [

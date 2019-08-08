@@ -2,14 +2,16 @@
 
 namespace Drupal\workflows;
 
+use Drupal\Component\Plugin\ConfigurableInterface;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Plugin\DerivativeInspectionInterface;
 use Drupal\Core\Plugin\PluginWithFormsInterface;
 
 /**
  * An interface for Workflow type plugins.
  */
-interface WorkflowTypeInterface extends PluginWithFormsInterface, DerivativeInspectionInterface, ConfigurablePluginInterface {
+interface WorkflowTypeInterface extends PluginWithFormsInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ConfigurablePluginInterface {
 
   /**
    * The key of the global workflow plugin form.
@@ -124,7 +126,7 @@ interface WorkflowTypeInterface extends PluginWithFormsInterface, DerivativeInsp
    *   A list of state IDs to get. If NULL then all states will be returned.
    *
    * @return \Drupal\workflows\StateInterface[]
-   *   An array of workflow states.
+   *   An array of workflow states, keyed by state IDs.
    *
    * @throws \InvalidArgumentException
    *   Thrown if $state_ids contains a state ID that does not exist.
@@ -248,13 +250,17 @@ interface WorkflowTypeInterface extends PluginWithFormsInterface, DerivativeInsp
    * @param $state_id
    *   The state to get transitions for.
    * @param string $direction
-   *   (optional) The direction of the transition. Defaults to 'from'. Possible
-   *   values are: 'from' and 'to'.
+   *   (optional) The direction of the transition, defaults to
+   *   TransitionInterface::DIRECTION_FROM. Possible values are:
+   *   TransitionInterface::DIRECTION_FROM or TransitionInterface::DIRECTION_TO.
    *
    * @return array
    *   The transition IDs for a state for the provided direction.
+   *
+   * @see \Drupal\workflows\TransitionInterface::DIRECTION_FROM
+   * @see \Drupal\workflows\TransitionInterface::DIRECTION_TO
    */
-  public function getTransitionsForState($state_id, $direction = 'from');
+  public function getTransitionsForState($state_id, $direction = TransitionInterface::DIRECTION_FROM);
 
   /**
    * Gets a transition from state to state.

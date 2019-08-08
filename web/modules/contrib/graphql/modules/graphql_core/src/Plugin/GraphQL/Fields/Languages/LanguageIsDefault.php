@@ -2,9 +2,10 @@
 
 namespace Drupal\graphql_core\Plugin\GraphQL\Fields\Languages;
 
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
  * Whether the language is the default language.
@@ -23,8 +24,8 @@ class LanguageIsDefault extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function resolveValues($value, array $args, ResolveInfo $info) {
-    if ($value instanceof Language) {
+  public function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
+    if ($value instanceof LanguageInterface) {
       yield $value->isDefault();
     }
   }

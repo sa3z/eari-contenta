@@ -18,16 +18,10 @@ class Color {
    *   TRUE if $hex is valid or FALSE if it is not.
    */
   public static function validateHex($hex) {
-    // Must be a string.
-    $valid = is_string($hex);
-    // Hash prefix is optional.
-    $hex = ltrim($hex, '#');
-    // Must be either RGB or RRGGBB.
-    $length = Unicode::strlen($hex);
-    $valid = $valid && ($length === 3 || $length === 6);
-    // Must be a valid hex value.
-    $valid = $valid && ctype_xdigit($hex);
-    return $valid;
+    if (!is_string($hex)) {
+      return FALSE;
+    }
+    return preg_match('/^[#]?([0-9a-fA-F]{3}){1,2}$/', $hex) === 1;
   }
 
   /**
@@ -92,6 +86,30 @@ class Color {
     }
 
     return '#' . str_pad(dechex($out), 6, 0, STR_PAD_LEFT);
+  }
+
+  /**
+   * Normalize the hex color length to 6 characters for comparison.
+   *
+   * @param string $hex
+   *   The hex color to normalize.
+   *
+   * @return string
+   *   The 6 character hex color.
+   */
+  public static function normalizeHexLength($hex) {
+    // Ignore '#' prefixes.
+    $hex = ltrim($hex, '#');
+
+    if (strlen($hex) === 3) {
+      $hex[5] = $hex[2];
+      $hex[4] = $hex[2];
+      $hex[3] = $hex[1];
+      $hex[2] = $hex[1];
+      $hex[1] = $hex[0];
+    }
+
+    return '#' . $hex;
   }
 
 }

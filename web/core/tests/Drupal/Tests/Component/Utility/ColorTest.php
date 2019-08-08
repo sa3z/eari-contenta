@@ -13,6 +13,60 @@ use PHPUnit\Framework\TestCase;
 class ColorTest extends TestCase {
 
   /**
+   * @covers \Drupal\Component\Utility\Color::validateHex
+   *
+   * @param bool $expected
+   *   The expected result of validation.
+   * @param string $value
+   *   The hex color value.
+   *
+   * @dataProvider providerTestValidateHex()
+   */
+  public function testValidateHex($expected, $value) {
+    $this->assertSame($expected, Color::validateHex($value));
+  }
+
+  /**
+   * Provides data for testValidateHex().
+   */
+  public function providerTestValidateHex() {
+    return [
+      // Tests length.
+      [FALSE, ''],
+      [FALSE, '#'],
+      [FALSE, '1'],
+      [FALSE, '#1'],
+      [FALSE, '12'],
+      [FALSE, '#12'],
+      [TRUE, '123'],
+      [TRUE, '#123'],
+      [FALSE, '1234'],
+      [FALSE, '#1234'],
+      [FALSE, '12345'],
+      [FALSE, '#12345'],
+      [TRUE, '123456'],
+      [TRUE, '#123456'],
+      [FALSE, '1234567'],
+      [FALSE, '#1234567'],
+      // Tests valid hex value.
+      [TRUE, 'abcdef'],
+      [TRUE, 'ABCDEF'],
+      [TRUE, 'A0F1B1'],
+      [FALSE, 'WWW'],
+      [FALSE, '#123##'],
+      [FALSE, '@a0055'],
+      // Tests the data type.
+      [FALSE, 123456],
+      // Tests multiple hash prefix.
+      [FALSE, '###F00'],
+      // Tests spaces.
+      [FALSE, ' #123456'],
+      [FALSE, '123456 '],
+      [FALSE, '#12 3456'],
+    ];
+  }
+
+  /**
    * Tests Color::hexToRgb().
    *
    * @param string $value
@@ -26,7 +80,12 @@ class ColorTest extends TestCase {
    */
   public function testHexToRgb($value, $expected, $invalid = FALSE) {
     if ($invalid) {
-      $this->setExpectedException('InvalidArgumentException');
+      if (method_exists($this, 'expectException')) {
+        $this->expectException('InvalidArgumentException');
+      }
+      else {
+        $this->setExpectedException('InvalidArgumentException');
+      }
     }
     $this->assertSame($expected, Color::hexToRgb($value));
   }
@@ -56,7 +115,7 @@ class ColorTest extends TestCase {
     // Add invalid data types (hex value must be a string).
     foreach ([
       1, 12, 1234, 12345, 123456, 1234567, 12345678, 123456789, 123456789,
-      -1, PHP_INT_MAX, PHP_INT_MAX + 1, -PHP_INT_MAX, 0x0, 0x010
+      -1, PHP_INT_MAX, PHP_INT_MAX + 1, -PHP_INT_MAX, 0x0, 0x010,
     ] as $value) {
       $invalid[] = [$value, '', TRUE];
     }
@@ -116,6 +175,44 @@ class ColorTest extends TestCase {
       $tests[] = [implode(', ', $test[0]), $test[1]];
     }
     return $tests;
+  }
+
+  /**
+   * Data provider for testNormalizeHexLength().
+   *
+   * @see testNormalizeHexLength()
+   *
+   * @return array
+   *   An array of arrays containing:
+   *     - The hex color value.
+   *     - The 6 character length hex color value.
+   */
+  public function providerTestNormalizeHexLength() {
+    $data = [
+      ['#000', '#000000'],
+      ['#FFF', '#FFFFFF'],
+      ['#abc', '#aabbcc'],
+      ['cba', '#ccbbaa'],
+      ['#000000', '#000000'],
+      ['ffffff', '#ffffff'],
+      ['#010203', '#010203'],
+    ];
+
+    return $data;
+  }
+
+  /**
+   * Tests Color::normalizeHexLength().
+   *
+   * @param string $value
+   *   The input hex color value.
+   * @param string $expected
+   *   The expected normalized hex color value.
+   *
+   * @dataProvider providerTestNormalizeHexLength
+   */
+  public function testNormalizeHexLength($value, $expected) {
+    $this->assertSame($expected, Color::normalizeHexLength($value));
   }
 
 }

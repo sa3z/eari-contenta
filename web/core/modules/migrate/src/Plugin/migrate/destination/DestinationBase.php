@@ -12,7 +12,12 @@ use Drupal\migrate\Plugin\RequirementsInterface;
 /**
  * Base class for migrate destination classes.
  *
- * @see \Drupal\migrate\Plugin\MigrateDestinationInterface
+ * Migrate destination plugins perform the import operation of the migration.
+ * Destination plugins extend this abstract base class. A destination plugin
+ * must implement at least fields(), getIds() and import() methods. Destination
+ * plugins can also support rollback operations. For more
+ * information, refer to \Drupal\migrate\Plugin\MigrateDestinationInterface.
+ *
  * @see \Drupal\migrate\Plugin\MigrateDestinationPluginManager
  * @see \Drupal\migrate\Annotation\MigrateDestination
  * @see plugin_api
@@ -71,7 +76,7 @@ abstract class DestinationBase extends PluginBase implements MigrateDestinationI
    */
   public function checkRequirements() {
     if (empty($this->pluginDefinition['requirements_met'])) {
-      throw new RequirementsException();
+      throw new RequirementsException(sprintf("Destination plugin '%s' did not meet the requirements", $this->pluginId));
     }
   }
 

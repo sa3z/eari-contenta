@@ -7,18 +7,22 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\file\FileInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\file\Entity\File;
+use Drupal\Tests\TestFileCreationTrait;
 
 /**
  * Provides methods specifically for testing File module's field handling.
  */
 abstract class FileFieldTestBase extends BrowserTestBase {
 
+  use FileFieldCreationTrait;
+  use TestFileCreationTrait {
+    getTestFiles as drupalGetTestFiles;
+  }
+
   /**
-  * Modules to enable.
-  *
-  * @var array
-  */
-  public static $modules = ['node', 'file', 'file_module_test', 'field_ui'];
+   * {@inheritdoc}
+   */
+  protected static $modules = ['node', 'file', 'file_module_test', 'field_ui'];
 
   /**
    * An user with administration permissions.
@@ -27,6 +31,9 @@ abstract class FileFieldTestBase extends BrowserTestBase {
    */
   protected $adminUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->adminUser = $this->drupalCreateUser(['access content', 'access administration pages', 'administer site configuration', 'administer users', 'administer permissions', 'administer content types', 'administer node fields', 'administer node display', 'administer nodes', 'bypass node access']);
@@ -38,6 +45,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
    * Retrieves a sample file of the specified type.
    *
    * @return \Drupal\file\FileInterface
+   *   The new unsaved file entity.
    */
   public function getTestFile($type_name, $size = NULL) {
     // Get a file to upload.
@@ -54,77 +62,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
    * Retrieves the fid of the last inserted file.
    */
   public function getLastFileId() {
-    return (int) db_query('SELECT MAX(fid) FROM {file_managed}')->fetchField();
-  }
-
-  /**
-   * Creates a new file field.
-   *
-   * @param string $name
-   *   The name of the new field (all lowercase), exclude the "field_" prefix.
-   * @param string $entity_type
-   *   The entity type.
-   * @param string $bundle
-   *   The bundle that this field will be added to.
-   * @param array $storage_settings
-   *   A list of field storage settings that will be added to the defaults.
-   * @param array $field_settings
-   *   A list of instance settings that will be added to the instance defaults.
-   * @param array $widget_settings
-   *   A list of widget settings that will be added to the widget defaults.
-   */
-  public function createFileField($name, $entity_type, $bundle, $storage_settings = [], $field_settings = [], $widget_settings = []) {
-    $field_storage = FieldStorageConfig::create([
-      'entity_type' => $entity_type,
-      'field_name' => $name,
-      'type' => 'file',
-      'settings' => $storage_settings,
-      'cardinality' => !empty($storage_settings['cardinality']) ? $storage_settings['cardinality'] : 1,
-    ]);
-    $field_storage->save();
-
-    $this->attachFileField($name, $entity_type, $bundle, $field_settings, $widget_settings);
-    return $field_storage;
-  }
-
-  /**
-   * Attaches a file field to an entity.
-   *
-   * @param string $name
-   *   The name of the new field (all lowercase), exclude the "field_" prefix.
-   * @param string $entity_type
-   *   The entity type this field will be added to.
-   * @param string $bundle
-   *   The bundle this field will be added to.
-   * @param array $field_settings
-   *   A list of field settings that will be added to the defaults.
-   * @param array $widget_settings
-   *   A list of widget settings that will be added to the widget defaults.
-   */
-  public function attachFileField($name, $entity_type, $bundle, $field_settings = [], $widget_settings = []) {
-    $field = [
-      'field_name' => $name,
-      'label' => $name,
-      'entity_type' => $entity_type,
-      'bundle' => $bundle,
-      'required' => !empty($field_settings['required']),
-      'settings' => $field_settings,
-    ];
-    FieldConfig::create($field)->save();
-
-    entity_get_form_display($entity_type, $bundle, 'default')
-      ->setComponent($name, [
-        'type' => 'file_generic',
-        'settings' => $widget_settings,
-      ])
-      ->save();
-    // Assign display settings.
-    entity_get_display($entity_type, $bundle, 'default')
-      ->setComponent($name, [
-        'label' => 'hidden',
-        'type' => 'file_default',
-      ])
-      ->save();
+    return (int) \Drupal::entityQueryAggregate('file')->aggregate('fid', 'max')->execute()[0]['fid_max'];
   }
 
   /**
@@ -206,25 +144,30 @@ abstract class FileFieldTestBase extends BrowserTestBase {
       $node = $node_storage->load($nid);
       $this->assertNotEqual($nid, $node->getRevisionId(), 'Node revision exists.');
     }
+    $this->drupalGet("node/$nid/edit");
+    $page = $this->getSession()->getPage();
 
     // Attach files to the node.
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
     // File input name depends on number of files already uploaded.
     $field_num = count($node->{$field_name});
-    $name = 'files[' . $field_name . "_$field_num]";
-    if ($field_storage->getCardinality() != 1) {
-      $name .= '[]';
-    }
-    foreach ($files as $file) {
+    foreach ($files as $i => $file) {
+      $delta = $field_num + $i;
       $file_path = $this->container->get('file_system')->realpath($file->getFileUri());
+      $name = 'files[' . $field_name . '_' . $delta . ']';
+      if ($field_storage->getCardinality() != 1) {
+        $name .= '[]';
+      }
       if (count($files) == 1) {
         $edit[$name] = $file_path;
       }
       else {
-        $edit[$name][] = $file_path;
+        $page->attachFileToField($name, $file_path);
+        $this->drupalPostForm(NULL, [], t('Upload'));
       }
     }
-    $this->drupalPostForm("node/$nid/edit", $edit, t('Save and keep published'));
+
+    $this->drupalPostForm(NULL, $edit, t('Save'));
 
     return $nid;
   }
@@ -240,7 +183,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
     ];
 
     $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save and keep published'));
+    $this->drupalPostForm(NULL, $edit, t('Save'));
   }
 
   /**
@@ -248,12 +191,12 @@ abstract class FileFieldTestBase extends BrowserTestBase {
    */
   public function replaceNodeFile($file, $field_name, $nid, $new_revision = TRUE) {
     $edit = [
-      'files[' . $field_name . '_0]' => drupal_realpath($file->getFileUri()),
+      'files[' . $field_name . '_0]' => \Drupal::service('file_system')->realpath($file->getFileUri()),
       'revision' => (string) (int) $new_revision,
     ];
 
     $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save and keep published'));
+    $this->drupalPostForm(NULL, $edit, t('Save'));
   }
 
   /**

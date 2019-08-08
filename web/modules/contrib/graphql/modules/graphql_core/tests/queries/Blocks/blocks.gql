@@ -1,17 +1,16 @@
 query {
-  content:blocksByRegion(region: "content") {
-    __typename
-  }
   route:route(path: "/user/login") {
-    content:blocksByRegion(region: "content") {
-      __typename
-    }
-
-    sidebar:blocksByRegion(region: "sidebar_first") {
-      ... on BlockContentBasic {
+    ... on InternalUrl {
+      content:blocksByRegion(region: "content") {
         __typename
-        body {
-          value
+      }
+
+      sidebar:blocksByRegion(region: "sidebar_first") {
+        ... on BlockContentBasic {
+          __typename
+          body {
+            value
+          }
         }
       }
     }

@@ -58,6 +58,16 @@ class MediaSource extends Plugin {
   public $allowed_field_types = [];
 
   /**
+   * The classes used to define media source-specific forms.
+   *
+   * An array of form class names, keyed by ID. The ID represents the operation
+   * the form is used for.
+   *
+   * @var string[]
+   */
+  public $forms = [];
+
+  /**
    * A filename for the default thumbnail.
    *
    * The thumbnails are placed in the directory defined by the config setting
@@ -91,7 +101,7 @@ class MediaSource extends Plugin {
   /**
    * (optional) The metadata attribute name to provide the thumbnail title.
    *
-   * The name of the media entity will be used if the attribute name is not
+   * The name of the media item will be used if the attribute name is not
    * provided.
    *
    * @var string|null

@@ -2,6 +2,8 @@
 
 namespace Drupal\field\Tests;
 
+@trigger_error(__NAMESPACE__ . '\FieldTestBase is deprecated for removal before Drupal 9.0.0. Use Drupal\Tests\field\Functional\FieldTestBase instead. See https://www.drupal.org/node/2999939', E_USER_DEPRECATED);
+
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
@@ -11,6 +13,8 @@ use Drupal\simpletest\WebTestBase;
  *
  * @deprecated Scheduled for removal in Drupal 9.0.0.
  *   Use \Drupal\Tests\field\Functional\FieldTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2999939
  */
 abstract class FieldTestBase extends WebTestBase {
 
@@ -36,7 +40,7 @@ abstract class FieldTestBase extends WebTestBase {
    *
    * This function only checks a single column in the field values.
    *
-   * @param EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to test.
    * @param $field_name
    *   The name of the field to test

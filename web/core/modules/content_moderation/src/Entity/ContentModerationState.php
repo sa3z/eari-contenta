@@ -7,7 +7,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\TypedData\TranslatableInterface;
-use Drupal\user\UserInterface;
+use Drupal\user\EntityOwnerTrait;
 
 /**
  * Defines the Content moderation state entity.
@@ -31,11 +31,13 @@ use Drupal\user\UserInterface;
  *   data_table = "content_moderation_state_field_data",
  *   revision_data_table = "content_moderation_state_field_revision",
  *   translatable = TRUE,
+ *   internal = TRUE,
  *   entity_keys = {
  *     "id" = "id",
  *     "revision" = "revision_id",
  *     "uuid" = "uuid",
  *     "uid" = "uid",
+ *     "owner" = "uid",
  *     "langcode" = "langcode",
  *   }
  * )
@@ -47,18 +49,18 @@ use Drupal\user\UserInterface;
  */
 class ContentModerationState extends ContentEntityBase implements ContentModerationStateInterface {
 
+  use EntityOwnerTrait;
+
   /**
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
+    $fields += static::ownerBaseFieldDefinitions($entity_type);
 
-    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
+    $fields['uid']
       ->setLabel(t('User'))
       ->setDescription(t('The username of the entity creator.'))
-      ->setSetting('target_type', 'user')
-      ->setDefaultValueCallback('Drupal\content_moderation\Entity\ContentModerationState::getCurrentUserId')
-      ->setTranslatable(TRUE)
       ->setRevisionable(TRUE);
 
     $fields['workflow'] = BaseFieldDefinition::create('entity_reference')
@@ -95,36 +97,6 @@ class ContentModerationState extends ContentEntityBase implements ContentModerat
       ->setRevisionable(TRUE);
 
     return $fields;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getOwner() {
-    return $this->get('uid')->entity;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getOwnerId() {
-    return $this->getEntityKey('uid');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setOwnerId($uid) {
-    $this->set('uid', $uid);
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setOwner(UserInterface $account) {
-    $this->set('uid', $account->id());
-    return $this;
   }
 
   /**
@@ -184,10 +156,14 @@ class ContentModerationState extends ContentEntityBase implements ContentModerat
    *
    * @see \Drupal\content_moderation\Entity\ContentModerationState::baseFieldDefinitions()
    *
+   * @deprecated The ::getCurrentUserId method is deprecated in 8.6.x and will
+   *   be removed before 9.0.0.
+   *
    * @return array
    *   An array of default values.
    */
   public static function getCurrentUserId() {
+    @trigger_error('The ::getCurrentUserId method is deprecated in 8.6.x and will be removed before 9.0.0.', E_USER_DEPRECATED);
     return [\Drupal::currentUser()->id()];
   }
 
@@ -219,6 +195,18 @@ class ContentModerationState extends ContentEntityBase implements ContentModerat
    */
   protected function realSave() {
     return parent::save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getFieldsToSkipFromTranslationChangesCheck() {
+    $field_names = parent::getFieldsToSkipFromTranslationChangesCheck();
+    // We need to skip the parent entity revision ID, since that will always
+    // change on every save, otherwise every translation would be marked as
+    // affected regardless of actual changes.
+    $field_names[] = 'content_entity_revision_id';
+    return $field_names;
   }
 
 }

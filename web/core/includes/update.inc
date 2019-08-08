@@ -9,12 +9,17 @@
  */
 
 use Drupal\Component\Graph\Graph;
+use Drupal\Core\Update\UpdateKernel;
 use Drupal\Core\Utility\Error;
 
 /**
  * Disables any extensions that are incompatible with the current core version.
  */
 function update_fix_compatibility() {
+  // Fix extension objects if the update is being done via Drush 8. In non-Drush
+  // environments this will already be fixed by the UpdateKernel this point.
+  UpdateKernel::fixSerializedExtensionObjects(\Drupal::getContainer());
+
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   $save = FALSE;
   foreach (['module', 'theme'] as $type) {
@@ -83,7 +88,7 @@ function update_system_schema_requirements() {
     $requirements['minimum schema'] += [
       'value' => 'The installed schema version does not meet the minimum.',
       'severity' => REQUIREMENT_ERROR,
-      'description' => 'Your system schema version is ' . $system_schema . '. Updating directly from a schema version prior to 8000 is not supported. You must <a href="https://www.drupal.org/node/2179269">migrate your site to Drupal 8</a> first.',
+      'description' => 'Your system schema version is ' . $system_schema . '. Updating directly from a schema version prior to 8000 is not supported. You must upgrade your site to Drupal 8 first, see https://www.drupal.org/docs/8/upgrade.',
     ];
   }
 
@@ -112,10 +117,11 @@ function update_check_requirements() {
  */
 function update_set_schema($module, $schema_version) {
   \Drupal::keyValue('system.schema')->set($module, $schema_version);
-  // system_list_reset() is in module.inc but that would only be available
-  // once the variable bootstrap is done.
-  require_once __DIR__ . '/module.inc';
-  system_list_reset();
+  \Drupal::service('extension.list.profile')->reset();
+  \Drupal::service('extension.list.module')->reset();
+  \Drupal::service('extension.list.theme_engine')->reset();
+  \Drupal::service('extension.list.theme')->reset();
+  drupal_static_reset('drupal_get_installed_schema_version');
 }
 
 /**
@@ -323,8 +329,7 @@ function update_get_update_list() {
         continue;
       }
 
-      $updates = array_combine($updates, $updates);
-      foreach (array_keys($updates) as $update) {
+      foreach ($updates as $update) {
         if ($update == \Drupal::CORE_MINIMUM_SCHEMA_VERSION) {
           $ret[$module]['warning'] = '<em>' . $module . '</em> module cannot be updated. It contains an update numbered as ' . \Drupal::CORE_MINIMUM_SCHEMA_VERSION . ' which is reserved for the earliest installation of a module in Drupal ' . \Drupal::CORE_COMPATIBILITY . ', before any updates. In order to update <em>' . $module . '</em> module, you will need to install a version of the module with valid updates.';
           continue 2;

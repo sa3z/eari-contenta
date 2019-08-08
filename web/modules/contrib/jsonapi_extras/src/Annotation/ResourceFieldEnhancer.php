@@ -47,4 +47,11 @@ class ResourceFieldEnhancer extends Plugin {
    */
   public $class;
 
+  /**
+   * The name of modules that are required for this Field Enhancer to be usable.
+   *
+   * @var array
+   */
+  public $dependencies;
+
 }

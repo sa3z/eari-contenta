@@ -1,0 +1,29 @@
+uuid: 5b874577-c275-4fc5-8b45-5345d4d1d6f1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.content_channel
+    - node.type.podcast
+    - taxonomy.vocabulary.content_channel
+id: node.podcast.content_channel
+field_name: content_channel
+entity_type: node
+bundle: podcast
+label: 'Content Channel'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      content_channel: content_channel
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

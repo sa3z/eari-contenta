@@ -1,11 +1,11 @@
-uuid: a880da5b-0569-4591-a537-e6e5cbf79806
+uuid: 725aaa53-1ad9-4da3-9ba3-587697c23afd
 langcode: en
 status: true
 dependencies:
   config:
     - field.field.media.image.field_image
     - image.style.thumbnail
-    - media_entity.bundle.image
+    - media.type.image
   module:
     - image
 id: media.image.default
@@ -46,6 +46,13 @@ content:
     weight: 30
     region: content
     settings: {  }
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 100
+    region: content
     third_party_settings: {  }
   uid:
     type: entity_reference_autocomplete

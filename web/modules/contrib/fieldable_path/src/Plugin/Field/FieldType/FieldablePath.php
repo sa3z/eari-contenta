@@ -92,6 +92,27 @@ class FieldablePath extends FieldItemBase {
     // to generate path alias without saving it into the database.
     if (\Drupal::service('module_handler')->moduleExists('pathauto')) {
 
+      if (!$entity->isNew()) {
+
+        // Get existing entity's alias from the database.
+        $source = '/' . $entity->toUrl()->getInternalPath();
+        $langcode = $entity->language()->getId();
+        $existing_alias = \Drupal::service('pathauto.alias_storage_helper')
+          ->loadBySource($source, $langcode);
+
+        // Check Pathauto alias generating setting. If it's set to do not
+        // generate a new aliases if exists, then we need to just copy the
+        // existing value to fieldable path value and leave it there. Otherwise
+        // we should  obtain alias which will be generated and set its value for
+        // fieldable path field.
+        $config = \Drupal::config('pathauto.settings');
+        $no_alias_update = $config->get('update_action') === \Drupal\pathauto\PathautoGeneratorInterface::UPDATE_ACTION_NO_NEW;
+        if (!empty($existing_alias) && $no_alias_update) {
+          $this->value = $existing_alias['alias'];
+          return;
+        }
+      }
+
       // Below is a small workaround to get entity path alias here.
       // Pathauto requires entity ID to be present on the entity object,
       // because it is designed to attach alias to the certain entity id.

@@ -3,7 +3,7 @@
 namespace Drupal\Tests\views\Functional\Wizard;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Url;
 use Drupal\views\Views;
 
@@ -39,9 +39,9 @@ class BasicTest extends WizardTestBase {
     $this->drupalGet('admin/structure/views');
     $this->assertText($view1['label']);
     $this->assertText($view1['description']);
-    $this->assertLinkByHref(\Drupal::url('entity.view.edit_form', ['view' => $view1['id']]));
-    $this->assertLinkByHref(\Drupal::url('entity.view.delete_form', ['view' => $view1['id']]));
-    $this->assertLinkByHref(\Drupal::url('entity.view.duplicate_form', ['view' => $view1['id']]));
+    $this->assertLinkByHref(Url::fromRoute('entity.view.edit_form', ['view' => $view1['id']])->toString());
+    $this->assertLinkByHref(Url::fromRoute('entity.view.delete_form', ['view' => $view1['id']])->toString());
+    $this->assertLinkByHref(Url::fromRoute('entity.view.duplicate_form', ['view' => $view1['id']])->toString());
 
     // The view should not have a REST export display.
     $this->assertNoText('REST export', 'When no options are enabled in the wizard, the resulting view does not have a REST export display.');
@@ -85,9 +85,9 @@ class BasicTest extends WizardTestBase {
     $this->assertEquals('2.0', $this->getSession()->getDriver()->getAttribute('//rss', 'version'));
     // The feed should have the same title and nodes as the page.
     $this->assertText($view2['page[title]']);
-    $this->assertRaw($node1->url('canonical', ['absolute' => TRUE]));
+    $this->assertRaw($node1->toUrl('canonical', ['absolute' => TRUE])->toString());
     $this->assertText($node1->label());
-    $this->assertRaw($node2->url('canonical', ['absolute' => TRUE]));
+    $this->assertRaw($node2->toUrl('canonical', ['absolute' => TRUE])->toString());
     $this->assertText($node2->label());
 
     // Go back to the views page and check if this view is there.
@@ -163,8 +163,9 @@ class BasicTest extends WizardTestBase {
     $this->drupalPostForm('admin/structure/views/add', $view4, t('Save and edit'));
     $this->assertRaw(t('The view %view has been saved.', ['%view' => $view4['label']]));
 
-    // Check that the REST export path works.
-    $this->drupalGet($view4['rest_export[path]']);
+    // Check that the REST export path works. JSON will work, as all core
+    // formats will be allowed. JSON and XML by default.
+    $this->drupalGet($view4['rest_export[path]'], ['query' => ['_format' => 'json']]);
     $this->assertResponse(200);
     $data = Json::decode($this->getSession()->getPage()->getContent());
     $this->assertEqual(count($data), 1, 'Only the node of type page is exported.');
@@ -195,7 +196,7 @@ class BasicTest extends WizardTestBase {
 
     foreach ($displays as $display) {
       foreach (['query', 'exposed_form', 'pager', 'style', 'row'] as $type) {
-        $this->assertFalse(empty($display['display_options'][$type]['options']), SafeMarkup::format('Default options found for @plugin.', ['@plugin' => $type]));
+        $this->assertFalse(empty($display['display_options'][$type]['options']), new FormattableMarkup('Default options found for @plugin.', ['@plugin' => $type]));
       }
     }
   }

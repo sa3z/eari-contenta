@@ -11,13 +11,20 @@
   ],
     "require": {
     "composer/installers": "^1.0.20",
-    "contentacms/contenta_jsonapi": "^1.447",
+    "contentacms/contenta_jsonapi": "^3.0",
     "cweagans/composer-patches": "^1.0",
     "drupal-composer/drupal-scaffold": "^2.0.1",
     "drupal/config_direct_save": "^1.0",
     "drupal/config_installer": "^1.0",
     "drupal/console": "^1",
     "drupal/core": "^8",
+    "drupal/ctools": "^3.2",
+    "drupal/dropzonejs": "^2.0@alpha",
+    "drupal/entity_browser": "^2.2",
+    "drupal/fieldable_path": "^1.0@RC",
+    "drupal/graphql": "^3.0@RC",
+    "drupal/graphql_core": "^3.0@RC",
+    "drupal/services": "^4.0@beta",
     "drupal/simple_block": "^1.0@beta",
     "drush/drush": "~8",
     "rvtraveller/qs-composer-installer": "^1.1",
@@ -36,9 +43,6 @@
     "pantheon-systems/quicksilver-pushback": "~1",
     "phpunit/phpunit": "^4.8",
     "symfony/css-selector": "^2.8"
-  },
-  "conflict": {
-      "drupal/drupal": "*"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -78,14 +82,7 @@
       "drush/contrib/{$name}": ["type:drupal-drush"]
     },
     "enable-patching": true,
-    "patches":{
-      "asm89/stack-cors": {
-        "(November 29 2017 06:22:06 PM: See issue #223 on contentacms/contenta_jsonapi) Add origin matcher for wildcard matching": "https://raw.githubusercontent.com/contentacms/contenta_jsonapi_project/8.x-1.x/patches/asm89_stack-cors/pull_request_42.patch"
-      },
-      "drupal/jsonapi_extras": {
-        "Error when uninstalling modules; this patch should fix it": "https://www.drupal.org/files/issues/jsonapi_extras-set-add-form-params-2922244-23.patch"
-      }
-    },
+    "patches":{},
     "build-env": {
       "install-cms": [
         "drush site-install contenta_jsonapi --account-mail={account-mail} --account-name={account-name} --account-pass={account-pass} --site-mail={site-mail} --site-name={site-name} --yes"
@@ -111,9 +108,10 @@
   "config": {
     "optimize-autoloader": true,
     "preferred-install": "dist",
+    "discard-changes": true,
     "sort-packages": true,
     "platform": {
-      "php": "7.0"
+      "php": "7.2"
     }
   }
 }

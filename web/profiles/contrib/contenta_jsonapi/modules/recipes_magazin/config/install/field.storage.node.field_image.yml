@@ -1,9 +1,16 @@
+uuid: d43d077d-fee2-433e-9946-660ad3e31143
 langcode: en
 status: true
 dependencies:
+  enforced:
+    module:
+      - recipes_magazin
+      - image
   module:
-    - media_entity
+    - media
     - node
+_core:
+  default_config_hash: 8x4PJD9LrVianpPoIjTJynONLD5JdwoHv3m2Sb2biE0
 id: node.field_image
 field_name: field_image
 entity_type: node

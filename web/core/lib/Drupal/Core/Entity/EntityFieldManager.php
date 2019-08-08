@@ -7,6 +7,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\UseCacheBackendTrait;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -55,12 +56,19 @@ class EntityFieldManager implements EntityFieldManagerInterface {
   protected $fieldStorageDefinitions;
 
   /**
+   * Static cache of active field storage definitions per entity type.
+   *
+   * @var array
+   */
+  protected $activeFieldStorageDefinitions;
+
+  /**
    * An array keyed by entity type. Each value is an array whose keys are
    * field names and whose value is an array with two entries:
    *   - type: The field type.
    *   - bundles: The bundles in which the field appears.
    *
-   * @return array
+   * @var array
    */
   protected $fieldMap = [];
 
@@ -190,8 +198,10 @@ class EntityFieldManager implements EntityFieldManagerInterface {
    *   flagged as translatable.
    */
   protected function buildBaseFieldDefinitions($entity_type_id) {
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type */
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
     $class = $entity_type->getClass();
+    /** @var string[] $keys */
     $keys = array_filter($entity_type->getKeys());
 
     // Fail with an exception for non-fieldable entity types.
@@ -221,6 +231,21 @@ class EntityFieldManager implements EntityFieldManagerInterface {
     }
 
     // Make sure that revisionable entity types are correctly defined.
+    if ($entity_type->isRevisionable()) {
+      // Disable the BC layer to prevent a recursion, this only needs the
+      // revision_default key that is always set.
+      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_default'];
+      $base_field_definitions[$field_name] = BaseFieldDefinition::create('boolean')
+        ->setLabel($this->t('Default revision'))
+        ->setDescription($this->t('A flag indicating whether this was a default revision when it was saved.'))
+        ->setStorageRequired(TRUE)
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE);
+    }
+
+    // Make sure that revisionable and translatable entity types are correctly
+    // defined.
     if ($entity_type->isRevisionable() && $entity_type->isTranslatable()) {
       // The 'revision_translation_affected' field should always be defined.
       // This field has been added unconditionally in Drupal 8.4.0 and it is
@@ -300,10 +325,11 @@ class EntityFieldManager implements EntityFieldManagerInterface {
    * {@inheritdoc}
    */
   public function getFieldDefinitions($entity_type_id, $bundle) {
-    if (!isset($this->fieldDefinitions[$entity_type_id][$bundle])) {
+    $langcode = $this->languageManager->getCurrentLanguage()->getId();
+    if (!isset($this->fieldDefinitions[$entity_type_id][$bundle][$langcode])) {
       $base_field_definitions = $this->getBaseFieldDefinitions($entity_type_id);
       // Not prepared, try to load from cache.
-      $cid = 'entity_bundle_field_definitions:' . $entity_type_id . ':' . $bundle . ':' . $this->languageManager->getCurrentLanguage()->getId();
+      $cid = 'entity_bundle_field_definitions:' . $entity_type_id . ':' . $bundle . ':' . $langcode;
       if ($cache = $this->cacheGet($cid)) {
         $bundle_field_definitions = $cache->data;
       }
@@ -316,9 +342,9 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       // base fields, merge them together. Use array_replace() to replace base
       // fields with by bundle overrides and keep them in order, append
       // additional by bundle fields.
-      $this->fieldDefinitions[$entity_type_id][$bundle] = array_replace($base_field_definitions, $bundle_field_definitions);
+      $this->fieldDefinitions[$entity_type_id][$bundle][$langcode] = array_replace($base_field_definitions, $bundle_field_definitions);
     }
-    return $this->fieldDefinitions[$entity_type_id][$bundle];
+    return $this->fieldDefinitions[$entity_type_id][$bundle][$langcode];
   }
 
   /**
@@ -388,6 +414,8 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       if ($field_definition instanceof BaseFieldDefinition) {
         $field_definition->setName($field_name);
         $field_definition->setTargetEntityTypeId($entity_type_id);
+      }
+      if ($field_definition instanceof BaseFieldDefinition || $field_definition instanceof FieldDefinition) {
         $field_definition->setTargetBundle($bundle);
       }
     }
@@ -423,6 +451,25 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       $this->fieldStorageDefinitions[$entity_type_id] += $field_storage_definitions;
     }
     return $this->fieldStorageDefinitions[$entity_type_id];
+  }
+
+  /**
+   * Gets the active field storage definitions for a content entity type.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID. Only content entities are supported.
+   *
+   * @return \Drupal\Core\Field\FieldStorageDefinitionInterface[]
+   *   An array of field storage definitions that are active in the current
+   *   request, keyed by field name.
+   *
+   * @internal
+   */
+  public function getActiveFieldStorageDefinitions($entity_type_id) {
+    if (!isset($this->activeFieldStorageDefinitions[$entity_type_id])) {
+      $this->activeFieldStorageDefinitions[$entity_type_id] = $this->keyValueFactory->get('entity.definitions.installed')->get($entity_type_id . '.field_storage_definitions', []);
+    }
+    return $this->activeFieldStorageDefinitions[$entity_type_id] ?: $this->getFieldStorageDefinitions($entity_type_id);
   }
 
   /**
@@ -480,7 +527,7 @@ class EntityFieldManager implements EntityFieldManagerInterface {
           }
         }
 
-        $this->cacheSet($cid, $this->fieldMap, Cache::PERMANENT, ['entity_types']);
+        $this->cacheSet($cid, $this->fieldMap, Cache::PERMANENT, ['entity_types', 'entity_field_info']);
       }
     }
     return $this->fieldMap;
@@ -549,6 +596,7 @@ class EntityFieldManager implements EntityFieldManagerInterface {
     $this->baseFieldDefinitions = [];
     $this->fieldDefinitions = [];
     $this->fieldStorageDefinitions = [];
+    $this->activeFieldStorageDefinitions = [];
     $this->fieldMap = [];
     $this->fieldMapByFieldType = [];
     $this->entityDisplayRepository->clearDisplayModeInfo();
@@ -568,6 +616,7 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       $this->fieldDefinitions = [];
       $this->baseFieldDefinitions = [];
       $this->fieldStorageDefinitions = [];
+      $this->activeFieldStorageDefinitions = [];
     }
   }
 

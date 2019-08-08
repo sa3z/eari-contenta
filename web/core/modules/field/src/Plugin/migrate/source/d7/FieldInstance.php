@@ -8,11 +8,6 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 /**
  * Drupal 7 field instances source from database.
  *
- * @internal
- *
- * This class is marked as internal and should not be extended. Use
- * Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase instead.
- *
  * @MigrateSource(
  *   id = "d7_field_instance",
  *   source_module = "field"
@@ -26,7 +21,7 @@ class FieldInstance extends DrupalSqlBase {
   public function query() {
     $query = $this->select('field_config_instance', 'fci')
       ->fields('fci')
-      ->fields('fc', ['type'])
+      ->fields('fc', ['type', 'translatable'])
       ->condition('fc.active', 1)
       ->condition('fc.storage_active', 1)
       ->condition('fc.deleted', 0)
@@ -40,6 +35,19 @@ class FieldInstance extends DrupalSqlBase {
       if (isset($this->configuration['bundle'])) {
         $query->condition('fci.bundle', $this->configuration['bundle']);
       }
+    }
+
+    // If the Drupal 7 Title module is enabled, we don't want to migrate the
+    // fields it provides. The values of those fields will be migrated to the
+    // base fields they were replacing.
+    if ($this->moduleExists('title')) {
+      $title_fields = [
+        'title_field',
+        'name_field',
+        'description_field',
+        'subject_field',
+      ];
+      $query->condition('fc.field_name', $title_fields, 'NOT IN');
     }
 
     return $query;
@@ -102,12 +110,13 @@ class FieldInstance extends DrupalSqlBase {
 
     $translatable = FALSE;
     if ($row->getSourceProperty('entity_type') == 'node') {
+      $language_content_type_bundle = (int) $this->variableGet('language_content_type_' . $row->getSourceProperty('bundle'), 0);
       // language_content_type_[bundle] may be
       //   - 0: no language support
       //   - 1: language assignment support
       //   - 2: node translation support
       //   - 4: entity translation support
-      if ($this->variableGet('language_content_type_' . $row->getSourceProperty('bundle'), 0) == 2) {
+      if ($language_content_type_bundle === 2 || ($language_content_type_bundle === 4 && $row->getSourceProperty('translatable'))) {
         $translatable = TRUE;
       }
     }
@@ -118,6 +127,24 @@ class FieldInstance extends DrupalSqlBase {
       $translatable = $field_data['translatable'];
     }
     $row->setSourceProperty('translatable', $translatable);
+
+    // Get the vid for each allowed value for taxonomy term reference fields
+    // which is used in a migration_lookup in the process pipeline.
+    if ($row->getSourceProperty('type') == 'taxonomy_term_reference') {
+      $vocabulary = [];
+      $data = unserialize($field_definition['data']);
+      foreach ($data['settings']['allowed_values'] as $allowed_value) {
+        $vocabulary[] = $allowed_value['vocabulary'];
+      }
+      $query = $this->select('taxonomy_vocabulary', 'v')
+        ->fields('v', ['vid'])
+        ->condition('machine_name', $vocabulary, 'IN');
+      $allowed_vid = $query->execute()->fetchAllAssoc('vid');
+      $row->setSourceProperty('allowed_vid', $allowed_vid);
+    }
+
+    $field_data = unserialize($row->getSourceProperty('field_data'));
+    $row->setSourceProperty('field_settings', $field_data['settings']);
 
     return parent::prepareRow($row);
   }
@@ -145,7 +172,7 @@ class FieldInstance extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function count() {
+  public function count($refresh = FALSE) {
     return $this->initializeIterator()->count();
   }
 

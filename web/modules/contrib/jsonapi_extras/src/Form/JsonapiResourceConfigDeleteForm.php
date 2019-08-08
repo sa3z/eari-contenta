@@ -7,7 +7,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
- * Builds the form to delete JSON API Resource Config entities.
+ * Builds the form to delete JSON:API Resource Config entities.
  */
 class JsonapiResourceConfigDeleteForm extends EntityConfirmFormBase {
 

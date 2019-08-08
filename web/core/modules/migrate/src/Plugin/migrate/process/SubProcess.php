@@ -17,9 +17,18 @@ use Drupal\migrate\Row;
  *   - process: the plugin(s) that will process each element of the source.
  *   - key: runs the process pipeline for the key to determine a new dynamic
  *     name.
+ *   - include_source: (optional) If TRUE, all source plugin configuration and
+ *     values will be copied into the sub-processed row in a new property named
+ *     for the source_key configuration value (see below). Defaults to FALSE.
+ *   - source_key: (optional) If include_source is TRUE, this
+ *     is the name of the property of the sub-processed row which will contain
+ *     the source configuration and values. Ignored if include_source is
+ *     FALSE. Defaults to 'source' if no value is provided.
  *
- * Examples:
+ * Example 1:
  *
+ * This example demonstrates how migration_lookup process plugin can be applied
+ * on the following source data.
  * @code
  * source: Array
  * (
@@ -41,10 +50,8 @@ use Drupal\migrate\Row;
  * )
  * ...
  * @endcode
- *
  * The sub_process process plugin will take these arrays one at a time and run
- * its own process over each one:
- *
+ * its own process for each of them:
  * @code
  * process:
  *   upload:
@@ -58,16 +65,17 @@ use Drupal\migrate\Row;
  *       display: list
  *       description: description
  * @endcode
- *
  * In this case, each item in the upload array will be processed by the
  * sub_process process plugin. The target_id will be found by looking up the
- * destination value from a previous migration. The display and description
- * fields will simply be mapped.
+ * destination value from a previous migration using the migration_lookup
+ * process plugin. The display and description fields will be mapped directly.
  *
- * In the next example, normally the array returned from sub_process will have
- * its original keys. If you need to change the key, it is possible for the
- * returned array to be keyed by one of the transformed values in the sub-array.
+ * Example 2.
  *
+ * Drupal 6 filter formats contain a list of filters belonging to that format
+ * identified by a numeric delta. A delta of 1 indicates automatic linebreaks,
+ * delta of 2 indicates the URL filter and so on. This example demonstrates how
+ * static_map process plugin can be applied on the following source data.
  * @code
  * source: Array
  * (
@@ -91,10 +99,55 @@ use Drupal\migrate\Row;
  *    )
  * )
  * ...
- *
+ * @endcode
+ * The sub_process will take these arrays one at a time and run its own process
+ * for each of them:
+ * @code
  * process:
  *   filters:
- *     plugin: iterator
+ *     plugin: sub_process
+ *     source: filters
+ *     process:
+ *       id:
+ *         plugin: static_map
+ *         source:
+ *           - module
+ *           - delta
+ *         map:
+ *           filter:
+ *             0: filter_html_escape
+ *             1: filter_autop
+ *             2: filter_url
+ *             3: filter_htmlcorrector
+ *             4: filter_html_escape
+ *           php:
+ *             0: php_code
+ * @endcode
+ * The example above means that we take each array element ([0], [1], etc.) from
+ * the source filters field and apply the static_map plugin on it. Let's have a
+ * closer look at the first array at index 0:
+ * @code
+ * Array
+ * (
+ *    [module] => filter
+ *    [delta] => 2
+ *    [weight] => 0
+ * )
+ * @endcode
+ * The static_map process plugin results to value 'filter_url' for this input
+ * based on the 'module' and 'delta' map.
+ *
+ * Example 3.
+ *
+ * Normally the array returned from sub_process will have its original keys. If
+ * you need to change the key, it is possible for the returned array to be keyed
+ * by one of the transformed values in the sub-array. For the same source data
+ * used in the previous example, the migration below would result to keys
+ * 'filter_2' and 'filter_0'.
+ * @code
+ * process:
+ *   filters:
+ *     plugin: sub_process
  *     source: filters
  *     key: "@id"
  *     process:
@@ -106,9 +159,8 @@ use Drupal\migrate\Row;
  *         delimiter: _
  * @endcode
  *
- * In the above example, the keys of the returned array would be filter_2 and
- * filter_0
- *
+ * @see \Drupal\migrate\Plugin\migrate\process\MigrationLookup
+ * @see \Drupal\migrate\Plugin\migrate\process\StaticMap
  * @see \Drupal\migrate\Plugin\MigrateProcessInterface
  *
  * @MigrateProcessPlugin(
@@ -119,13 +171,37 @@ use Drupal\migrate\Row;
 class SubProcess extends ProcessPluginBase {
 
   /**
+   * SubProcess constructor.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+    $configuration += [
+      'include_source' => FALSE,
+      'source_key' => 'source',
+    ];
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    $return = [];
+    $return = $source = [];
+
+    if ($this->configuration['include_source']) {
+      $key = $this->configuration['source_key'];
+      $source[$key] = $row->getSource();
+    }
+
     if (is_array($value) || $value instanceof \Traversable) {
       foreach ($value as $key => $new_value) {
-        $new_row = new Row($new_value, []);
+        $new_row = new Row($new_value + $source);
         $migrate_executable->processRow($new_row, $this->configuration['process']);
         $destination = $new_row->getDestination();
         if (array_key_exists('key', $this->configuration)) {

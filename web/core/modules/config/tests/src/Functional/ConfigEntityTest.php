@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\config\Functional;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
@@ -35,7 +35,8 @@ class ConfigEntityTest extends BrowserTestBase {
   public function testCRUD() {
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
     // Verify default properties on a newly created empty entity.
-    $empty = entity_create('config_test');
+    $storage = \Drupal::entityTypeManager()->getStorage('config_test');
+    $empty = $storage->create();
     $this->assertTrue($empty->uuid());
     $this->assertIdentical($empty->label, NULL);
     $this->assertIdentical($empty->style, NULL);
@@ -59,7 +60,7 @@ class ConfigEntityTest extends BrowserTestBase {
     $this->assertIdentical($empty->getEntityTypeId(), 'config_test');
     // The URI can only be checked after saving.
     try {
-      $empty->urlInfo();
+      $empty->toUrl();
       $this->fail('EntityMalformedException was thrown.');
     }
     catch (EntityMalformedException $e) {
@@ -76,7 +77,7 @@ class ConfigEntityTest extends BrowserTestBase {
     }
 
     // Verify that an entity with an empty ID string is considered empty, too.
-    $empty_id = entity_create('config_test', [
+    $empty_id = $storage->create([
       'id' => '',
     ]);
     $this->assertIdentical($empty_id->isNew(), TRUE);
@@ -89,7 +90,7 @@ class ConfigEntityTest extends BrowserTestBase {
     }
 
     // Verify properties on a newly created entity.
-    $config_test = entity_create('config_test', $expected = [
+    $config_test = $storage->create($expected = [
       'id' => $this->randomMachineName(),
       'label' => $this->randomString(),
       'style' => $this->randomMachineName(),
@@ -118,7 +119,7 @@ class ConfigEntityTest extends BrowserTestBase {
     }
 
     // The entity path can only be checked after saving.
-    $this->assertIdentical($config_test->url(), Url::fromRoute('entity.config_test.edit_form', ['config_test' => $expected['id']])->toString());
+    $this->assertIdentical($config_test->toUrl()->toString(), Url::fromRoute('entity.config_test.edit_form', ['config_test' => $expected['id']])->toString());
 
     // Verify that the correct status is returned and properties did not change.
     $this->assertIdentical($status, SAVED_NEW);
@@ -141,12 +142,12 @@ class ConfigEntityTest extends BrowserTestBase {
     // maximum allowed length, but not longer.
 
     // Test with a short ID.
-    $id_length_config_test = entity_create('config_test', [
+    $id_length_config_test = $storage->create([
       'id' => $this->randomMachineName(8),
     ]);
     try {
       $id_length_config_test->save();
-      $this->pass(SafeMarkup::format("config_test entity with ID length @length was saved.", [
+      $this->pass(new FormattableMarkup("config_test entity with ID length @length was saved.", [
         '@length' => strlen($id_length_config_test->id()),
       ]));
     }
@@ -155,12 +156,12 @@ class ConfigEntityTest extends BrowserTestBase {
     }
 
     // Test with an ID of the maximum allowed length.
-    $id_length_config_test = entity_create('config_test', [
+    $id_length_config_test = $storage->create([
       'id' => $this->randomMachineName(static::MAX_ID_LENGTH),
     ]);
     try {
       $id_length_config_test->save();
-      $this->pass(SafeMarkup::format("config_test entity with ID length @length was saved.", [
+      $this->pass(new FormattableMarkup("config_test entity with ID length @length was saved.", [
         '@length' => strlen($id_length_config_test->id()),
       ]));
     }
@@ -169,18 +170,18 @@ class ConfigEntityTest extends BrowserTestBase {
     }
 
     // Test with an ID exceeding the maximum allowed length.
-    $id_length_config_test = entity_create('config_test', [
+    $id_length_config_test = $storage->create([
       'id' => $this->randomMachineName(static::MAX_ID_LENGTH + 1),
     ]);
     try {
       $status = $id_length_config_test->save();
-      $this->fail(SafeMarkup::format("config_test entity with ID length @length exceeding the maximum allowed length of @max saved successfully", [
+      $this->fail(new FormattableMarkup("config_test entity with ID length @length exceeding the maximum allowed length of @max saved successfully", [
         '@length' => strlen($id_length_config_test->id()),
         '@max' => static::MAX_ID_LENGTH,
       ]));
     }
     catch (ConfigEntityIdLengthException $e) {
-      $this->pass(SafeMarkup::format("config_test entity with ID length @length exceeding the maximum allowed length of @max failed to save", [
+      $this->pass(new FormattableMarkup("config_test entity with ID length @length exceeding the maximum allowed length of @max failed to save", [
         '@length' => strlen($id_length_config_test->id()),
         '@max' => static::MAX_ID_LENGTH,
       ]));
@@ -188,7 +189,7 @@ class ConfigEntityTest extends BrowserTestBase {
 
     // Ensure that creating an entity with the same id as an existing one is not
     // possible.
-    $same_id = entity_create('config_test', [
+    $same_id = $storage->create([
       'id' => $config_test->id(),
     ]);
     $this->assertIdentical($same_id->isNew(), TRUE);
@@ -223,7 +224,7 @@ class ConfigEntityTest extends BrowserTestBase {
 
     // Test config entity prepopulation.
     \Drupal::state()->set('config_test.prepopulate', TRUE);
-    $config_test = entity_create('config_test', ['foo' => 'bar']);
+    $config_test = $storage->create(['foo' => 'bar']);
     $this->assertEqual($config_test->get('foo'), 'baz', 'Initial value correctly populated');
   }
 
@@ -315,7 +316,8 @@ class ConfigEntityTest extends BrowserTestBase {
     $this->assertLinkByHref('admin/structure/config_test/manage/0');
     $this->assertLinkByHref('admin/structure/config_test/manage/0/delete');
     $this->drupalPostForm('admin/structure/config_test/manage/0/delete', [], 'Delete');
-    $this->assertFalse(entity_load('config_test', '0'), 'Test entity deleted');
+    $storage = \Drupal::entityTypeManager()->getStorage('config_test');
+    $this->assertNull($storage->load(0), 'Test entity deleted');
 
     // Create a configuration entity with a property that uses AJAX to show
     // extra form elements. Test this scenario in a non-JS case by using a
@@ -342,7 +344,7 @@ class ConfigEntityTest extends BrowserTestBase {
     $edit += ['size_value' => 'medium'];
     $this->drupalPostForm(NULL, $edit, 'Save');
 
-    $entity = entity_load('config_test', $id);
+    $entity = $storage->load($id);
     $this->assertEqual($entity->get('size'), 'custom');
     $this->assertEqual($entity->get('size_value'), 'medium');
   }

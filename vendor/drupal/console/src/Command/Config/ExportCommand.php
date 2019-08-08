@@ -16,7 +16,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\Console\Core\Command\Command;
 use Symfony\Component\Filesystem\Filesystem;
-use Drupal\Console\Core\Style\DrupalStyle;
 use Drupal\Core\Config\ConfigManager;
 
 class ExportCommand extends Command
@@ -57,12 +56,6 @@ class ExportCommand extends Command
                 null,
                 InputOption::VALUE_OPTIONAL,
                 $this->trans('commands.config.export.options.directory')
-            )
-            ->addOption(
-                'tar',
-                null,
-                InputOption::VALUE_NONE,
-                $this->trans('commands.config.export.options.tar')
             )->addOption(
                 'remove-uuid',
                 null,
@@ -73,6 +66,11 @@ class ExportCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 $this->trans('commands.config.export.options.remove-config-hash')
+            )->addOption(
+                'tar',
+                null,
+                InputOption::VALUE_NONE,
+                $this->trans('commands.config.export.options.tar')
             )
             ->setAliases(['ce']);
     }
@@ -80,10 +78,22 @@ class ExportCommand extends Command
     /**
      * {@inheritdoc}
      */
+    protected function interact(InputInterface $input, OutputInterface $output)
+    {
+        if (!$input->getOption('directory')) {
+            $directory = $this->getIo()->ask(
+                $this->trans('commands.config.export.questions.directory'),
+                config_get_config_directory(CONFIG_SYNC_DIRECTORY)
+            );
+            $input->setOption('directory', $directory);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $io = new DrupalStyle($input, $output);
-
         $directory = $input->getOption('directory');
         $tar = $input->getOption('tar');
         $removeUuid = $input->getOption('remove-uuid');
@@ -97,7 +107,7 @@ class ExportCommand extends Command
         try {
             $fileSystem->mkdir($directory);
         } catch (IOExceptionInterface $e) {
-            $io->error(
+            $this->getIo()->error(
                 sprintf(
                     $this->trans('commands.config.export.messages.error'),
                     $e->getPath()
@@ -106,7 +116,9 @@ class ExportCommand extends Command
         }
 
         // Remove previous yaml files before creating new ones
-        array_map('unlink', glob($directory . '/*'));
+        foreach (glob($directory . '/*') as $item) {
+            $fileSystem->remove($item);
+        }
 
         if ($tar) {
             $dateTime = new \DateTime();
@@ -129,6 +141,9 @@ class ExportCommand extends Command
                 }
                 if ($removeHash) {
                     unset($configData['_core']['default_config_hash']);
+                    if (empty($configData['_core'])) {
+                        unset($configData['_core']);
+                    }
                 }
                 $ymlData = Yaml::encode($configData);
 
@@ -143,7 +158,7 @@ class ExportCommand extends Command
                 $collection_storage = $this->storage->createCollection($collection);
                 $collection_path = str_replace('.', '/', $collection);
                 if (!$tar) {
-                    mkdir("$directory/$collection_path", 0755, true);
+                    $fileSystem->mkdir("$directory/$collection_path", 0755);
                 }
                 foreach ($collection_storage->listAll() as $name) {
                     $configName = "$collection_path/$name.yml";
@@ -153,6 +168,9 @@ class ExportCommand extends Command
                     }
                     if ($removeHash) {
                         unset($configData['_core']['default_config_hash']);
+                        if (empty($configData['_core'])) {
+                            unset($configData['_core']);
+                        }
                     }
 
                     $ymlData = Yaml::encode($configData);
@@ -164,10 +182,10 @@ class ExportCommand extends Command
                 }
             }
         } catch (\Exception $e) {
-            $io->error($e->getMessage());
+            $this->getIo()->error($e->getMessage());
         }
 
-        $io->info(
+        $this->getIo()->info(
             sprintf(
                 $this->trans('commands.config.export.messages.directory'),
                 $directory

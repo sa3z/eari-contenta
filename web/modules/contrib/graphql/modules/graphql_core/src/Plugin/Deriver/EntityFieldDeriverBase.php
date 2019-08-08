@@ -3,9 +3,11 @@
 namespace Drupal\graphql_core\Plugin\Deriver;
 
 use Drupal\Component\Plugin\Derivative\DeriverBase;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -15,18 +17,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Generate GraphQLField plugins for config fields.
  */
 abstract class EntityFieldDeriverBase extends DeriverBase implements ContainerDeriverInterface {
+  use DependencySerializationTrait;
 
   /**
    * Provides plugin definition values from fields.
    *
-   * @param string $entityTypeId
-   *   The host entity type.
-   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $fieldDefinition
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldDefinition
    *   Field definition object.
    * @param array $basePluginDefinition
    *   Base definition array.
+   *
+   * @return array
+   *   The derived plugin definitions for the given field.
    */
-  abstract protected function getDerivativeDefinitionsFromFieldDefinition($entityTypeId, FieldStorageDefinitionInterface $fieldDefinition, array $basePluginDefinition);
+  abstract protected function getDerivativeDefinitionsFromFieldDefinition(FieldDefinitionInterface $fieldDefinition, array $basePluginDefinition);
 
   /**
    * The entity type manager.
@@ -97,30 +101,26 @@ abstract class EntityFieldDeriverBase extends DeriverBase implements ContainerDe
    */
   public function getDerivativeDefinitions($basePluginDefinition) {
     foreach ($this->entityTypeManager->getDefinitions() as $entityTypeId => $entityType) {
-      $interfaces = class_implements($entityType->getClass());
-      if (!array_key_exists(FieldableEntityInterface::class, $interfaces)) {
+      if (!$entityType->entityClassImplements(FieldableEntityInterface::class)) {
         continue;
       }
 
-      foreach ($this->entityFieldManager->getFieldStorageDefinitions($entityTypeId) as $fieldStorageDefinition) {
-        $this->derivatives = array_merge($this->derivatives, $this->getDerivativeDefinitionsFromFieldDefinition($entityTypeId, $fieldStorageDefinition, $basePluginDefinition));
+      foreach ($this->entityFieldManager->getBaseFieldDefinitions($entityTypeId) as $fieldDefinition) {
+        if ($derivatives = $this->getDerivativeDefinitionsFromFieldDefinition($fieldDefinition, $basePluginDefinition)) {
+          $this->derivatives = array_merge($this->derivatives, $derivatives);
+        }
+      }
+
+      foreach ($this->entityBundleInfo->getBundleInfo($entityTypeId) as $bundleId => $bundleInfo) {
+        foreach ($this->entityFieldManager->getFieldDefinitions($entityTypeId, $bundleId) as $fieldDefinition) {
+          if ($derivatives = $this->getDerivativeDefinitionsFromFieldDefinition($fieldDefinition, $basePluginDefinition)) {
+            $this->derivatives = array_merge($this->derivatives, $derivatives);
+          }
+        }
       }
     }
 
     return $this->derivatives;
-  }
-
-  /**
-   * Tells if given field has just a single property.
-   *
-   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $definition
-   *   Field definition.
-   *
-   * @return bool
-   */
-  protected function isSinglePropertyField(FieldStorageDefinitionInterface $definition) {
-    $properties = $definition->getPropertyDefinitions();
-    return count($properties) === 1;
   }
 
 }

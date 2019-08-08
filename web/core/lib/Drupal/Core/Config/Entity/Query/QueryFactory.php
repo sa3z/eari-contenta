@@ -28,7 +28,7 @@ class QueryFactory implements QueryFactoryInterface, EventSubscriberInterface {
   /**
    * The config factory used by the config entity query.
    *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface;
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -219,14 +219,14 @@ class QueryFactory implements QueryFactoryInterface, EventSubscriberInterface {
   /**
    * Updates configuration entity in the key store.
    *
-   * @param ConfigCrudEvent $event
+   * @param \Drupal\Core\Config\ConfigCrudEvent $event
    *   The configuration event.
    */
   public function onConfigSave(ConfigCrudEvent $event) {
     $saved_config = $event->getConfig();
     $entity_type_id = $this->configManager->getEntityTypeIdByName($saved_config->getName());
     if ($entity_type_id) {
-      $entity_type = $this->configManager->getEntityManager()->getDefinition($entity_type_id);
+      $entity_type = $this->configManager->getEntityTypeManager()->getDefinition($entity_type_id);
       $this->updateConfigKeyStore($entity_type, $saved_config);
     }
   }
@@ -241,7 +241,7 @@ class QueryFactory implements QueryFactoryInterface, EventSubscriberInterface {
     $saved_config = $event->getConfig();
     $entity_type_id = $this->configManager->getEntityTypeIdByName($saved_config->getName());
     if ($entity_type_id) {
-      $entity_type = $this->configManager->getEntityManager()->getDefinition($entity_type_id);
+      $entity_type = $this->configManager->getEntityTypeManager()->getDefinition($entity_type_id);
       $this->deleteConfigKeyStore($entity_type, $saved_config);
     }
   }

@@ -7,7 +7,6 @@ use Drupal\migrate\Event\MigrateMapDeleteEvent;
 use Drupal\migrate\Event\MigrateMapSaveEvent;
 use Drupal\migrate\Event\MigratePostRowSaveEvent;
 use Drupal\migrate\Event\MigratePreRowSaveEvent;
-use Drupal\migrate\MigrateMessage;
 use Drupal\migrate\Event\MigrateEvents;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\KernelTests\KernelTestBase;
@@ -76,7 +75,7 @@ class MigrateEventsTest extends KernelTestBase {
 
     $migration = \Drupal::service('plugin.manager.migration')->createStubMigration($definition);
 
-    $executable = new MigrateExecutable($migration, new MigrateMessage());
+    $executable = new MigrateExecutable($migration);
     // As the import runs, events will be dispatched, recording the received
     // information in state.
     $executable->import();
@@ -123,7 +122,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to map save event.
    *
-   * @param \Drupal\Migrate\Event\MigrateMapSaveEvent $event
+   * @param \Drupal\migrate\Event\MigrateMapSaveEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.
@@ -139,7 +138,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to map delete event.
    *
-   * @param \Drupal\Migrate\Event\MigrateMapDeleteEvent $event
+   * @param \Drupal\migrate\Event\MigrateMapDeleteEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.
@@ -155,7 +154,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to pre-import event.
    *
-   * @param \Drupal\Migrate\Event\MigrateImportEvent $event
+   * @param \Drupal\migrate\Event\MigrateImportEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.
@@ -170,7 +169,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to post-import event.
    *
-   * @param \Drupal\Migrate\Event\MigrateImportEvent $event
+   * @param \Drupal\migrate\Event\MigrateImportEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.
@@ -185,7 +184,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to pre-row-save event.
    *
-   * @param \Drupal\Migrate\Event\MigratePreRowSaveEvent $event
+   * @param \Drupal\migrate\Event\MigratePreRowSaveEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.
@@ -201,7 +200,7 @@ class MigrateEventsTest extends KernelTestBase {
   /**
    * Reacts to post-row-save event.
    *
-   * @param \Drupal\Migrate\Event\MigratePostRowSaveEvent $event
+   * @param \Drupal\migrate\Event\MigratePostRowSaveEvent $event
    *   The migration event.
    * @param string $name
    *   The event name.

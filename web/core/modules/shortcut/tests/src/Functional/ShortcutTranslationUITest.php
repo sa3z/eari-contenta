@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\shortcut\Functional;
 
-use Drupal\content_translation\Tests\ContentTranslationUITestBase;
+use Drupal\Tests\content_translation\Functional\ContentTranslationUITestBase;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Language\Language;
 
@@ -28,7 +28,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
     'content_translation',
     'link',
     'shortcut',
-    'toolbar'
+    'toolbar',
   ];
 
   /**
@@ -97,7 +97,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
       // We only want to test the title for non-english translations.
       if ($langcode != 'en') {
         $options = ['language' => $languages[$langcode]];
-        $url = $entity->urlInfo('edit-form', $options);
+        $url = $entity->toUrl('edit-form', $options);
         $this->drupalGet($url);
 
         $title = t('@title [%language translation]', [

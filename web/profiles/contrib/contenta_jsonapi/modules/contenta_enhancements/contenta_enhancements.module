@@ -1,12 +1,15 @@
 <?php
 
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Render\RenderContext;
+use Drupal\Core\Render\Renderer;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Menu\MenuTreeParameters;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 
 /**
  * Implements hook_help().
@@ -175,7 +178,7 @@ function contenta_enhancements_toolbar_alter(&$items) {
     $items['contenta_content'] = $empty_item_cacheability;
   }
 
-  if ($current_user->hasPermission('access media overview') && $moduleHandler->moduleExists('media_entity')) {
+  if ($current_user->hasPermission('access content overview') && $moduleHandler->moduleExists('media')) {
     $items['contenta_media'] = [
       '#type' => 'toolbar_item',
       'tab' => [
@@ -365,15 +368,22 @@ function contenta_enhancements_node_view_alter(array &$build, NodeInterface $ent
   if ($entity->bundle() === 'page') {
     return;
   }
+  $renderer = \Drupal::service('renderer');
+  assert($renderer instanceof Renderer);
   // Retrieve JSON API representation of this node.
-  $normalized = \Drupal::service('jsonapi.entity.to_jsonapi')->normalize($entity);
+  $render_context = new RenderContext();
+  $normalized = $renderer->executeInRenderContext($render_context, function () use ($entity) {
+    $entity_to_jsonapi = \Drupal::service('jsonapi_extras.entity.to_jsonapi');
+    return $entity_to_jsonapi->normalize($entity);
+  });
 
   // Generate markup.
-  $json = json_encode($normalized, JSON_PRETTY_PRINT);
-  $markup = <<<HTML
-<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
-<pre class="prettyprint lang-js">$json</pre>
-HTML;
+  $flags = JSON_HEX_TAG
+    | JSON_HEX_APOS
+    | JSON_HEX_AMP
+    | JSON_HEX_QUOT
+    | JSON_PRETTY_PRINT;
+  $json = json_encode($normalized, $flags);
 
   // Add to render array.
   $build['jsonapi_prefix'] = [
@@ -382,7 +392,14 @@ HTML;
   ];
   $build['jsonapi'] = [
     '#weight' => 100000,
-    '#prefix' => '</div><div class="col s12 m8"><div class="node-jsonapi-preview">' . Markup::create($markup) . '</div></div></div>',
+    '#prefix' => '</div><div class="col s12 m8"><div class="node-jsonapi-preview"><pre class="prettyprint"><code class="language-js">',
+    '#suffix' => '</code></pre></div></div></div>',
+    '#markup' => $json,
+    '#attached' => [
+      'library' => [
+        'contenta_enhancements/contenta_enhancements.node-preview',
+      ],
+    ],
   ];
 }
 

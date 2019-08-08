@@ -1,1 +1,1 @@
-{"url":"git@github.com:sa3z/eari-contenta.git","ref":"master","sha":"401d595f4b286840dead7b0bff5e66355d935658","comment":"Merge pull request #3 from sa3z/patch2922244","commit-date":"2019-05-24 12:07:19 -0400","build-date":"2019-05-24 16:08:32 +0000"}
+{"url":"git@github.com:sa3z/eari-contenta.git","ref":"drush-upgrade","sha":"8e8b5e1e98c1ff32f855c85bcde860a32e96e26d","comment":"trying once more w/the right php versions, etc.","commit-date":"2019-08-08 16:39:16 -0400","build-date":"2019-08-08 20:40:46 +0000"}

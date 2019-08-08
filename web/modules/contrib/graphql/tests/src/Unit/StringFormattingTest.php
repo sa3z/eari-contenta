@@ -17,11 +17,14 @@ class StringFormattingTest extends UnitTestCase {
    * @expectedExceptionMessageRegExp /Failed to create a specification compliant string representation for '.+'\./
    */
   public function testFailureOnInvalidInput() {
-    StringHelper::camelCase('123456', '^%!@#&');
+    StringHelper::camelCase('^%!@#&');
   }
 
   /**
    * @dataProvider providerTestStringFormatting
+   *
+   * @param $input
+   * @param $expected
    */
   public function testCamelCaseFormatting($input, $expected) {
     $this->assertSame($expected, call_user_func_array([StringHelper::class, 'camelCase'], $input));
@@ -29,6 +32,9 @@ class StringFormattingTest extends UnitTestCase {
 
   /**
    * @dataProvider providerTestStringFormatting
+   *
+   * @param $input
+   * @param $expected
    */
   public function testPropCaseFormatting($input, $expected) {
     $this->assertSame(lcfirst($expected), call_user_func_array([StringHelper::class, 'propCase'], $input));
@@ -37,9 +43,9 @@ class StringFormattingTest extends UnitTestCase {
   public function providerTestStringFormatting() {
     return [
       [['simple-name'], 'SimpleName'],
-      [['123-name-with*^&!@some-SPECIAL-chars'], 'NameWithSomeSPECIALChars'],
+      [['123-name-with*^&!@some-SPECIAL-chars'], '_123NameWithSomeSPECIALChars'],
       [['simple', 'name-of-string', 'components'], 'SimpleNameOfStringComponents'],
-      [['123', 'array', '%^!@&#*', 'of', 'STRING', '(*&', 'components', 'with', 'SPEcial', 'chars'], 'ArrayOfSTRINGComponentsWithSPEcialChars']
+      [['123', 'array', '%^!@&#*', 'of', 'STRING', '(*&', 'components', 'with', 'SPEcial', 'chars'], '_123ArrayOfSTRINGComponentsWithSPEcialChars']
     ];
   }
 

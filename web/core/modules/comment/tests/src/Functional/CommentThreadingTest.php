@@ -10,6 +10,7 @@ use Drupal\comment\CommentManagerInterface;
  * @group comment
  */
 class CommentThreadingTest extends CommentTestBase {
+
   /**
    * Tests the comment threading.
    */
@@ -53,7 +54,6 @@ class CommentThreadingTest extends CommentTestBase {
     $this->assertEqual($comment1_3->getThread(), '01.00/');
     // Confirm that there is a link to the parent comment.
     $this->assertParentLink($comment1_3->id(), $comment1->id());
-
 
     // Reply to comment #1_3 creating comment #1_3_4.
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $comment1_3->id());
@@ -135,7 +135,7 @@ class CommentThreadingTest extends CommentTestBase {
     //     <a href="...comment-1"></a>
     //   </p>
     //  </article>
-    $pattern = "//a[@id='comment-$cid']/following-sibling::article//p[contains(@class, 'parent')]//a[contains(@href, 'comment-$pid')]";
+    $pattern = "//article[@id='comment-$cid']//p[contains(@class, 'parent')]//a[contains(@href, 'comment-$pid')]";
 
     $this->assertFieldByXpath($pattern, NULL, format_string(
       'Comment %cid has a link to parent %pid.',
@@ -159,7 +159,7 @@ class CommentThreadingTest extends CommentTestBase {
     //   <p class="parent"></p>
     //  </article>
 
-    $pattern = "//a[@id='comment-$cid']/following-sibling::article//p[contains(@class, 'parent')]";
+    $pattern = "//article[@id='comment-$cid']//p[contains(@class, 'parent')]";
     $this->assertNoFieldByXpath($pattern, NULL, format_string(
       'Comment %cid does not have a link to a parent.',
       [

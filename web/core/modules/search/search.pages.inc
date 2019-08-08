@@ -9,13 +9,6 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
- * Implements hook_theme_suggestions_HOOK().
- */
-function search_theme_suggestions_search_result(array $variables) {
-  return ['search_result__' . $variables['plugin_id']];
-}
-
-/**
  * Prepares variables for individual search result templates.
  *
  * Default template: search-result.html.twig
@@ -50,7 +43,7 @@ function template_preprocess_search_result(&$variables) {
     $info['user'] = $result['user'];
   }
   if (!empty($result['date'])) {
-    $info['date'] = format_date($result['date'], 'short');
+    $info['date'] = \Drupal::service('date.formatter')->format($result['date'], 'short');
   }
   if (isset($result['extra']) && is_array($result['extra'])) {
     $info = array_merge($info, $result['extra']);

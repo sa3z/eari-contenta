@@ -163,12 +163,12 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
         if (!isset($this->content[$name]) && !isset($this->hidden[$name])) {
           // Extra fields are visible by default unless they explicitly say so.
           if (!isset($definition['visible']) || $definition['visible'] == TRUE) {
-            $this->content[$name] = [
-              'weight' => $definition['weight']
-            ];
+            $this->setComponent($name, [
+              'weight' => $definition['weight'],
+            ]);
           }
           else {
-            $this->hidden[$name] = TRUE;
+            $this->removeComponent($name);
           }
         }
         // Ensure extra fields have a 'region'.
@@ -190,11 +190,11 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
           }
 
           if (!empty($options['region']) && $options['region'] === 'hidden') {
-            $this->hidden[$name] = TRUE;
+            $this->removeComponent($name);
           }
           elseif ($options) {
             $options += ['region' => $default_region];
-            $this->content[$name] = $this->pluginManager->prepareConfiguration($definition->getType(), $options);
+            $this->setComponent($name, $options);
           }
           // Note: (base) fields that do not specify display options are not
           // tracked in the display at all, in order to avoid cluttering the
@@ -250,7 +250,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageInterface $storage, $update = TRUE) {
+  public function preSave(EntityStorageInterface $storage) {
     // Ensure that a region is set on each component.
     foreach ($this->getComponents() as $name => $component) {
       $this->handleHiddenType($name, $component);
@@ -263,7 +263,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
 
     ksort($this->content);
     ksort($this->hidden);
-    parent::preSave($storage, $update);
+    parent::preSave($storage);
   }
 
   /**
@@ -289,7 +289,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
    */
   public function calculateDependencies() {
     parent::calculateDependencies();
-    $target_entity_type = $this->entityManager()->getDefinition($this->targetEntityType);
+    $target_entity_type = $this->entityTypeManager()->getDefinition($this->targetEntityType);
 
     // Create dependency on the bundle.
     $bundle_config_dependency = $target_entity_type->getBundleConfigDependency($this->bundle);
@@ -300,7 +300,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
     // field overrides, since the field still exists without them.
     if (\Drupal::moduleHandler()->moduleExists('field')) {
       $components = $this->content + $this->hidden;
-      $field_definitions = $this->entityManager()->getFieldDefinitions($this->targetEntityType, $this->bundle);
+      $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($this->targetEntityType, $this->bundle);
       foreach (array_intersect_key($field_definitions, $components) as $field_name => $field_definition) {
         if ($field_definition instanceof ConfigEntityInterface && $field_definition->getEntityTypeId() == 'field_config') {
           $this->addDependency('config', $field_definition->getConfigDependencyName());
@@ -310,7 +310,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
 
     // Depend on configured modes.
     if ($this->mode != 'default') {
-      $mode_entity = $this->entityManager()->getStorage('entity_' . $this->displayContext . '_mode')->load($target_entity_type->id() . '.' . $this->mode);
+      $mode_entity = $this->entityTypeManager()->getStorage('entity_' . $this->displayContext . '_mode')->load($target_entity_type->id() . '.' . $this->mode);
       $this->addDependency('config', $mode_entity->getConfigDependencyName());
     }
     return $this;
@@ -439,7 +439,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   /**
    * Determines if a field has options for a given display.
    *
-   * @param FieldDefinitionInterface $definition
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $definition
    *   A field definition.
    * @return array|null
    */

@@ -1,0 +1,7 @@
+passivate.settings:
+  type: mapping
+  label: Variable Settings of Passivate
+  mapping:
+    server_api_url:
+      type: string
+    

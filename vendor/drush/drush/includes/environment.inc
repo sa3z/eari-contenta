@@ -10,6 +10,7 @@
  * @see includes/bootstrap.inc
  */
 
+use Drush\Drush;
 use Drush\Log\LogLevel;
 use Webmozart\PathUtil\Path;
 
@@ -17,7 +18,7 @@ use Webmozart\PathUtil\Path;
  * Log PHP errors to the Drush log. This is in effect until Drupal's error
  * handler takes over.
  */
-function drush_error_handler($errno, $message, $filename, $line, $context) {
+function drush_error_handler($errno, $message, $filename, $line) {
   // E_DEPRECATED was added in PHP 5.3. Drupal 6 will not fix all the
   // deprecated errors, but suppresses them. So we suppress them as well.
   if (defined('E_DEPRECATED')) {
@@ -138,6 +139,10 @@ function drush_cwd() {
 
   // Save original working dir case some command wants it.
   drush_set_context('DRUSH_OLDCWD', $path);
+
+  // Make a read-only copy of the original cwd at env.cwd
+  // for forwards-compatibility
+  drush_set_option('env.cwd', $path);
 
   return $path;
 }
@@ -498,10 +503,11 @@ function drush_build_drush_command($drush_path = NULL, $php = NULL, $os = NULL, 
 
   // Add environmental variables, if present
   if (!empty($environment_variables)) {
-    $prefix .= ' env';
+    $env = 'env';
     foreach ($environment_variables as $key=>$value) {
-      $prefix .= ' ' . drush_escapeshellarg($key, $os) . '=' . drush_escapeshellarg($value, $os);
+      $env .= ' ' . drush_escapeshellarg($key, $os) . '=' . drush_escapeshellarg($value, $os);
     }
+    $prefix = $env . ' ' . $prefix;
   }
 
   return trim($prefix . ' ' . drush_escapeshellarg($drush_path, $os) . $additional_options);
@@ -607,9 +613,7 @@ function _drush_test_os($os, $os_list_to_check) {
  * Read the drush info file.
  */
 function drush_read_drush_info() {
-  $drush_info_file = dirname(__FILE__) . '/../drush.info';
-
-  return parse_ini_file($drush_info_file);
+  return Drush::ReadDrushInfo();
 }
 
 /**

@@ -4,29 +4,27 @@ namespace Drupal\jsonapi_extras;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Config\ImmutableConfig;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository;
+use Drupal\jsonapi_extras\ResourceType\NullJsonapiResourceConfig;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides a listing of JSON API Resource Config entities.
+ * Provides a listing of JSON:API Resource Config entities.
  */
 class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
   /**
-   * The JSON API configurable resource type repository.
+   * The JSON:API configurable resource type repository.
    *
    * @var \Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository
    */
   protected $resourceTypeRepository;
 
   /**
-   * The JSON API extras config.
+   * The JSON:API extras config.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
@@ -35,11 +33,12 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
   /**
    * Constructs new JsonapiResourceConfigListBuilder.
    *
-   * @param EntityTypeInterface $entity_type
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
+   *   The storage.
    * @param \Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository $resource_type_repository
-   *   The JSON API configurable resource type repository.
+   *   The JSON:API configurable resource type repository.
    * @param \Drupal\Core\Config\ImmutableConfig $config
    *   The config instance.
    */
@@ -67,10 +66,7 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
   public function buildHeader() {
     $header = [
       'name' => $this->t('Name'),
-      'entity_type' => $this->t('Entity type'),
-      'bundle' => $this->t('Bundle'),
       'path' => $this->t('Path'),
-      'status' => $this->t('Status'),
       'state' => $this->t('State'),
       'operations' => $this->t('Operations'),
     ];
@@ -106,13 +102,13 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
       $list[$status] = [
         '#type' => 'details',
         '#title' => $label,
-        '#open' => $status == 'enabled',
+        '#open' => $status === 'enabled',
         '#attributes' => [
           'id' => 'jsonapi-' . $status . '-resources-list',
         ],
         '#attached' => [
           'library' => [
-            'jsonapi_extras/admin'
+            'jsonapi_extras/admin',
           ],
         ],
       ];
@@ -121,51 +117,35 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
         '#type' => 'table',
         '#header' => [
           'name' => $this->t('Name'),
-          'entity_type' => $this->t('Entity type'),
-          'bundle' => $this->t('Bundle'),
           'path' => $this->t('Path'),
-          'status' => $this->t('Status'),
           'state' => $this->t('State'),
           'operations' => $this->t('Operations'),
         ],
         '#attributes' => [
           'class' => [
-            'jsonapi-resources-table'
+            'jsonapi-resources-table',
           ],
         ],
         '#attached' => [
           'library' => [
             'jsonapi_extras/admin',
-          ]
+          ],
         ],
       ];
     }
 
     $prefix = $this->config->get('path_prefix');
-    foreach ($this->resourceTypeRepository->getResourceTypes(TRUE) as $resource_type) {
+    foreach ($this->resourceTypeRepository->all() as $resource_type) {
       /** @var \Drupal\jsonapi_extras\ResourceType\ConfigurableResourceType $resource_type */
       $entity_type_id = $resource_type->getEntityTypeId();
       $bundle = $resource_type->getBundle();
 
       $row = [
         'name' => ['#plain_text' => $resource_type->getTypeName()],
-        'entity_type' => ['#plain_text' => $entity_type_id],
-        'bundle' => ['#plain_text' => $bundle],
         'path' => [
           '#type' => 'html_tag',
           '#tag' => 'code',
-          '#value' => sprintf('/%s/%s/%s', $prefix, $entity_type_id, $bundle),
-        ],
-        'status' => [
-          '#type' => 'html_tag',
-          '#tag' => 'span',
-          '#value' => $this->t('Enabled'),
-          '#attributes' => [
-            'class' => [
-              'label',
-              'label--status',
-            ],
-          ],
+          '#value' => sprintf('/%s%s', $prefix, $resource_type->getPath()),
         ],
         'state' => [
           '#type' => 'html_tag',
@@ -194,20 +174,11 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
       /** @var \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig $resource_config */
       $resource_config = $resource_type->getJsonapiResourceConfig();
-      if ($resource_config->id()) {
+      if (!$resource_config instanceof NullJsonapiResourceConfig) {
         $row['state']['#value'] = $this->t('Overwritten');
         $row['state']['#attributes']['class'][] = 'label--overwritten';
         $row['operations']['#links'] = $this->getDefaultOperations($resource_config);
         $row['operations']['#links']['delete']['title'] = $this->t('Revert');
-
-        if ($config_path = $resource_config->get('path')) {
-          $row['path']['#value'] = sprintf('/%s/%s', $prefix, $config_path);
-        }
-
-        if ($resource_config->get('disabled')) {
-          $row['status']['#value'] = $this->t('Disabled');
-          $row['status']['#attributes']['class'][] = 'label--status--disabled';
-        }
       }
 
       $list[$resource_config->get('disabled') ? 'disabled' : 'enabled']['table'][] = $row;
@@ -215,6 +186,5 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
     return $list;
   }
-
 
 }

@@ -1,0 +1,19 @@
+uuid: 40e38a8d-db81-46bf-89ad-5f5856f1054d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.alternate_title
+    - node.type.podcast
+id: node.podcast.alternate_title
+field_name: alternate_title
+entity_type: node
+bundle: podcast
+label: 'Alternate Title'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string
