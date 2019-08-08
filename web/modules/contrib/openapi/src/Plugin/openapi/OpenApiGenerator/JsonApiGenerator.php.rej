@@ -1,360 +1,249 @@
-***************
-*** 2,11 ****
-  
-  namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
-  
-- use Drupal\Core\Link;
-- use Drupal\Core\Url;
-- use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
-- use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
-  use Drupal\Core\Authentication\AuthenticationCollectorInterface;
-  use Drupal\Core\Config\ConfigFactoryInterface;
-  use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
---- 2,8 ----
-  
-  namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
-  
-+ use Drupal\Component\Utility\NestedArray;
-  use Drupal\Core\Authentication\AuthenticationCollectorInterface;
-  use Drupal\Core\Config\ConfigFactoryInterface;
-  use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
-***************
-*** 13,28 ****
-  use Drupal\Core\Entity\EntityFieldManagerInterface;
-  use Drupal\Core\Entity\EntityTypeManagerInterface;
-  use Drupal\Core\Extension\ModuleHandlerInterface;
-  use Drupal\Core\Routing\RouteProviderInterface;
-  use Drupal\schemata\SchemaFactory;
-  use Symfony\Component\HttpFoundation\RequestStack;
-  use Symfony\Component\Routing\Route;
-  use Symfony\Component\Serializer\SerializerInterface;
-- use Symfony\Component\DependencyInjection\ContainerInterface;
-- use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-- use Drupal\Core\ParamConverter\ParamConverterManagerInterface;
-- use Drupal\jsonapi\ResourceType\ResourceType;
-- use Drupal\jsonapi\Routing\Routes as JsonApiRoutes;
-  
-  /**
-   * Defines an OpenApi Schema Generator for the JsonApi module.
---- 10,29 ----
-  use Drupal\Core\Entity\EntityFieldManagerInterface;
-  use Drupal\Core\Entity\EntityTypeManagerInterface;
-  use Drupal\Core\Extension\ModuleHandlerInterface;
-+ use Drupal\Core\Link;
-+ use Drupal\Core\ParamConverter\ParamConverterManagerInterface;
-  use Drupal\Core\Routing\RouteProviderInterface;
-+ use Drupal\Core\Url;
-+ use Drupal\jsonapi\ResourceType\ResourceType;
-+ use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
-+ use Drupal\jsonapi\Routing\Routes as JsonApiRoutes;
-+ use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
-  use Drupal\schemata\SchemaFactory;
-+ use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-+ use Symfony\Component\DependencyInjection\ContainerInterface;
-  use Symfony\Component\HttpFoundation\RequestStack;
-  use Symfony\Component\Routing\Route;
-  use Symfony\Component\Serializer\SerializerInterface;
-  
-  /**
-   * Defines an OpenApi Schema Generator for the JsonApi module.
-***************
-*** 225,231 ****
-        }
-        // Each path contains the "base path" from a OpenAPI perspective.
-        $path = str_replace($this->getJsonApiBase(), '', $route->getPath());
--       $api_paths[$path] = $api_path;
-      }
-      return $api_paths;
-    }
---- 226,232 ----
-        }
-        // Each path contains the "base path" from a OpenAPI perspective.
-        $path = str_replace($this->getJsonApiBase(), '', $route->getPath());
-+       $api_paths[$path] = array_merge(empty($api_paths[$path]) ? [] : $api_paths[$path], $api_path);
-      }
-      return $api_paths;
-    }
-***************
-*** 242,248 ****
-      $jsonapi_base_path = $this->getJsonApiBase();
-      /** @var \Symfony\Component\Routing\Route $route */
-      foreach ($all_routes as $route_name => $route) {
--       if (!$route->getDefault(JsonApiRoutes::JSON_API_ROUTE_FLAG_KEY) || $route->getPath() == $jsonapi_base_path) {
-          continue;
-        }
-        $jsonapi_routes[$route_name] = $route;
---- 243,253 ----
-      $jsonapi_base_path = $this->getJsonApiBase();
-      /** @var \Symfony\Component\Routing\Route $route */
-      foreach ($all_routes as $route_name => $route) {
-+       $is_jsonapi = $route->getDefault(JsonApiRoutes::JSON_API_ROUTE_FLAG_KEY);
-+       $is_entry_point = $route->getPath() === $jsonapi_base_path;
-+       $is_related = preg_match('/(\.related)$/', $route_name);
-+       $is_relationship = preg_match('/(\.relationship\.)((delete)|(get)|(patch)|(post))$/', $route_name);
-+       if (!$is_jsonapi || $is_entry_point || $is_related || $is_relationship) {
-          continue;
-        }
-        $jsonapi_routes[$route_name] = $route;
-***************
-*** 310,316 ****
-          )->toString(),
-        ]);
-      }
--     else if ($route_type === 'individual') {
-        $message = '%link_in for the @name resource type. The individual ';
-        $message .= 'endpoint contains a %link_ro with the data for a particular';
-        $message .= ' resource or entity.';
---- 315,321 ----
-          )->toString(),
-        ]);
-      }
-+     elseif ($route_type === 'individual') {
-        $message = '%link_in for the @name resource type. The individual ';
-        $message .= 'endpoint contains a %link_ro with the data for a particular';
-        $message .= ' resource or entity.';
-***************
-*** 358,363 ****
-     */
-    protected function getMethodParameters(Route $route, ResourceType $resource_type, $method) {
-      $parameters = [];
-      $entity_type_id = $resource_type->getEntityTypeId();
-      $bundle_name = $resource_type->getBundle();
-      $option_parameters = $route->getOption('parameters');
---- 363,385 ----
-     */
-    protected function getMethodParameters(Route $route, ResourceType $resource_type, $method) {
-      $parameters = [];
-+     if ($method === 'get' && $resource_type->isVersionable()) {
-+       $parameters[] = [
-+         'name' => 'resourceVersion',
-+         'in' => 'query',
-+         'type' => 'string',
-+         'required' => FALSE,
-+         'description' => $this->t(
-+           'The JSON:API module exposes entity revisions as resource versions. @link.',
-+           [
-+             '@link' => Link::fromTextAndUrl(
-+               'Learn more in the documentation',
-+               Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/revisions')
-+             )->toString(),
-+           ]
-+         ),
-+       ];
-+     }
-      $entity_type_id = $resource_type->getEntityTypeId();
-      $bundle_name = $resource_type->getBundle();
-      $option_parameters = $route->getOption('parameters');
-***************
-*** 399,419 ****
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
--           // 'description' => '@todo Explain filtering: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
-          ];
-          $parameters[] = [
-            'name' => 'sort',
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
--           // 'description' => '@todo Explain sorting: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
-          ];
-          $parameters[] = [
-            'name' => 'page',
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
--           // 'description' => '@todo Explain sorting: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
-          ];
-        }
-        elseif ($method == 'post' || $method == 'patch') {
---- 421,472 ----
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
-+           'description' => $this->t('The JSON:API module has some of the most robust and feature-rich filtering features around. All of that power comes with a bit of a learning curve though. @link.', [
-+               '@link' => Link::fromTextAndUrl(
-+                 'Learn more in the documentation',
-+                 Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/filtering')
-+               )->toString(),
-+             ]
-+           ),
-          ];
-          $parameters[] = [
-            'name' => 'sort',
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
-+           'description' => $this->t('The JSON:API module allows you to sort collections based on properties in the resource or in nested resources. @link.', [
-+               '@link' => Link::fromTextAndUrl(
-+                 'Learn more in the documentation',
-+                 Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/sorting')
-+               )->toString(),
-+             ]
-+           ),
-          ];
-          $parameters[] = [
-            'name' => 'page',
-            'in' => 'query',
-            'type' => 'array',
-            'required' => FALSE,
-+           'description' => $this->t('Pagination can be a deceptively complex topic. It\'s easy to fall into traps and not follow best-practices. @link.', [
-+               '@link' => Link::fromTextAndUrl(
-+                 'Learn more in the documentation',
-+                 Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/pagination')
-+               )->toString(),
-+             ]
-+           ),
-+         ];
-+         $parameters[] = [
-+           'name' => 'include',
-+           'in' => 'query',
-+           'type' => 'string',
-+           'required' => FALSE,
-+           'description' => $this->t('Embed related entities in the response. For example: use a query string like <code>?include=comments.author</code> to include all the entities referenced by <code>comments</code> and all the entities referenced by <code>author</code> on those entities!. @link.', [
-+               '@link' => Link::fromTextAndUrl(
-+                 'Learn more in the documentation',
-+                 Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/includes')
-+               )->toString(),
-+             ]
-+           ),
-          ];
-        }
-        elseif ($method == 'post' || $method == 'patch') {
-***************
-*** 444,467 ****
-        if ($method === 'get') {
-          $schema_response = [];
-          if ($definition_ref = $this->getDefinitionReference($entity_type_id, $bundle_name)) {
--           $schema_response = [
--             'schema' => [
--               'type' => 'object',
--               'required' => ['data'],
--               'properties' => [
--                 'data' => [
--                   'type' => 'array',
--                   'items' => [
--                     '$ref' => "$definition_ref/properties/data",
--                   ],
--                 ],
--               ],
--             ],
-            ];
-          }
-          $responses['200'] = [
--           'description' => 'successful operation',
--         ] + $schema_response;
-          return $responses;
-        }
-  
---- 497,517 ----
-        if ($method === 'get') {
-          $schema_response = [];
-          if ($definition_ref = $this->getDefinitionReference($entity_type_id, $bundle_name)) {
-+           $definition_key = $this->getEntityDefinitionKey($entity_type_id, $bundle_name);
-+           $definition = $this->getDefinitions()[$definition_key];
-+           $ref = NestedArray::getValue($definition, ['definitions', 'data'])
-+             ? "$definition_ref/definitions/data"
-+             : "$definition_ref/properties/data";
-+           $schema = $definition;
-+           $schema['properties']['data'] = [
-+             'type' => 'array',
-+             'items' => ['$ref' => $ref],
-            ];
-+           $schema_response = ['schema' => $schema];
-          }
-          $responses['200'] = [
-+             'description' => 'successful operation',
-+           ] + $schema_response;
-          return $responses;
-        }
-  
-***************
-*** 485,497 ****
-              $bundles = $bundle_storage->loadMultiple();
-              foreach ($bundles as $bundle_name => $bundle) {
-                if ($this->includeEntityTypeBundle($entity_type->id(), $bundle_name)) {
--                 $definitions[$this->getEntityDefinitionKey($entity_type->id(), $bundle_name)] = $this->getJsonSchema('api_json', $entity_type->id(), $bundle_name);
-                }
-              }
-            }
-            else {
-              if ($this->includeEntityTypeBundle($entity_type->id())) {
--               $definitions[$this->getEntityDefinitionKey($entity_type->id())] = $this->getJsonSchema('api_json', $entity_type->id());
-              }
-            }
-          }
---- 535,553 ----
-              $bundles = $bundle_storage->loadMultiple();
-              foreach ($bundles as $bundle_name => $bundle) {
-                if ($this->includeEntityTypeBundle($entity_type->id(), $bundle_name)) {
-+                 $definition_key = $this->getEntityDefinitionKey($entity_type->id(), $bundle_name);
-+                 $json_schema = $this->getJsonSchema('api_json', $entity_type->id(), $bundle_name);
-+                 $json_schema = $this->fixReferences($json_schema, '#/definitions/' . $definition_key);
-+                 $definitions[$definition_key] = $json_schema;
-                }
-              }
-            }
-            else {
-              if ($this->includeEntityTypeBundle($entity_type->id())) {
-+               $definition_key = $this->getEntityDefinitionKey($entity_type->id());
-+               $json_schema = $this->getJsonSchema('api_json', $entity_type->id());
-+               $json_schema = $this->fixReferences($json_schema, '#/definitions/' . $definition_key);
-+               $definitions[$definition_key] = $json_schema;
-              }
-            }
-          }
-***************
-*** 500,505 ****
-      return $definitions;
-    }
-  
-    /**
-     * {@inheritdoc}
-     */
---- 556,583 ----
-      return $definitions;
-    }
-  
-+   /**
-+    * When embedding JSON Schemas you need to make sure to fix any possible $ref
-+    *
-+    * @param array $schema
-+    *   The schema to fix.
-+    * @param $prefix
-+    *   The prefix where this schema is embedded.
-+    *
-+    * @return array
-+    */
-+   private function fixReferences(array $schema, $prefix) {
-+     foreach ($schema as $name => $item) {
-+       if (is_array($item)) {
-+         $schema[$name] = $this->fixReferences($item, $prefix);
-+       }
-+       if ($name === '$ref' && is_string($item) && strpos($item, '#/') !== FALSE) {
-+         $schema[$name] = preg_replace('/#\//', $prefix . '/', $item);
-+       }
-+     }
-+     return $schema;
-+   }
-+ 
-    /**
-     * {@inheritdoc}
-     */
-***************
-*** 585,591 ****
-        $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-        $tag = $entity_type->getLabel();
-        if ($bundle_name && $bundle_type_id = $entity_type->getBundleEntityType()) {
--         $bundle_entity = $this->entityTypeManager->getStorage($bundle_type_id)->load($bundle_name);
-          $tag .= ' - ' . $bundle_entity->label();
-        }
-        $tags[$entity_type_id][$bundle_name] = $tag;
---- 663,670 ----
-        $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-        $tag = $entity_type->getLabel();
-        if ($bundle_name && $bundle_type_id = $entity_type->getBundleEntityType()) {
-+         $bundle_entity = $this->entityTypeManager->getStorage($bundle_type_id)
-+           ->load($bundle_name);
-          $tag .= ' - ' . $bundle_entity->label();
-        }
-        $tags[$entity_type_id][$bundle_name] = $tag;
+--- src/Plugin/openapi/OpenApiGenerator/JsonApiGenerator.php
++++ src/Plugin/openapi/OpenApiGenerator/JsonApiGenerator.php
+@@ -2,10 +2,7 @@
+ 
+ namespace Drupal\openapi\Plugin\openapi\OpenApiGenerator;
+ 
+-use Drupal\Core\Link;
+-use Drupal\Core\Url;
+-use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
+-use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
++use Drupal\Component\Utility\NestedArray;
+ use Drupal\Core\Authentication\AuthenticationCollectorInterface;
+ use Drupal\Core\Config\ConfigFactoryInterface;
+ use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+@@ -13,16 +10,20 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
+ use Drupal\Core\Entity\EntityFieldManagerInterface;
+ use Drupal\Core\Entity\EntityTypeManagerInterface;
+ use Drupal\Core\Extension\ModuleHandlerInterface;
++use Drupal\Core\Link;
++use Drupal\Core\ParamConverter\ParamConverterManagerInterface;
+ use Drupal\Core\Routing\RouteProviderInterface;
++use Drupal\Core\Url;
++use Drupal\jsonapi\ResourceType\ResourceType;
++use Drupal\jsonapi\ResourceType\ResourceTypeRepository;
++use Drupal\jsonapi\Routing\Routes as JsonApiRoutes;
++use Drupal\openapi\Plugin\openapi\OpenApiGeneratorBase;
+ use Drupal\schemata\SchemaFactory;
++use Symfony\Cmf\Component\Routing\RouteObjectInterface;
++use Symfony\Component\DependencyInjection\ContainerInterface;
+ use Symfony\Component\HttpFoundation\RequestStack;
+ use Symfony\Component\Routing\Route;
+ use Symfony\Component\Serializer\SerializerInterface;
+-use Symfony\Component\DependencyInjection\ContainerInterface;
+-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+-use Drupal\Core\ParamConverter\ParamConverterManagerInterface;
+-use Drupal\jsonapi\ResourceType\ResourceType;
+-use Drupal\jsonapi\Routing\Routes as JsonApiRoutes;
+ 
+ /**
+  * Defines an OpenApi Schema Generator for the JsonApi module.
+@@ -225,7 +226,7 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+       }
+       // Each path contains the "base path" from a OpenAPI perspective.
+       $path = str_replace($this->getJsonApiBase(), '', $route->getPath());
+-      $api_paths[$path] = $api_path;
++      $api_paths[$path] = array_merge(empty($api_paths[$path]) ? [] : $api_paths[$path], $api_path);
+     }
+     return $api_paths;
+   }
+@@ -242,7 +243,11 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+     $jsonapi_base_path = $this->getJsonApiBase();
+     /** @var \Symfony\Component\Routing\Route $route */
+     foreach ($all_routes as $route_name => $route) {
+-      if (!$route->getDefault(JsonApiRoutes::JSON_API_ROUTE_FLAG_KEY) || $route->getPath() == $jsonapi_base_path) {
++      $is_jsonapi = $route->getDefault(JsonApiRoutes::JSON_API_ROUTE_FLAG_KEY);
++      $is_entry_point = $route->getPath() === $jsonapi_base_path;
++      $is_related = preg_match('/(\.related)$/', $route_name);
++      $is_relationship = preg_match('/(\.relationship\.)((delete)|(get)|(patch)|(post))$/', $route_name);
++      if (!$is_jsonapi || $is_entry_point || $is_related || $is_relationship) {
+         continue;
+       }
+       $jsonapi_routes[$route_name] = $route;
+@@ -310,7 +315,7 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+         )->toString(),
+       ]);
+     }
+-    else if ($route_type === 'individual') {
++    elseif ($route_type === 'individual') {
+       $message = '%link_in for the @name resource type. The individual ';
+       $message .= 'endpoint contains a %link_ro with the data for a particular';
+       $message .= ' resource or entity.';
+@@ -358,6 +363,23 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+    */
+   protected function getMethodParameters(Route $route, ResourceType $resource_type, $method) {
+     $parameters = [];
++    if ($method === 'get' && $resource_type->isVersionable()) {
++      $parameters[] = [
++        'name' => 'resourceVersion',
++        'in' => 'query',
++        'type' => 'string',
++        'required' => FALSE,
++        'description' => $this->t(
++          'The JSON:API module exposes entity revisions as resource versions. @link.',
++          [
++            '@link' => Link::fromTextAndUrl(
++              'Learn more in the documentation',
++              Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/revisions')
++            )->toString(),
++          ]
++        ),
++      ];
++    }
+     $entity_type_id = $resource_type->getEntityTypeId();
+     $bundle_name = $resource_type->getBundle();
+     $option_parameters = $route->getOption('parameters');
+@@ -399,21 +421,52 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+           'in' => 'query',
+           'type' => 'array',
+           'required' => FALSE,
+-          // 'description' => '@todo Explain filtering: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
++          'description' => $this->t('The JSON:API module has some of the most robust and feature-rich filtering features around. All of that power comes with a bit of a learning curve though. @link.', [
++              '@link' => Link::fromTextAndUrl(
++                'Learn more in the documentation',
++                Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/filtering')
++              )->toString(),
++            ]
++          ),
+         ];
+         $parameters[] = [
+           'name' => 'sort',
+           'in' => 'query',
+           'type' => 'array',
+           'required' => FALSE,
+-          // 'description' => '@todo Explain sorting: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
++          'description' => $this->t('The JSON:API module allows you to sort collections based on properties in the resource or in nested resources. @link.', [
++              '@link' => Link::fromTextAndUrl(
++                'Learn more in the documentation',
++                Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/sorting')
++              )->toString(),
++            ]
++          ),
+         ];
+         $parameters[] = [
+           'name' => 'page',
+           'in' => 'query',
+           'type' => 'array',
+           'required' => FALSE,
+-          // 'description' => '@todo Explain sorting: https://www.drupal.org/docs/8/modules/json-api/collections-filtering-sorting-and-paginating',
++          'description' => $this->t('Pagination can be a deceptively complex topic. It\'s easy to fall into traps and not follow best-practices. @link.', [
++              '@link' => Link::fromTextAndUrl(
++                'Learn more in the documentation',
++                Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/pagination')
++              )->toString(),
++            ]
++          ),
++        ];
++        $parameters[] = [
++          'name' => 'include',
++          'in' => 'query',
++          'type' => 'string',
++          'required' => FALSE,
++          'description' => $this->t('Embed related entities in the response. For example: use a query string like <code>?include=comments.author</code> to include all the entities referenced by <code>comments</code> and all the entities referenced by <code>author</code> on those entities!. @link.', [
++              '@link' => Link::fromTextAndUrl(
++                'Learn more in the documentation',
++                Url::fromUri('https://www.drupal.org/docs/8/modules/jsonapi/includes')
++              )->toString(),
++            ]
++          ),
+         ];
+       }
+       elseif ($method == 'post' || $method == 'patch') {
+@@ -444,24 +497,21 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+       if ($method === 'get') {
+         $schema_response = [];
+         if ($definition_ref = $this->getDefinitionReference($entity_type_id, $bundle_name)) {
+-          $schema_response = [
+-            'schema' => [
+-              'type' => 'object',
+-              'required' => ['data'],
+-              'properties' => [
+-                'data' => [
+-                  'type' => 'array',
+-                  'items' => [
+-                    '$ref' => "$definition_ref/properties/data",
+-                  ],
+-                ],
+-              ],
+-            ],
++          $definition_key = $this->getEntityDefinitionKey($entity_type_id, $bundle_name);
++          $definition = $this->getDefinitions()[$definition_key];
++          $ref = NestedArray::getValue($definition, ['definitions', 'data'])
++            ? "$definition_ref/definitions/data"
++            : "$definition_ref/properties/data";
++          $schema = $definition;
++          $schema['properties']['data'] = [
++            'type' => 'array',
++            'items' => ['$ref' => $ref],
+           ];
++          $schema_response = ['schema' => $schema];
+         }
+         $responses['200'] = [
+-          'description' => 'successful operation',
+-        ] + $schema_response;
++            'description' => 'successful operation',
++          ] + $schema_response;
+         return $responses;
+       }
+ 
+@@ -485,13 +535,19 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+             $bundles = $bundle_storage->loadMultiple();
+             foreach ($bundles as $bundle_name => $bundle) {
+               if ($this->includeEntityTypeBundle($entity_type->id(), $bundle_name)) {
+-                $definitions[$this->getEntityDefinitionKey($entity_type->id(), $bundle_name)] = $this->getJsonSchema('api_json', $entity_type->id(), $bundle_name);
++                $definition_key = $this->getEntityDefinitionKey($entity_type->id(), $bundle_name);
++                $json_schema = $this->getJsonSchema('api_json', $entity_type->id(), $bundle_name);
++                $json_schema = $this->fixReferences($json_schema, '#/definitions/' . $definition_key);
++                $definitions[$definition_key] = $json_schema;
+               }
+             }
+           }
+           else {
+             if ($this->includeEntityTypeBundle($entity_type->id())) {
+-              $definitions[$this->getEntityDefinitionKey($entity_type->id())] = $this->getJsonSchema('api_json', $entity_type->id());
++              $definition_key = $this->getEntityDefinitionKey($entity_type->id());
++              $json_schema = $this->getJsonSchema('api_json', $entity_type->id());
++              $json_schema = $this->fixReferences($json_schema, '#/definitions/' . $definition_key);
++              $definitions[$definition_key] = $json_schema;
+             }
+           }
+         }
+@@ -500,6 +556,28 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+     return $definitions;
+   }
+ 
++  /**
++   * When embedding JSON Schemas you need to make sure to fix any possible $ref
++   *
++   * @param array $schema
++   *   The schema to fix.
++   * @param $prefix
++   *   The prefix where this schema is embedded.
++   *
++   * @return array
++   */
++  private function fixReferences(array $schema, $prefix) {
++    foreach ($schema as $name => $item) {
++      if (is_array($item)) {
++        $schema[$name] = $this->fixReferences($item, $prefix);
++      }
++      if ($name === '$ref' && is_string($item) && strpos($item, '#/') !== FALSE) {
++        $schema[$name] = preg_replace('/#\//', $prefix . '/', $item);
++      }
++    }
++    return $schema;
++  }
++
+   /**
+    * {@inheritdoc}
+    */
+@@ -585,7 +663,8 @@ class JsonApiGenerator extends OpenApiGeneratorBase {
+       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+       $tag = $entity_type->getLabel();
+       if ($bundle_name && $bundle_type_id = $entity_type->getBundleEntityType()) {
+-        $bundle_entity = $this->entityTypeManager->getStorage($bundle_type_id)->load($bundle_name);
++        $bundle_entity = $this->entityTypeManager->getStorage($bundle_type_id)
++          ->load($bundle_name);
+         $tag .= ' - ' . $bundle_entity->label();
+       }
+       $tags[$entity_type_id][$bundle_name] = $tag;
