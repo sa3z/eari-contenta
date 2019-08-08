@@ -32,9 +32,6 @@ module:
   jsonapi_extras: 0
   language: 0
   link: 0
-  media_entity: 0
-  media_entity_browser: 0
-  media_entity_image: 0
   menu_ui: 0
   migrate: 0
   node: 0
@@ -61,7 +58,6 @@ module:
   views: 0
   menu_link_content: 1
   contenta_jsonapi: 1000
-  contenta_graphql: 1001
 theme:
   stable: 0
   classy: 0

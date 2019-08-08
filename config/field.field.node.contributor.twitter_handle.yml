@@ -1,0 +1,19 @@
+uuid: 5c738841-7e6d-46b5-8564-7529a21309f3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.twitter_handle
+    - node.type.contributor
+id: node.contributor.twitter_handle
+field_name: twitter_handle
+entity_type: node
+bundle: contributor
+label: 'Twitter Handle'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

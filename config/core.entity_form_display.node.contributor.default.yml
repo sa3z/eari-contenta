@@ -3,9 +3,23 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.contributor.affiliation
+    - field.field.node.contributor.alternative_email
     - field.field.node.contributor.body
+    - field.field.node.contributor.email
+    - field.field.node.contributor.first_name
+    - field.field.node.contributor.last_name
+    - field.field.node.contributor.long_bio
+    - field.field.node.contributor.main_image
+    - field.field.node.contributor.phone
+    - field.field.node.contributor.role
+    - field.field.node.contributor.short_bio
+    - field.field.node.contributor.twitter_handle
+    - field.field.node.contributor.twitter_widget
+    - image.style.thumbnail
     - node.type.contributor
   module:
+    - image
     - path
     - text
 id: node.contributor.default
@@ -13,6 +27,23 @@ targetEntityType: node
 bundle: contributor
 mode: default
 content:
+  affiliation:
+    weight: 125
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: entity_reference_autocomplete
+    region: content
+  alternative_email:
+    weight: 130
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: email_default
+    region: content
   body:
     type: text_textarea_with_summary
     weight: 121
@@ -28,6 +59,22 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  email:
+    weight: 129
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: email_default
+    region: content
+  first_name:
+    weight: 122
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
   langcode:
     type: language_select
     weight: 2
@@ -35,12 +82,42 @@ content:
     settings:
       include_locked: true
     third_party_settings: {  }
+  last_name:
+    weight: 123
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  long_bio:
+    weight: 127
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: text_textarea
+    region: content
+  main_image:
+    weight: 128
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+    type: image_image
+    region: content
   path:
     type: path
     weight: 30
     region: content
     settings: {  }
     third_party_settings: {  }
+  phone:
+    weight: 131
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
   promote:
     type: boolean_checkbox
     settings:
@@ -48,6 +125,23 @@ content:
     weight: 15
     region: content
     third_party_settings: {  }
+  role:
+    weight: 124
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: entity_reference_autocomplete
+    region: content
+  short_bio:
+    weight: 126
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
   status:
     type: boolean_checkbox
     settings:
@@ -70,6 +164,22 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
+  twitter_handle:
+    weight: 132
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  twitter_widget:
+    weight: 133
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
   uid:
     type: entity_reference_autocomplete
     weight: 5

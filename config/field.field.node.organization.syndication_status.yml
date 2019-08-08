@@ -1,0 +1,21 @@
+uuid: 221cf61e-0a60-4ccc-b1ed-668b41b329b0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.syndication_status
+    - node.type.organization
+  module:
+    - options
+id: node.organization.syndication_status
+field_name: syndication_status
+entity_type: node
+bundle: organization
+label: 'Syndication Status'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

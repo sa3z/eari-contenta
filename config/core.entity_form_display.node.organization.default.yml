@@ -3,9 +3,21 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.organization.additional_text
     - field.field.node.organization.body
+    - field.field.node.organization.copyright_notification
+    - field.field.node.organization.job_listing
+    - field.field.node.organization.madgex_job_listing
+    - field.field.node.organization.mission_statement
+    - field.field.node.organization.short_bio
+    - field.field.node.organization.sponsor_link
+    - field.field.node.organization.sponsor_logo
+    - field.field.node.organization.syndication_status
+    - image.style.thumbnail
     - node.type.organization
   module:
+    - image
+    - link
     - path
     - text
 id: node.organization.default
@@ -13,6 +25,14 @@ targetEntityType: node
 bundle: organization
 mode: default
 content:
+  additional_text:
+    weight: 124
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
   body:
     type: text_textarea_with_summary
     weight: 121
@@ -22,12 +42,28 @@ content:
       placeholder: ''
     third_party_settings: {  }
     region: content
+  copyright_notification:
+    weight: 130
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
   created:
     type: datetime_timestamp
     weight: 10
     region: content
     settings: {  }
     third_party_settings: {  }
+  job_listing:
+    weight: 127
+    settings:
+      placeholder_url: ''
+      placeholder_title: ''
+    third_party_settings: {  }
+    type: link_default
+    region: content
   langcode:
     type: language_select
     weight: 2
@@ -35,6 +71,22 @@ content:
     settings:
       include_locked: true
     third_party_settings: {  }
+  madgex_job_listing:
+    weight: 128
+    settings:
+      placeholder_url: ''
+      placeholder_title: ''
+    third_party_settings: {  }
+    type: link_default
+    region: content
+  mission_statement:
+    weight: 123
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
   path:
     type: path
     weight: 30
@@ -48,6 +100,30 @@ content:
     weight: 15
     region: content
     third_party_settings: {  }
+  short_bio:
+    weight: 122
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
+  sponsor_link:
+    weight: 126
+    settings:
+      placeholder_url: ''
+      placeholder_title: ''
+    third_party_settings: {  }
+    type: link_default
+    region: content
+  sponsor_logo:
+    weight: 125
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+    type: image_image
+    region: content
   status:
     type: boolean_checkbox
     settings:
@@ -62,6 +138,12 @@ content:
     weight: 16
     region: content
     third_party_settings: {  }
+  syndication_status:
+    weight: 129
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
   title:
     type: string_textfield
     weight: -5
