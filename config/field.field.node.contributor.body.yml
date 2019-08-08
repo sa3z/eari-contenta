@@ -1,0 +1,22 @@
+uuid: 0289cdf5-9c39-4577-a646-c72296720f48
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.body
+    - node.type.contributor
+  module:
+    - text
+id: node.contributor.body
+field_name: body
+entity_type: node
+bundle: contributor
+label: Body
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: true
+field_type: text_with_summary

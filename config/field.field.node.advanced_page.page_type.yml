@@ -1,0 +1,33 @@
+uuid: 5ff919af-d084-407f-8ed3-9fbd049e1dc5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.page_type
+    - node.type.advanced_page
+    - taxonomy.vocabulary.page_type
+  content:
+    - 'taxonomy_term:page_type:8eba2839-cb90-4581-8514-36c3d6f38295'
+id: node.advanced_page.page_type
+field_name: page_type
+entity_type: node
+bundle: advanced_page
+label: 'Page Type'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    target_uuid: 8eba2839-cb90-4581-8514-36c3d6f38295
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      page_type: page_type
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

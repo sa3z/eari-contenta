@@ -1,0 +1,21 @@
+uuid: 491dc4dd-82fe-404a-b2fb-fa964900125d
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.kicker
+field_name: kicker
+entity_type: node
+type: list_string
+settings:
+  allowed_values: {  }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 60
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

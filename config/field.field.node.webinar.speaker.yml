@@ -1,0 +1,22 @@
+uuid: 44e459d1-edf5-4d4c-8401-e9a7bdce628e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.speaker
+    - node.type.webinar
+  module:
+    - field_collection
+id: node.webinar.speaker
+field_name: speaker
+entity_type: node
+bundle: webinar
+label: Speaker
+description: ''
+required: false
+translatable: false
+default_value:
+  - {  }
+default_value_callback: ''
+settings: {  }
+field_type: field_collection

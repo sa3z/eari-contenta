@@ -1,0 +1,29 @@
+uuid: 5557bfb7-a46d-4319-8ec4-1554edb3c054
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.content_tags
+    - node.type.podcast
+    - taxonomy.vocabulary.content_tags
+id: node.podcast.content_tags
+field_name: content_tags
+entity_type: node
+bundle: podcast
+label: 'Content tags'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      content_tags: content_tags
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

@@ -1,0 +1,21 @@
+uuid: c50573ee-4d7b-47bc-b027-2921a02cf09f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.long_bio
+    - node.type.contributor
+  module:
+    - text
+id: node.contributor.long_bio
+field_name: long_bio
+entity_type: node
+bundle: contributor
+label: 'Long Bio'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

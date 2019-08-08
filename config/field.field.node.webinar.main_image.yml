@@ -1,0 +1,38 @@
+uuid: 623a0ce2-1222-4a26-819f-dc236f3c6d72
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.main_image
+    - node.type.webinar
+  module:
+    - image
+id: node.webinar.main_image
+field_name: main_image
+entity_type: node
+bundle: webinar
+label: 'Main Image'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  file_directory: '[date:custom:Y]-[date:custom:m]'
+  file_extensions: 'png gif jpg jpeg'
+  max_filesize: ''
+  max_resolution: ''
+  min_resolution: ''
+  alt_field: true
+  alt_field_required: true
+  title_field: false
+  title_field_required: false
+  default_image:
+    uuid: ''
+    alt: ''
+    title: ''
+    width: null
+    height: null
+  handler: 'default:file'
+  handler_settings: {  }
+field_type: image

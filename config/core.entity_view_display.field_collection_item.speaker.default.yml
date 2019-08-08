@@ -1,0 +1,24 @@
+uuid: a1a660cf-92c6-4b7a-8381-06110c5a38a8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.field_collection_item.speaker.speaker_name
+    - field_collection.field_collection.speaker
+  module:
+    - entity_reference_revisions
+id: field_collection_item.speaker.default
+targetEntityType: field_collection_item
+bundle: speaker
+mode: default
+content:
+  speaker_name:
+    weight: 0
+    label: above
+    settings:
+      view_mode: default
+      link: ''
+    third_party_settings: {  }
+    type: entity_reference_revisions_entity_view
+    region: content
+hidden: {  }

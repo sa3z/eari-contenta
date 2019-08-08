@@ -1,0 +1,23 @@
+uuid: a8ce6c58-c5c5-4630-8a01-c0a9408846dd
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_exclude_from_lists
+    - node.type.podcast
+id: node.podcast.field_exclude_from_lists
+field_name: field_exclude_from_lists
+entity_type: node
+bundle: podcast
+label: 'Exclude from Lists'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

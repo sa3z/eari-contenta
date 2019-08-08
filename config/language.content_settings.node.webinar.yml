@@ -1,0 +1,11 @@
+uuid: b515fbbd-c108-4c94-9b2e-e8047763c62a
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.webinar
+id: node.webinar
+target_entity_type_id: node
+target_bundle: webinar
+default_langcode: site_default
+language_alterable: false

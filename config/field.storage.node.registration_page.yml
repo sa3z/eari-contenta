@@ -1,0 +1,21 @@
+uuid: dd5ecb53-1fd3-4e1c-98d5-75a332f6b98a
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.registration_page
+field_name: registration_page
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  is_ascii: false
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

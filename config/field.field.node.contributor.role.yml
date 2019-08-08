@@ -1,0 +1,29 @@
+uuid: 7ec060f6-ae1c-463e-a659-c7f65e880b57
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.role
+    - node.type.contributor
+    - taxonomy.vocabulary.contributor_role
+id: node.contributor.role
+field_name: role
+entity_type: node
+bundle: contributor
+label: Role
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      contributor_role: contributor_role
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

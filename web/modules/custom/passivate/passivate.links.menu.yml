@@ -1,6 +1,12 @@
-passivate.admin:
-  title: 'Passivate module settings'
-  description: 'example of how to make an admin settings page link'
-  parent: system.admin_config_development
-  route_name: passivate.content
-  weight: 100
+#passivate.admin:
+#  title: 'Passivate module settings'
+#  description: 'example of how to make an admin settings page link'
+#  parent: system.admin_config_development
+#  route_name: passivate.content
+#  weight: 100
+passivate.admin_settings_form:  
+  title: 'Passivate Module Server API settings'  
+  route_name: passivate.admin_settings_form  
+  description: 'Server API admin settings'  
+  parent: system.admin_config_development  
+  weight: 99  
