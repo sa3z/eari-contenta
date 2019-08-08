@@ -1,0 +1,23 @@
+uuid: 71cda270-2913-4a72-a330-1d42bf3304c6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.audio_file_link
+    - node.type.podcast
+  module:
+    - link
+id: node.podcast.audio_file_link
+field_name: audio_file_link
+entity_type: node
+bundle: podcast
+label: 'Audio file link'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  link_type: 17
+  title: 1
+field_type: link

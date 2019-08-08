@@ -1,0 +1,23 @@
+uuid: 85532bcb-243a-4034-96a6-bb237e217771
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.explicit_content_
+    - node.type.podcast
+id: node.podcast.explicit_content_
+field_name: explicit_content_
+entity_type: node
+bundle: podcast
+label: 'Explicit content?'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

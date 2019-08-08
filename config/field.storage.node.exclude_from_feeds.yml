@@ -1,0 +1,18 @@
+uuid: 9dee20d4-f9c3-411f-bfae-e36c71595b6e
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.exclude_from_feeds
+field_name: exclude_from_feeds
+entity_type: node
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

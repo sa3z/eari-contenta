@@ -1,0 +1,22 @@
+uuid: 20c42f9e-16ab-4895-9cb1-7d9e269d062a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.speaker
+    - node.type.podcast
+  module:
+    - field_collection
+id: node.podcast.speaker
+field_name: speaker
+entity_type: node
+bundle: podcast
+label: Author
+description: ''
+required: false
+translatable: true
+default_value:
+  - {  }
+default_value_callback: ''
+settings: {  }
+field_type: field_collection

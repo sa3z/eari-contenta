@@ -1,0 +1,243 @@
+uuid: dba4cbd7-1001-4d6d-b53e-185174b8118f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.webinar.body
+    - field.field.node.webinar.brightcove_id
+    - field.field.node.webinar.coveritlive
+    - field.field.node.webinar.coveritlive_title
+    - field.field.node.webinar.kicker
+    - field.field.node.webinar.main_image
+    - field.field.node.webinar.media_type
+    - field.field.node.webinar.moderator
+    - field.field.node.webinar.organization
+    - field.field.node.webinar.publish_slides
+    - field.field.node.webinar.publish_transcript
+    - field.field.node.webinar.registration_page
+    - field.field.node.webinar.slides
+    - field.field.node.webinar.social_sharing
+    - field.field.node.webinar.speaker
+    - field.field.node.webinar.teaser
+    - field.field.node.webinar.transcript
+    - field.field.node.webinar.video
+    - field.field.node.webinar.webinar_early_release
+    - field.field.node.webinar.webinar_time
+    - image.style.thumbnail
+    - node.type.webinar
+  module:
+    - datetime
+    - entity_reference_revisions
+    - field_collection
+    - file
+    - image
+    - path
+    - text
+id: node.webinar.default
+targetEntityType: node
+bundle: webinar
+mode: default
+content:
+  body:
+    type: text_textarea_with_summary
+    weight: 121
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+    region: content
+  brightcove_id:
+    weight: 135
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  coveritlive:
+    weight: 129
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
+  coveritlive_title:
+    weight: 128
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  created:
+    type: datetime_timestamp
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  kicker:
+    weight: 122
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  langcode:
+    type: language_select
+    weight: 2
+    region: content
+    settings:
+      include_locked: true
+    third_party_settings: {  }
+  main_image:
+    weight: 133
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+    type: image_image
+    region: content
+  media_type:
+    weight: 136
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  moderator:
+    weight: 131
+    settings: {  }
+    third_party_settings: {  }
+    type: field_collection_embed
+    region: content
+  organization:
+    weight: 132
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: entity_reference_revisions_autocomplete
+    region: content
+  path:
+    type: path
+    weight: 30
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  promote:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 15
+    region: content
+    third_party_settings: {  }
+  publish_slides:
+    weight: 140
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  publish_transcript:
+    weight: 138
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  registration_page:
+    weight: 127
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  slides:
+    weight: 139
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+    type: file_generic
+    region: content
+  social_sharing:
+    weight: 123
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  speaker:
+    weight: 130
+    settings: {  }
+    third_party_settings: {  }
+    type: field_collection_embed
+    region: content
+  status:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 120
+    region: content
+    third_party_settings: {  }
+  sticky:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 16
+    region: content
+    third_party_settings: {  }
+  teaser:
+    weight: 124
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textarea
+    region: content
+  title:
+    type: string_textfield
+    weight: -5
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  transcript:
+    weight: 137
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+    type: file_generic
+    region: content
+  uid:
+    type: entity_reference_autocomplete
+    weight: 5
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    region: content
+    third_party_settings: {  }
+  video:
+    weight: 134
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+    type: file_generic
+    region: content
+  webinar_early_release:
+    weight: 126
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  webinar_time:
+    weight: 125
+    settings: {  }
+    third_party_settings: {  }
+    type: datetime_default
+    region: content
+hidden: {  }

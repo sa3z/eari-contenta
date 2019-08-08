@@ -1,0 +1,22 @@
+uuid: c788e1bc-9ab8-4c20-9bda-f21eff97adbe
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.moderator
+    - node.type.webinar
+  module:
+    - field_collection
+id: node.webinar.moderator
+field_name: moderator
+entity_type: node
+bundle: webinar
+label: Moderator
+description: ''
+required: false
+translatable: false
+default_value:
+  - {  }
+default_value_callback: ''
+settings: {  }
+field_type: field_collection

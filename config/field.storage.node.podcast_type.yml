@@ -1,0 +1,20 @@
+uuid: 834ca412-b1cf-49ac-8e4b-27ec0103e197
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - taxonomy
+id: node.podcast_type
+field_name: podcast_type
+entity_type: node
+type: entity_reference
+settings:
+  target_type: taxonomy_term
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

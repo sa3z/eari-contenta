@@ -1,0 +1,9 @@
+uuid: 72862e2d-9ef4-469c-b838-8306d16f73b8
+langcode: en
+status: true
+dependencies: {  }
+name: 'Content Channel'
+vid: content_channel
+description: ''
+hierarchy: 0
+weight: 0

@@ -1,0 +1,9 @@
+uuid: 19dca7c2-98bc-4711-9d35-2a57a0bad8ce
+langcode: en
+status: true
+dependencies: {  }
+name: 'Contributor Affiliation'
+vid: contributor_affiliation
+description: ''
+hierarchy: 0
+weight: 0

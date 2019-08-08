@@ -1,0 +1,23 @@
+uuid: e2ddce92-b567-4b29-9c87-3cefb2d59b5e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.job_listing
+    - node.type.organization
+  module:
+    - link
+id: node.organization.job_listing
+field_name: job_listing
+entity_type: node
+bundle: organization
+label: 'Job Listing'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  link_type: 17
+  title: 1
+field_type: link
