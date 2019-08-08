@@ -1,4 +1,3 @@
-uuid: e1e23cdb-8c15-4afd-acfe-5ba424c21bd5
 langcode: en
 status: true
 dependencies:
@@ -6,7 +5,7 @@ dependencies:
     - image.style.thumbnail
   module:
     - image
-    - media_entity
+    - media
     - user
 id: media
 label: Media
@@ -26,7 +25,7 @@ display:
       access:
         type: perm
         options:
-          perm: 'access media overview'
+          perm: 'access content overview'
       cache:
         type: tag
         options: {  }

@@ -2,7 +2,8 @@
 
 namespace Drupal\jsonapi_extras\ResourceType;
 
-use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi_extras\Entity\JsonapiResourceConfig;
 use Drupal\jsonapi_extras\Plugin\ResourceFieldEnhancerManager;
@@ -12,6 +13,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
  * Defines a configurable resource type.
  */
 class ConfigurableResourceType extends ResourceType {
+
+  use DependencySerializationTrait;
 
   /**
    * The JsonapiResourceConfig entity.
@@ -28,41 +31,23 @@ class ConfigurableResourceType extends ResourceType {
   protected $enhancerManager;
 
   /**
+   * The configuration factory.
+   *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
-   * Instantiates a ResourceType object.
+   * The static cache.
    *
-   * @param string $entity_type_id
-   *   An entity type ID.
-   * @param string $bundle
-   *   A bundle.
-   * @param string $deserialization_target_class
-   *   The deserialization target class.
-   * @param \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig $resource_config
-   *   The configuration entity.
-   * @param \Drupal\jsonapi_extras\Plugin\ResourceFieldEnhancerManager $enhancer_manager
-   *   Plugin manager for enhancers.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The configuration factory.
+   * @var array
    */
-  public function __construct($entity_type_id, $bundle, $deserialization_target_class, JsonapiResourceConfig $resource_config, ResourceFieldEnhancerManager $enhancer_manager, ConfigFactoryInterface $config_factory) {
-    parent::__construct($entity_type_id, $bundle, $deserialization_target_class);
-
-    $this->jsonapiResourceConfig = $resource_config;
-    $this->enhancerManager = $enhancer_manager;
-    $this->configFactory = $config_factory;
-
-    if ($resource_config->get('resourceType')) {
-      // Set the type name.
-      $this->typeName = $resource_config->get('resourceType');
-    }
-  }
+  protected $cache = [];
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
    */
   public function getPublicName($field_name) {
     return $this->translateFieldName($field_name, 'fieldName', 'publicName');
@@ -70,6 +55,8 @@ class ConfigurableResourceType extends ResourceType {
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
    */
   public function getInternalName($field_name) {
     return $this->translateFieldName($field_name, 'publicName', 'fieldName');
@@ -86,7 +73,23 @@ class ConfigurableResourceType extends ResourceType {
   }
 
   /**
+   * Sets the jsonapi_resource_config.
+   *
+   * @param \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig $resource_config
+   *   The jsonapi_resource_config entity.
+   */
+  public function setJsonapiResourceConfig(JsonapiResourceConfig $resource_config) {
+    $this->jsonapiResourceConfig = $resource_config;
+    if ($name = $resource_config->get('resourceType')) {
+      // Set the type name.
+      $this->typeName = $name;
+    }
+  }
+
+  /**
    * {@inheritdoc}
+   *
+   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
    */
   public function isFieldEnabled($field_name) {
     $resource_field = $this->getResourceFieldConfiguration($field_name);
@@ -105,7 +108,24 @@ class ConfigurableResourceType extends ResourceType {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getPath() {
+    $resource_config = $this->getJsonapiResourceConfig();
+    if (!$resource_config) {
+      return parent::getPath();
+    }
+    $config_path = $resource_config->get('path');
+    if (!$config_path) {
+      return parent::getPath();
+    }
+    return $config_path;
+  }
+
+  /**
    * Get the resource field configuration.
+   *
+   * @todo https://www.drupal.org/node/3007820
    *
    * @param string $field_name
    *   The internal field name.
@@ -116,16 +136,52 @@ class ConfigurableResourceType extends ResourceType {
    *   The resource field definition. NULL if none can be found.
    */
   public function getResourceFieldConfiguration($field_name, $from = 'fieldName') {
-    $resource_fields = $this->jsonapiResourceConfig->get('resourceFields');
+    $cid = "$field_name:$from";
+    if (isset($this->cache[$cid]) || array_key_exists($cid, $this->cache)) {
+      return $this->cache[$cid];
+    }
+
+    $resource_fields = $this->getJsonapiResourceConfig()->get('resourceFields');
     // Find the resource field in the config entity for the given field name.
     $found = array_filter($resource_fields, function ($resource_field) use ($field_name, $from) {
       return !empty($resource_field[$from]) &&
         $field_name == $resource_field[$from];
     });
-    if (empty($found)) {
-      return NULL;
-    }
-    return reset($found);
+    $result = empty($found) ? NULL : reset($found);
+    $this->cache[$cid] = $result;
+    return $result;
+  }
+
+  /**
+   * Injects the config factory.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The field enhancer manager.
+   */
+  public function setConfigFactory(ConfigFactoryInterface $config_factory) {
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * Injects the field enhancer manager.
+   *
+   * @param \Drupal\jsonapi_extras\Plugin\ResourceFieldEnhancerManager $enhancer_manager
+   *   The field enhancer manager.
+   */
+  public function setEnhancerManager(ResourceFieldEnhancerManager $enhancer_manager) {
+    $this->enhancerManager = $enhancer_manager;
+  }
+
+  /**
+   * Setter for the $internal flag.
+   *
+   * @param bool $is_internal
+   *   Indicates if the resource is not public.
+   *
+   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
+   */
+  public function setInternal($is_internal) {
+    $this->internal = $is_internal;
   }
 
   /**
@@ -161,7 +217,7 @@ class ConfigurableResourceType extends ResourceType {
       );
       return $enhancer;
     }
-    catch (PluginNotFoundException $exception) {
+    catch (PluginException $exception) {
       return NULL;
     }
 
@@ -179,6 +235,8 @@ class ConfigurableResourceType extends ResourceType {
    *
    * @return string
    *   The field name in the desired realm.
+   *
+   * @todo Remove this when JSON API Extras drops support for JSON API 1.x.
    */
   private function translateFieldName($field_name, $from, $to) {
     $resource_field = $this->getResourceFieldConfiguration($field_name, $from);

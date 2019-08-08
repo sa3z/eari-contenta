@@ -16,4 +16,11 @@ class NullJsonapiResourceConfig extends JsonapiResourceConfig {
     return $key == 'resourceFields' ? [] : NULL;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getConfigDependencyName() {
+    return __CLASS__;
+  }
+
 }

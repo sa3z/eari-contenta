@@ -4,13 +4,11 @@ namespace Drupal\jsonapi_extras;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Config\ImmutableConfig;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository;
+use Drupal\jsonapi_extras\ResourceType\NullJsonapiResourceConfig;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -35,9 +33,10 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
   /**
    * Constructs new JsonapiResourceConfigListBuilder.
    *
-   * @param EntityTypeInterface $entity_type
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
+   *   The storage.
    * @param \Drupal\jsonapi_extras\ResourceType\ConfigurableResourceTypeRepository $resource_type_repository
    *   The JSON API configurable resource type repository.
    * @param \Drupal\Core\Config\ImmutableConfig $config
@@ -112,7 +111,7 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
         ],
         '#attached' => [
           'library' => [
-            'jsonapi_extras/admin'
+            'jsonapi_extras/admin',
           ],
         ],
       ];
@@ -130,19 +129,19 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
         ],
         '#attributes' => [
           'class' => [
-            'jsonapi-resources-table'
+            'jsonapi-resources-table',
           ],
         ],
         '#attached' => [
           'library' => [
             'jsonapi_extras/admin',
-          ]
+          ],
         ],
       ];
     }
 
     $prefix = $this->config->get('path_prefix');
-    foreach ($this->resourceTypeRepository->getResourceTypes(TRUE) as $resource_type) {
+    foreach ($this->resourceTypeRepository->all() as $resource_type) {
       /** @var \Drupal\jsonapi_extras\ResourceType\ConfigurableResourceType $resource_type */
       $entity_type_id = $resource_type->getEntityTypeId();
       $bundle = $resource_type->getBundle();
@@ -194,7 +193,7 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
       /** @var \Drupal\jsonapi_extras\Entity\JsonapiResourceConfig $resource_config */
       $resource_config = $resource_type->getJsonapiResourceConfig();
-      if ($resource_config->id()) {
+      if (!$resource_config instanceof NullJsonapiResourceConfig) {
         $row['state']['#value'] = $this->t('Overwritten');
         $row['state']['#attributes']['class'][] = 'label--overwritten';
         $row['operations']['#links'] = $this->getDefaultOperations($resource_config);
@@ -215,6 +214,5 @@ class JsonapiResourceConfigListBuilder extends ConfigEntityListBuilder {
 
     return $list;
   }
-
 
 }

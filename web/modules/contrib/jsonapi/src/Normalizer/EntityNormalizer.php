@@ -2,24 +2,31 @@
 
 namespace Drupal\jsonapi\Normalizer;
 
-use Drupal\Core\Access\AccessibleInterface;
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\EntityReferenceFieldItemList;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
 use Drupal\jsonapi\Normalizer\Value\EntityNormalizerValue;
 use Drupal\jsonapi\Normalizer\Value\FieldNormalizerValueInterface;
+use Drupal\jsonapi\Normalizer\Value\IncludeOnlyRelationshipNormalizerValue;
+use Drupal\jsonapi\Normalizer\Value\NullFieldNormalizerValue;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Drupal\jsonapi\LinkManager\LinkManager;
-use Drupal\jsonapi\Normalizer\Value\NullFieldNormalizerValue;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
+use Drupal\serialization\Normalizer\SerializedColumnNormalizerTrait;
 use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 /**
  * Converts the Drupal entity object to a JSON API array structure.
+ *
+ * @internal
  */
 class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
+
+  use SerializedColumnNormalizerTrait;
 
   /**
    * The interface or class that this Normalizer supports.
@@ -93,38 +100,32 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
     }
     /* @var Value\FieldNormalizerValueInterface[] $normalizer_values */
     $normalizer_values = [];
+    $relationship_field_names = array_keys($resource_type->getRelatableResourceTypes());
     foreach ($this->getFields($entity, $bundle, $resource_type) as $field_name => $field) {
-      if (!in_array($field_name, $field_names)) {
+      $in_sparse_fieldset = in_array($field_name, $field_names);
+      $is_relationship_field = in_array($field_name, $relationship_field_names);
+      // Omit fields not listed in sparse fieldsets, except if they're fields
+      // modeling relationships; despite a relationship field being omitted,
+      // using `?include` to include related resources is still allowed.
+      if (!$in_sparse_fieldset) {
+        if ($is_relationship_field) {
+          $is_null_field = $field instanceof NullFieldNormalizerValue;
+          if ($normalized_field) {
+            $has_includes = !empty($normalized_field->getIncludes());
+            if (!$is_null_field && $has_includes) {
+              $normalizer_values[$field_name] = new IncludeOnlyRelationshipNormalizerValue($normalized_field);
+            }
+          }
+        }
         continue;
       }
-      $normalizer_values[$field_name] = $this->serializeField($field, $context, $format);
+      $normalized_field = $this->serializeField($field, $context, $format);
+      assert($normalized_field instanceof FieldNormalizerValueInterface);
+      $normalizer_values[$field_name] = $normalized_field;
     }
 
     $link_context = ['link_manager' => $this->linkManager];
-    $output = new EntityNormalizerValue($normalizer_values, $context, $entity, $link_context);
-    // Add the entity level cacheability metadata.
-    $output->addCacheableDependency($entity);
-    $output->addCacheableDependency($output);
-    // Add the field level cacheability metadata.
-    array_walk($normalizer_values, function ($normalizer_value) {
-      if ($normalizer_value instanceof RefinableCacheableDependencyInterface) {
-        $normalizer_value->addCacheableDependency($normalizer_value);
-      }
-    });
-    return $output;
-  }
-
-  /**
-   * Checks if the passed field is a relationship field.
-   *
-   * @param mixed $field
-   *   The field.
-   *
-   * @return bool
-   *   TRUE if it's a JSON API relationship.
-   */
-  protected function isRelationship($field) {
-    return $field instanceof EntityReferenceFieldItemList || $field instanceof Relationship;
+    return new EntityNormalizerValue($normalizer_values, $context, $entity, $link_context);
   }
 
   /**
@@ -181,7 +182,13 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
    */
   protected function getFields($entity, $bundle, ResourceType $resource_type) {
     $output = [];
-    $fields = $entity->getFields();
+    // @todo Remove this when JSON API requires Drupal 8.5 or newer.
+    if (floatval(\Drupal::VERSION) >= 8.5) {
+      $fields = TypedDataInternalPropertiesHelper::getNonInternalProperties($entity->getTypedData());
+    }
+    else {
+      $fields = $entity->getFields();
+    }
     // Filter the array based on the field names.
     $enabled_field_names = array_filter(
       array_keys($fields),
@@ -211,28 +218,7 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
    *   The normalized value.
    */
   protected function serializeField($field, array $context, $format) {
-    /* @var \Drupal\Core\Field\FieldItemListInterface|\Drupal\jsonapi\Normalizer\Relationship $field */
-    // Continue if the current user does not have access to view this field.
-    $access = $field->access('view', $context['account'], TRUE);
-    if ($field instanceof AccessibleInterface && !$access->isAllowed()) {
-      return (new NullFieldNormalizerValue())->addCacheableDependency($access);
-    }
-    /** @var \Drupal\jsonapi\Normalizer\Value\FieldNormalizerValue $output */
-    $output = $this->serializer->normalize($field, $format, $context);
-    if (!$output instanceof FieldNormalizerValueInterface) {
-      return new NullFieldNormalizerValue();
-    }
-    $is_relationship = $this->isRelationship($field);
-    $property_type = $is_relationship ? 'relationships' : 'attributes';
-    $output->setPropertyType($property_type);
-
-    if ($output instanceof RefinableCacheableDependencyInterface) {
-      // Add the cache dependency to the field level object because we want to
-      // allow the field normalizers to add extra cacheability metadata.
-      $output->addCacheableDependency($access);
-    }
-
-    return $output;
+    return $this->serializer->normalize($field, $format, $context);
   }
 
   /**
@@ -255,10 +241,83 @@ class EntityNormalizer extends NormalizerBase implements DenormalizerInterface {
         continue;
       }
       $internal_name = $resource_type->getInternalName($public_field_name);
-      $data_internal[$internal_name] = $field_value;
+      if ($resource_type->getDeserializationTargetClass() instanceof FieldableEntityInterface) {
+        // If $field_value contains items (recognizable by numerical array keys
+        // which Drupal's Field API calls "deltas"), then it already is itemized;
+        // it's not using the simplified JSON structure that JSON:API generates.
+        $is_already_itemized = is_array($field_value) && array_reduce(array_keys($field_value), function ($carry, $index) {
+            return $carry && is_numeric($index);
+          }, TRUE);
+
+        $itemized_data = $is_already_itemized
+          ? $field_value
+          : [0 => $field_value];
+
+        try {
+          $field_item = $this->getFieldItemInstance($resource_type, $internal_name);
+          foreach ($itemized_data as $delta => $field_item_value) {
+            $this->checkForSerializedStrings($field_item_value, get_class($field_item), $field_item);
+            $serialized_property_names = $this->getCustomSerializedPropertyNames($field_item);
+
+            // Explicitly serialize the input, unlike properties that rely on
+            // being automatically serialized, manually managed serialized
+            // properties expect to receive serialized input.
+            if (is_array($field_item_value)) {
+              foreach ($serialized_property_names as $serialized_property_name) {
+                if (!empty($field_item_value[$serialized_property_name])) {
+                  $itemized_data[$delta][$serialized_property_name] = serialize($field_item_value[$serialized_property_name]);
+                }
+              }
+            }
+            elseif (in_array($field_item->getDataDefinition()
+              ->getMainPropertyName(), $serialized_property_names, TRUE)) {
+              $itemized_data[$delta] = serialize($field_item_value);
+            }
+          }
+        }
+        catch (\InvalidArgumentException $e) {
+          // The field does not exist, so there is no processing to be done. A
+          // helpful error will be shown by EntityResource::createIndividual() or
+          // EntityResource::patchIndividual().
+        }
+        $data_internal[$internal_name] = $is_already_itemized ? $itemized_data : $itemized_data[0];
+      }
+      else {
+        $data_internal[$internal_name] = $field_value;
+      }
     }
 
     return $data_internal;
+  }
+
+  /**
+   * Gets a field item instance for use with SerializedColumnNormalizerTrait.
+   *
+   * @param \Drupal\jsonapi\ResourceType\ResourceType $resource_type
+   *   The JSON:API resource type of the entity being denormalized.
+   * @param string $field_name
+   *   The name of the field to get a field item instance for.
+   *
+   * @return \Drupal\Core\Field\FieldItemInterface
+   *   The requested field item instance.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  protected function getFieldItemInstance(ResourceType $resource_type, $field_name) {
+    if ($bundle_key = $this->entityTypeManager->getDefinition($resource_type->getEntityTypeId())
+      ->getKey('bundle')) {
+      $create_values = [$bundle_key => $resource_type->getBundle()];
+    }
+    else {
+      $create_values = [];
+    }
+    $entity = $this->entityTypeManager->getStorage($resource_type->getEntityTypeId())->create($create_values);
+    $field = $entity->get($field_name);
+    assert($field instanceof FieldItemListInterface);
+    $field_item = $field->appendItem();
+    assert($field_item instanceof FieldItemInterface);
+    return $field_item;
   }
 
 }

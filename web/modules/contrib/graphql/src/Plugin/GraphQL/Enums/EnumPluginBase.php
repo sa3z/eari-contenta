@@ -3,44 +3,89 @@
 namespace Drupal\graphql\Plugin\GraphQL\Enums;
 
 use Drupal\Component\Plugin\PluginBase;
-use Drupal\graphql\GraphQL\Type\EnumType;
-use Drupal\graphql\Plugin\GraphQL\PluggableSchemaBuilderInterface;
 use Drupal\graphql\Plugin\GraphQL\Traits\CacheablePluginTrait;
-use Drupal\graphql\Plugin\GraphQL\Traits\NamedPluginTrait;
-use Drupal\graphql\Plugin\GraphQL\TypeSystemPluginInterface;
+use Drupal\graphql\Plugin\GraphQL\Traits\DescribablePluginTrait;
+use Drupal\graphql\Plugin\SchemaBuilderInterface;
+use Drupal\graphql\Plugin\TypePluginInterface;
+use Drupal\graphql\Plugin\TypePluginManager;
+use GraphQL\Type\Definition\EnumType;
 
-/**
- * Base class for enum plugins.
- */
-abstract class EnumPluginBase extends PluginBase implements TypeSystemPluginInterface {
-  use NamedPluginTrait;
+abstract class EnumPluginBase extends PluginBase implements TypePluginInterface {
   use CacheablePluginTrait;
-
-  /**
-   * The type instance.
-   *
-   * @var \Drupal\graphql\GraphQL\Type\EnumType
-   */
-  protected $definition;
+  use DescribablePluginTrait;
 
   /**
    * {@inheritdoc}
    */
-  public function getDefinition(PluggableSchemaBuilderInterface $schemaBuilder) {
-    if (!isset($this->definition)) {
-      $this->definition = new EnumType($this, [
-        'name' => $this->buildName(),
-        'description' => $this->buildDescription(),
-        'values' => $this->buildValues($schemaBuilder),
-      ]);
-    }
-
-    return $this->definition;
+  public static function createInstance(SchemaBuilderInterface $builder, TypePluginManager $manager, $definition, $id) {
+    return new EnumType([
+      'name' => $definition['name'],
+      'description' => $definition['description'],
+      'values' => $definition['values'],
+      'contexts' => $definition['contexts'],
+    ]);
   }
 
   /**
    * {@inheritdoc}
    */
-  abstract public function buildValues(PluggableSchemaBuilderInterface $schemaManager);
+  public function getDefinition() {
+    $definition = $this->getPluginDefinition();
+
+    return [
+      'name' => $definition['name'],
+      'description' => $this->buildDescription($definition),
+      'values' => $this->buildEnumValues($definition),
+      'contexts' => $this->buildCacheContexts($definition),
+    ];
+  }
+
+  /**
+   * Builds the enum values.
+   *
+   * @param array $definition
+   *   The plugin definition array/
+   *
+   * @return array
+   *   The enum values.
+   */
+  protected function buildEnumValues($definition) {
+    return array_map(function ($value) use ($definition) {
+      return [
+        'value' => $this->buildEnumValue($value, $definition),
+        'description' => $this->buildEnumDescription($value, $definition),
+      ];
+    }, $definition['values']);
+  }
+
+  /**
+   * Builds the value of an enum item.
+   *
+   * @param mixed $value
+   *   The enum's value definition.
+   * @param array $definition
+   *   The plugin definition array.
+   *
+   * @return mixed
+   *   The value of the enum item.
+   */
+  protected function buildEnumValue($value, $definition) {
+    return is_array($value) ? $value['value'] : $value;
+  }
+
+  /**
+   * Builds the description of an enum item.
+   *
+   * @param mixed $value
+   *   The enum's value definition.
+   * @param array $definition
+   *   The plugin definition array.
+   *
+   * @return string
+   *   The description of the enum item.
+   */
+  protected function buildEnumDescription($value, $definition) {
+    return (string) (is_array($value) ? $value['description'] : '');
+  }
 
 }

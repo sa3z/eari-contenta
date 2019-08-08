@@ -113,4 +113,38 @@ class JsonPathReplacerTest extends UnitTestCase {
     $this->assertEquals($expected_paths, $paths);
   }
 
+  /**
+   * @covers ::replaceBatch
+   */
+  public function testReplaceBatchTypes() {
+    $batch = $responses = [];
+    $batch[] = new Subrequest([
+      'uri' => '/test/types',
+      'action' => 'create',
+      'requestId' => 'xyz',
+      'headers' => [],
+      '_resolved' => FALSE,
+      'body' => [
+        'You are number' => '{{foo.body@$.Number}}',
+        'Where am I' => '{{foo.body@$.Location}}',
+        'World of number two' => '{{foo.body@$.Two}}',
+        'Question' => 'Who is number {{foo.body@$.Who}}?',
+        'Michael' => '{{foo.body@$.Feigenbaum}}',
+      ],
+      'waitFor' => ['foo'],
+    ]);
+
+    $response = Response::create('{"Number":6, "Location":"In the village", "Two":false, "Who":1, "Feigenbaum":4.6692}');
+    $response->headers->set('Content-ID', '<foo>');
+    $responses[] = $response;
+
+    $actual = $this->sut->replaceBatch($batch, $responses);
+
+    $this->assertInternalType('int', $actual[0]->body['You are number']);
+    $this->assertInternalType('string', $actual[0]->body['Where am I']);
+    $this->assertInternalType('boolean', $actual[0]->body['World of number two']);
+    $this->assertInternalType('string', $actual[0]->body['Question']);
+    $this->assertInternalType('float', $actual[0]->body['Michael']);
+  }
+
 }

@@ -2,6 +2,8 @@
 
 namespace Drupal\Core\Template;
 
+use Twig\Node\CheckToStringNode;
+
 /**
  * A class that defines the Twig 'trans' tag for Drupal.
  *
@@ -113,6 +115,9 @@ class TwigNodeTrans extends \Twig_Node {
             $n = $n->getNode('node');
           }
 
+          if ($n instanceof CheckToStringNode) {
+            $n = $n->getNode('expr');
+          }
           $args = $n;
 
           // Support TwigExtension->renderVar() function in chain.
@@ -133,6 +138,9 @@ class TwigNodeTrans extends \Twig_Node {
                 break;
             }
             $args = $args->getNode('node');
+          }
+          if ($args instanceof CheckToStringNode) {
+            $args = $args->getNode('expr');
           }
           if ($args instanceof \Twig_Node_Expression_GetAttr) {
             $argName = [];
@@ -157,7 +165,7 @@ class TwigNodeTrans extends \Twig_Node {
             if (!is_null($args)) {
               $argName = $args->getAttribute('name');
             }
-            $expr = new \Twig_Node_Expression_Name($argName, $n->getLine());
+            $expr = new \Twig_Node_Expression_Name($argName, $n->getTemplateLine());
           }
           $placeholder = sprintf('%s%s', $argPrefix, $argName);
           $text .= $placeholder;
@@ -176,7 +184,10 @@ class TwigNodeTrans extends \Twig_Node {
       $text = $body->getAttribute('data');
     }
 
-    return [new \Twig_Node([new \Twig_Node_Expression_Constant(trim($text), $body->getLine())]), $tokens];
+    return [
+      new \Twig_Node([new \Twig_Node_Expression_Constant(trim($text), $body->getTemplateLine())]),
+      $tokens,
+    ];
   }
 
 }

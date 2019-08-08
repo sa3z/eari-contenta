@@ -27,7 +27,7 @@ class DataDefinitionNormalizer extends JsonNormalizerBase {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = '\Drupal\Core\TypedData\DataDefinitionInterface';
+  protected $supportedInterfaceOrClass = DataDefinitionInterface::class;
 
   /**
    * {@inheritdoc}
@@ -47,6 +47,13 @@ class DataDefinitionNormalizer extends JsonNormalizerBase {
     if (!empty($context['parent']) && $context['name'] == 'value') {
       if ($maxLength = $context['parent']->getSetting('max_length')) {
         $property['maxLength'] = $maxLength;
+      }
+
+      if (empty($context['parent']->getSetting('allowed_values_function'))
+        && !empty($context['parent']->getSetting('allowed_values'))
+      ) {
+        $allowed_values = $context['parent']->getSetting('allowed_values');
+        $property['enum'] = array_keys($allowed_values);
       }
     }
 

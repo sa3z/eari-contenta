@@ -2,12 +2,14 @@
 
 namespace Drupal\consumer_image_styles\Normalizer;
 
+use Drupal\consumer_image_styles\ImageStylesProviderInterface;
 use Drupal\consumer_image_styles\Normalizer\Value\ImageVariantItemNormalizerValue;
 use Drupal\consumer_image_styles\Normalizer\Value\ImageNormalizerValue;
 use Drupal\consumers\Negotiator;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\file\Entity\File;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\jsonapi\LinkManager\LinkManager;
 use Drupal\jsonapi\Normalizer\ContentEntityNormalizer;
 use Drupal\jsonapi\Normalizer\Value\NullFieldNormalizerValue;
@@ -56,6 +58,11 @@ class ImageEntityNormalizer extends ContentEntityNormalizer {
   protected $consumerNegotiator;
 
   /**
+   * @var \Drupal\consumer_image_styles\ImageStylesProviderInterface
+   */
+  protected $imageStylesProvider;
+
+  /**
    * Constructs an EntityNormalizer object.
    *
    * @param \Drupal\jsonapi\LinkManager\LinkManager $link_manager
@@ -66,13 +73,13 @@ class ImageEntityNormalizer extends ContentEntityNormalizer {
    *   The entity type manager.
    * @param \Drupal\consumers\Negotiator $consumer_negotiator
    *   The consumer negotiator.
+   * @param \Drupal\consumer_image_styles\ImageStylesProviderInterface
+   *   Image styles utility.
    */
-  public function __construct(LinkManager $link_manager, ResourceTypeRepositoryInterface $resource_type_repository, EntityTypeManagerInterface $entity_type_manager, Negotiator $consumer_negotiator) {
-    $this->linkManager = $link_manager;
-    $this->resourceTypeRepository = $resource_type_repository;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->consumerNegotiator = $consumer_negotiator;
+  public function __construct(LinkManager $link_manager, ResourceTypeRepositoryInterface $resource_type_repository, EntityTypeManagerInterface $entity_type_manager, Negotiator $consumer_negotiator, ImageStylesProviderInterface $imageStylesProvider) {
     parent::__construct($link_manager, $resource_type_repository, $entity_type_manager);
+    $this->consumerNegotiator = $consumer_negotiator;
+    $this->imageStylesProvider = $imageStylesProvider;
   }
 
   /**
@@ -124,25 +131,26 @@ class ImageEntityNormalizer extends ContentEntityNormalizer {
   protected function buildVariantValues(EntityInterface $entity, array $context = []) {
     $request = empty($context['request']) ? NULL : $context['request'];
     $consumer = $this->consumerNegotiator->negotiateFromRequest($request);
-    $output = new NullFieldNormalizerValue();
-    if ($consumer) {
-      // Get the image styles from the consumer.
-      $image_style_ids = array_map(function ($field_value) {
-        return $field_value['target_id'];
-      }, $consumer->get('image_styles')->getValue());
-      $uri = $entity->get('uri')->value;
-      $image_style_storage = $this->entityTypeManager->getStorage('image_style');
-      $urls = array_map(function ($image_style_id) use ($image_style_storage, $uri) {
-        /** @var \Drupal\image\Entity\ImageStyle $image_style */
-        $image_style = $image_style_storage->load($image_style_id);
-        return file_create_url($image_style->buildUrl($uri));
-      }, $image_style_ids);
-      $value = array_combine($image_style_ids, $urls);
-      $output = new ImageVariantItemNormalizerValue($value);
-      $output->addCacheableDependency($consumer);
+
+    // Bail-out if no consumer is found.
+    if (!$consumer) {
+      $access = $entity->access('view', $context['account'], TRUE);
+      return new NullFieldNormalizerValue($access, 'attributes');
     }
 
-    return $output;
+    // Prepare some utils.
+    $uri = $entity->get('uri')->value;
+    $get_image_url = function($image_style) use ($uri) {
+      return file_create_url($image_style->buildUrl($uri));
+    };
+
+    // Generate derivatives only for the found ones.
+    $image_styles = $this->imageStylesProvider->loadStyles($consumer);
+    $keys = array_keys($image_styles);
+    $values = array_map($get_image_url, array_values($image_styles));
+    $value = array_combine($keys, $values);
+
+    return new ImageVariantItemNormalizerValue($value, new CacheableMetadata());
   }
 
 }

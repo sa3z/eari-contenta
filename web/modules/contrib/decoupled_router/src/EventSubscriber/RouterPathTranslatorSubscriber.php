@@ -3,8 +3,14 @@
 namespace Drupal\decoupled_router\EventSubscriber;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Core\Cache\CacheableResponse;
+use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Path\AliasManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\decoupled_router\PathTranslatorEvent;
 use Psr\Log\LoggerInterface;
@@ -21,6 +27,8 @@ use Symfony\Component\Routing\Route;
  * Event subscriber that processes a path translation with the router info.
  */
 class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
+  use StringTranslationTrait;
+
   /**
    * The service container.
    *
@@ -50,6 +58,20 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
   protected $moduleHandler;
 
   /**
+   * The config factory
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The alias manager
+   *
+   * @var \Drupal\Core\Path\AliasManagerInterface
+   */
+  protected $aliasManager;
+
+  /**
    * RouterPathTranslatorSubscriber constructor.
    *
    * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
@@ -60,18 +82,36 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
    *   The router.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory
+   * @param \Drupal\Core\Path\AliasManagerInterface $aliasManager
+   *   The alias manager
    */
-  public function __construct(ContainerInterface $container, LoggerInterface $logger, UrlMatcherInterface $router, ModuleHandlerInterface $module_handler) {
+  public function __construct(
+    ContainerInterface $container,
+    LoggerInterface $logger,
+    UrlMatcherInterface $router,
+    ModuleHandlerInterface $module_handler,
+    ConfigFactoryInterface $config_factory,
+    AliasManagerInterface $aliasManager
+  ) {
     $this->container = $container;
     $this->logger = $logger;
     $this->router = $router;
     $this->moduleHandler = $module_handler;
+    $this->configFactory = $config_factory;
+    $this->aliasManager = $aliasManager;
   }
 
   /**
    * Processes a path translation request.
    */
   public function onPathTranslation(PathTranslatorEvent $event) {
+    $response = $event->getResponse();
+    if (!$response instanceof CacheableJsonResponse) {
+      $this->logger->error('Unable to get the response object for the decoupled router event.');
+      return;
+    }
     $path = $event->getPath();
     $path = $this->cleanSubdirInPath($path, $event->getRequest());
     try {
@@ -81,30 +121,62 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
       return;
     }
     catch (MethodNotAllowedException $exception) {
+      $response->setStatusCode(403);
       return;
     }
-    /** @var \Symfony\Component\Routing\Route $route */
-    $route = $match_info[RouteObjectInterface::ROUTE_OBJECT];
-    $entity_type_id = $this->findEntityTypeFromRoute($route);
     /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    if (empty($entity_type_id) || !($entity = $match_info[$entity_type_id])) {
+    /** @var bool $param_uses_uuid */
+    list(
+      $entity,
+      $param_uses_uuid,
+      $route_parameter_entity_key
+    ) = $this->findEntityAndKeys($match_info);
+    if (!$entity) {
       $this->logger->notice('A route has been found but it has no entity information.');
       return;
     }
+    $response->addCacheableDependency($entity);
+    $can_view = $entity->access('view', NULL, TRUE);
+    if (!$can_view->isAllowed()) {
+      $response->setData([
+        'message' => 'Access denied for entity.',
+        'details' => 'This user does not have access to view the resolved entity. Please authenticate and try again.'
+      ]);
+      $response->setStatusCode(403);
+      $response->addCacheableDependency($can_view);
+      return;
+    }
 
-    $response = CacheableResponse::create();
-
-    $canonical_url = $entity->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE);
-    $route_parameters = $route->getOption('parameters');
-    $param_uses_uuid = strpos($route_parameters[$entity_type_id]['converter'], 'entity_uuid') === FALSE;
+    $entity_type_id = $entity->getEntityTypeId();
+    $canonical_url = NULL;
+    try {
+      $canonical_url = $entity->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE);
+    }
+    catch (EntityMalformedException $e) {
+      $response->setData([
+        'message' => 'Unable to build entity URL.',
+        'details' => 'A valid entity was found but it was impossible to generate a valid canonical URL for it.',
+      ]);
+      $response->setStatusCode(500);
+      watchdog_exception('decoupled_router', $e);
+      return;
+    }
     $entity_param = $param_uses_uuid ? $entity->id() : $entity->uuid();
     $resolved_url = Url::fromRoute($match_info[RouteObjectInterface::ROUTE_NAME], [
-      $entity_type_id => $entity_param,
+      $route_parameter_entity_key => $entity_param,
     ], ['absolute' => TRUE])->toString(TRUE);
     $response->addCacheableDependency($canonical_url);
     $response->addCacheableDependency($resolved_url);
+    $is_home_path = $this->resolvedPathIsHomePath($resolved_url->getGeneratedUrl());
+    $response->addCacheableDependency(
+      (new CacheableMetadata())->setCacheContexts(['url.path.is_front'])
+    );
+
+    $label_accessible = $entity->access('view label', NULL, TRUE);
+    $response->addCacheableDependency($label_accessible);
     $output = [
       'resolved' => $resolved_url->getGeneratedUrl(),
+      'isHomePath' => $is_home_path,
       'entity' => [
         'canonical' => $canonical_url->getGeneratedUrl(),
         'type' => $entity_type_id,
@@ -113,6 +185,9 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
         'uuid' => $entity->uuid(),
       ],
     ];
+    if ($label_accessible->isAllowed()) {
+      $output['label'] = $entity->label();
+    }
     // If the route is JSON API, it means that JSON API is installed and its
     // services can be used.
     if ($this->moduleHandler->moduleExists('jsonapi')) {
@@ -120,13 +195,12 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
       $rt_repo = $this->container->get('jsonapi.resource_type.repository');
       $rt = $rt_repo->get($entity_type_id, $entity->bundle());
       $type_name = $rt->getTypeName();
-      $config_factory = $this->container->get('config.factory');
-      $prefix = $config_factory->get('jsonapi_extras.settings')->get('path_prefix');
-      $prefix = $prefix ?: 'jsonapi';
+      $jsonapi_base_path = $this->container->getParameter('jsonapi.base_path');
       $entry_point_url = Url::fromRoute('jsonapi.resource_list', [], ['absolute' => TRUE])->toString(TRUE);
+      $route_name = sprintf('jsonapi.%s.individual', $type_name);
       $individual = Url::fromRoute(
-        sprintf('jsonapi.%s.individual', $type_name),
-        [$entity_type_id => $entity->uuid()],
+        $route_name,
+        [static::getEntityRouteParameterName($route_name, $entity_type_id) => $entity->uuid()],
         ['absolute' => TRUE]
       )->toString(TRUE);
       $response->addCacheableDependency($entry_point_url);
@@ -134,15 +208,102 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
       $output['jsonapi'] = [
         'individual' => $individual->getGeneratedUrl(),
         'resourceName' => $type_name,
-        'pathPrefix' => $prefix,
+        'pathPrefix' => trim($jsonapi_base_path, '/'),
+        'basePath' => $jsonapi_base_path,
         'entryPoint' => $entry_point_url->getGeneratedUrl(),
+      ];
+      $deprecation_message = 'This property has been deprecated and will be removed in the next version of Decoupled Router. Use @alternative instead.';
+      $output['meta'] = [
+        'deprecated' => [
+          'jsonapi.pathPrefix' => $this->t(
+            $deprecation_message, ['@alternative' => 'basePath']
+          ),
+        ],
       ];
     }
     $response->addCacheableDependency($entity);
-    $response->setContent(Json::encode($output));
+    $response->setStatusCode(200);
+    $response->setData($output);
 
-    $event->setResponse($response);
     $event->stopPropagation();
+  }
+
+  /**
+   * Get the underlying entity and the type of ID param enhancer for the routes.
+   *
+   * @param array $match_info
+   *   The router match info.
+   *
+   * @return array
+   *   The pair of \Drupal\Core\Entity\EntityInterface and bool with the
+   *   underlying entity and the info weather or not it uses UUID for the param
+   *   enhancement. It also returns the name of the parameter under which the
+   *   entity lives in the route ('node' vs 'entity').
+   */
+  protected function findEntityAndKeys(array $match_info) {
+    $entity = NULL;
+    /** @var \Symfony\Component\Routing\Route $route */
+    $route = $match_info[RouteObjectInterface::ROUTE_OBJECT];
+    $route_parameters = $route->getOption('parameters');
+    $route_parameter_entity_key = 'entity';
+    if (
+      !empty($match_info['entity']) &&
+      $match_info['entity'] instanceof EntityInterface
+    ) {
+      $entity = $match_info['entity'];
+    }
+    else {
+      $entity_type_id = $this->findEntityTypeFromRoute($route);
+      /** @var \Drupal\Core\Entity\EntityInterface $entity */
+      // TODO: $match_info[$entity_type_id] is broken for JSON API 2.x routes.
+      // Now it will be $match_info[$entity_type_id] for core and
+      // $match_info['entity'] for JSON API :-(
+      if (
+        !empty($entity_type_id) &&
+        !empty($match_info[$entity_type_id]) &&
+        $match_info[$entity_type_id] instanceof EntityInterface
+      ) {
+        $route_parameter_entity_key = $entity_type_id;
+        $entity = $match_info[$entity_type_id];
+      }
+    }
+    $param_uses_uuid = strpos(
+      $route_parameters[$route_parameter_entity_key]['converter'],
+      'entity_uuid'
+    ) === FALSE;
+
+    return [$entity, $param_uses_uuid, $route_parameter_entity_key];
+  }
+
+  /**
+   * Computes the name of the entity route parameter for JSON API routes.
+   *
+   * @param string $route_name
+   *   A JSON API route name.
+   * @param string $entity_type_id
+   *   The corresponding entity type ID.
+   *
+   * @return string
+   *   Either 'entity' or $entity_type_id.
+   *
+   * @todo Remove this once decoupled_router requires jsonapi >= 8.x-2.0.
+   */
+  protected static function getEntityRouteParameterName($route_name, $entity_type_id) {
+    static $first;
+
+    if (!isset($first)) {
+      $route_parameters = \Drupal::service('router.route_provider')
+        ->getRouteByName($route_name)
+        ->getOption('parameters');
+      $first = isset($route_parameters['entity'])
+        ? 'entity'
+        : $entity_type_id;
+      return $first;
+    }
+
+    return $first === 'entity'
+      ? 'entity'
+      : $entity_type_id;
   }
 
   /**
@@ -198,4 +359,21 @@ class RouterPathTranslatorSubscriber implements EventSubscriberInterface {
     $regexp = preg_quote($request->getBasePath(), '/');
     return preg_replace(sprintf('/^%s/', $regexp), '', $path);
   }
+
+  /**
+   * Checks if the resolved path is the home path.
+   *
+   * @param string $resolved_url
+   *   The resolved url from the request.
+   *
+   * @return bool
+   *   True if the resolved path is the home path, false otherwise.
+   */
+  protected function resolvedPathIsHomePath($resolved_url) {
+    $home_path = $this->configFactory->get('system.site')->get('page.front');
+    $home_url = Url::fromUserInput($home_path, ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+
+    return $resolved_url === $home_url;
+  }
+
 }

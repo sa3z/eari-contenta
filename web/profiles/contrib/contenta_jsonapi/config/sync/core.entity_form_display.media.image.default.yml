@@ -1,11 +1,10 @@
-uuid: a880da5b-0569-4591-a537-e6e5cbf79806
 langcode: en
 status: true
 dependencies:
   config:
     - field.field.media.image.field_image
     - image.style.thumbnail
-    - media_entity.bundle.image
+    - media.type.image
   module:
     - image
 id: media.image.default

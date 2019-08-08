@@ -8,10 +8,11 @@ use Drupal\Core\Menu\MenuLinkTreeElement;
 use Drupal\Core\Menu\MenuLinkTreeInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
 use Drupal\system\MenuInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 
 /**
  * Retrieves a menus links.
@@ -20,9 +21,9 @@ use Youshido\GraphQL\Execution\ResolveInfo;
  *   id = "menu_links",
  *   secure = true,
  *   name = "links",
- *   type = "MenuLink",
+ *   type = "[MenuLink]",
  *   parents = {"Menu"},
- *   multi = true
+ *   response_cache_contexts = {"languages:language_url"}
  * )
  */
 class MenuLinks extends FieldPluginBase implements ContainerFactoryPluginInterface {
@@ -43,17 +44,26 @@ class MenuLinks extends FieldPluginBase implements ContainerFactoryPluginInterfa
   }
 
   /**
-   * {@inheritdoc}
+   * MenuLinks constructor.
+   *
+   * @param array $configuration
+   *   The plugin configuration array.
+   * @param string $pluginId
+   *   The plugin id.
+   * @param mixed $pluginDefinition
+   *   The plugin definition.
+   * @param \Drupal\Core\Menu\MenuLinkTreeInterface $menuLinkTree
+   *   The menu link tree service.
    */
   public function __construct(array $configuration, $pluginId, $pluginDefinition, MenuLinkTreeInterface $menuLinkTree) {
-    $this->menuLinkTree = $menuLinkTree;
     parent::__construct($configuration, $pluginId, $pluginDefinition);
+    $this->menuLinkTree = $menuLinkTree;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function resolveValues($value, array $args, ResolveInfo $info) {
+  public function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
     if ($value instanceof MenuInterface) {
       $tree = $this->menuLinkTree->load($value->id(), new MenuTreeParameters());
 

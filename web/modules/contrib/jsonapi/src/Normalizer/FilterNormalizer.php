@@ -112,6 +112,13 @@ class FilterNormalizer implements DenormalizerInterface {
   protected function expand(array $original, array $context) {
     $expanded = [];
     foreach ($original as $key => $item) {
+      // Allow extreme shorthand filters, f.e. `?filter[promote]=1`.
+      if (!is_array($item)) {
+        $item = [
+          EntityConditionNormalizer::VALUE_KEY => $item,
+        ];
+      }
+
       // Throw an exception if the query uses the reserved filter id for the
       // root group.
       if ($key == static::ROOT_ID) {
@@ -178,7 +185,7 @@ class FilterNormalizer implements DenormalizerInterface {
     }
 
     if (isset($filter_item[static::CONDITION_KEY][EntityConditionNormalizer::PATH_KEY])) {
-      $filter_item[static::CONDITION_KEY][EntityConditionNormalizer::PATH_KEY] = $this->fieldResolver->resolveInternal(
+      $filter_item[static::CONDITION_KEY][EntityConditionNormalizer::PATH_KEY] = $this->fieldResolver->resolveInternalEntityQueryPath(
         $context['entity_type_id'],
         $context['bundle'],
         $filter_item[static::CONDITION_KEY][EntityConditionNormalizer::PATH_KEY]
@@ -208,13 +215,15 @@ class FilterNormalizer implements DenormalizerInterface {
   /**
    * Organizes the flat, normalized filter items into a tree structure.
    *
+   * @param array $root
+   *   The root of the tree to build.
    * @param array $items
    *   The normalized entity conditions and groups.
    *
    * @return \Drupal\jsonapi\Query\EntityConditionGroup
    *   The entity condition group
    */
-  protected function buildTree(array $root, $items) {
+  protected function buildTree(array $root, array $items) {
     $id = $root['id'];
 
     // Recursively build a tree of denormalized conditions and condition groups.

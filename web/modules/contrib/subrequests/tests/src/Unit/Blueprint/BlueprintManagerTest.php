@@ -32,11 +32,16 @@ class BlueprintManagerTest extends UnitTestCase {
       ->willReturn(new SubrequestsTree());
     $denormalizer->supportsDenormalization(Argument::type('array'), SubrequestsTree::class, 'json')
       ->willReturn([])->willReturn(TRUE);
+    // Modern versions of Symfony added an extra parameter.
+    $denormalizer->supportsDenormalization(Argument::type('array'), SubrequestsTree::class, 'json', Argument::type('array'))
+      ->willReturn([])->willReturn(TRUE);
     $denormalizer->setSerializer(Argument::any())->willReturn(NULL);
     $normalizer = $this->prophesize(MultiresponseNormalizer::class);
     $normalizer->normalize(Argument::type('array'), 'multipart-related', Argument::type('array'))
       ->willReturn(['content' => 'Booh!', 'headers' => ['head' => 'Ha!']]);
     $normalizer->supportsNormalization(Argument::type('array'), 'multipart-related')
+      ->willReturn([])->willReturn(TRUE);
+    $normalizer->supportsNormalization(Argument::type('array'), 'multipart-related', Argument::type('array'))
       ->willReturn([])->willReturn(TRUE);
     $serializer = new Serializer(
       [$denormalizer->reveal(), $normalizer->reveal()],

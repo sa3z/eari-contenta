@@ -1,3 +1,4 @@
+{% extends '@material_admin/buttons/input--switch.html.twig' %}
 {#
 /**
  * @file
@@ -10,10 +11,9 @@
  * @see template_preprocess_input()
  */
 #}
-<div class="switch">
-  <label class="switch-label">
-    <input{{ attributes }} />{{ children }}
-    <span class="lever"></span> 
-    Uninstall
-  </label>
-</div>
+
+{# ovveride the tooltip text to be specific to the module install page. #}
+{% set tooltip_text = 'Cannot uninstall, this module has dependencies.' %}
+
+{% block switch_before_text %}On{% endblock %}
+{% block switch_after_text %}Uninstall{% endblock %}

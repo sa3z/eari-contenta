@@ -16,3 +16,7 @@ material_admin.settings:
       type: integer
     material_admin_message_prompt:
       type: boolean
+    material_admin_datepicker_select_years:
+      type: integer
+    material_admin_select_default:
+      type: boolean

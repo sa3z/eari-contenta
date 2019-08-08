@@ -1,7 +1,7 @@
 name: Material Admin
 type: theme
 description: 'Material Design Admin Theme'
-# core: 8.x
+core: 8.x
 base theme: classy
 
 # Image appears on admin/appearance
@@ -23,6 +23,7 @@ stylesheets-remove:
   - '@classy/css/components/dialog.css' #scss/base/overrides/_dialog.scss
   - '@classy/css/components/file.css' #scss/base/overrides/_file.scss
   - '@classy/css/components/item-list.css'
+  - '@classy/css/components/messages.css'
   - '@classy/css/components/tablesort.css'
   - '@classy/css/components/tabledrag.css'
   - '@classy/css/components/tableselect.css'
@@ -58,9 +59,3 @@ regions:
   sidebar_first: 'First sidebar'
 regions_hidden:
   - sidebar_first
-
-# Information added by Drupal.org packaging script on 2017-12-14
-version: '8.x-1.0-alpha2'
-core: '8.x'
-project: 'material_admin'
-datestamp: 1513287496

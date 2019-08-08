@@ -406,7 +406,7 @@ class ConfigImporter {
     $this->extensionChangelist['module']['install'] = array_intersect(array_keys($module_list), $install);
 
     // If we're installing the install profile ensure it comes last. This will
-    // when installing a site from configuration.
+    // occur when installing a site from configuration.
     $install_profile_key = array_search($new_extensions['profile'], $this->extensionChangelist['module']['install'], TRUE);
     if ($install_profile_key !== FALSE) {
       unset($this->extensionChangelist['module']['install'][$install_profile_key]);
@@ -733,7 +733,8 @@ class ConfigImporter {
       }
       $this->eventDispatcher->dispatch(ConfigEvents::IMPORT_VALIDATE, new ConfigImporterEvent($this));
       if (count($this->getErrors())) {
-        throw new ConfigImporterException('There were errors validating the config synchronization.');
+        $errors = array_merge(['There were errors validating the config synchronization.'], $this->getErrors());
+        throw new ConfigImporterException(implode(PHP_EOL, $errors));
       }
       else {
         $this->validated = TRUE;
@@ -796,9 +797,8 @@ class ConfigImporter {
       // services.
       $this->reInjectMe();
       // During a module install or uninstall the container is rebuilt and the
-      // module handler is called from drupal_get_complete_schema(). This causes
-      // the container's instance of the module handler not to have loaded all
-      // the enabled modules.
+      // module handler is called. This causes the container's instance of the
+      // module handler not to have loaded all the enabled modules.
       $this->moduleHandler->loadAll();
     }
     if ($type == 'theme') {

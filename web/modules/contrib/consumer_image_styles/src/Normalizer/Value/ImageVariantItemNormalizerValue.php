@@ -9,12 +9,9 @@
 namespace Drupal\consumer_image_styles\Normalizer\Value;
 
 
-use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
 use Drupal\jsonapi\Normalizer\Value\FieldItemNormalizerValue;
 
 class ImageVariantItemNormalizerValue extends FieldItemNormalizerValue {
-
-  use RefinableCacheableDependencyTrait;
 
   /**
    * {@inheritdoc}

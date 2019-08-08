@@ -31,20 +31,30 @@ trait EntityNormalizerTrait {
     // Translate the public fields into the entity fields.
     foreach ($data as $public_field_name => $field_value) {
       // Skip any disabled field.
-      if (!$resource_type->isFieldEnabled($public_field_name)) {
+      $internal_name = $resource_type->getInternalName($public_field_name);
+      if (!$resource_type->isFieldEnabled($internal_name)) {
         continue;
       }
-      $internal_name = $resource_type->getInternalName($public_field_name);
       $enhancer = $resource_type->getFieldEnhancer($public_field_name, 'publicName');
 
       if (isset($field_storage_definitions[$internal_name])) {
         $field_storage_definition = $field_storage_definitions[$internal_name];
         if ($field_storage_definition->getCardinality() === 1) {
-          $field_value = $enhancer ? $enhancer->prepareForInput($field_value) : $field_value;
+          try {
+            $field_value = $enhancer ? $enhancer->transform($field_value) : $field_value;
+          }
+          catch (\TypeError $exception) {
+            $field_value = NULL;
+          }
         }
         elseif (is_array($field_value)) {
           foreach ($field_value as $key => $individual_field_value) {
-            $field_value[$key] = $enhancer ? $enhancer->prepareForInput($individual_field_value) : $individual_field_value;
+            try {
+              $field_value[$key] = $enhancer ? $enhancer->transform($individual_field_value) : $individual_field_value;
+            }
+            catch (\TypeError $exception) {
+              $field_value[$key] = NULL;
+            }
           }
         }
       }
@@ -52,28 +62,7 @@ trait EntityNormalizerTrait {
       $data_internal[$internal_name] = $field_value;
     }
 
-    return $data_internal;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function normalize($entity, $format = NULL, array $context = []) {
-    $output = parent::normalize($entity, $format, $context);
-
-    /** @var \Drupal\jsonapi\ResourceType\ResourceType $resource_type */
-    $resource_type = $context['resource_type'];
-    $entity_type_id = $resource_type->getEntityTypeId();
-    $bundle_id = $resource_type->getBundle();
-    // The output depends on the configuration entity for caching.
-    $context['cacheable_metadata']->addCacheableDependency(
-      $this->getResourceConfig($entity_type_id, $bundle_id)
-    );
-    $context['cacheable_metadata']->addCacheableDependency(
-      \Drupal::config('jsonapi_extras.settings')
-    );
-
-    return $output;
+    return parent::prepareInput($data_internal, $resource_type);
   }
 
   /**

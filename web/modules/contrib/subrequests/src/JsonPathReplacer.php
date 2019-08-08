@@ -142,6 +142,13 @@ class JsonPathReplacer {
    */
   protected function replaceTokenSubject($token, $value, $token_subject) {
     // Escape regular expression.
+    if (is_int($value) || is_float($value) || is_bool($value)) {
+      if (is_bool($value)) {
+        $value = $value ? 'true' : 'false';
+      }
+      $regexp = sprintf('/%s/', preg_quote("\"$token\""), '/');
+      $token_subject = preg_replace($regexp, $value, $token_subject);
+    }
     $regexp = sprintf('/%s/', preg_quote($token), '/');
     return preg_replace($regexp, $value, $token_subject);
   }
@@ -377,7 +384,7 @@ class JsonPathReplacer {
   protected function validateJsonPathReplacements($to_replace) {
     $is_valid = is_array($to_replace)
       && array_reduce($to_replace, function ($valid, $replacement) {
-        return $valid && (is_string($replacement) || is_int($replacement));
+        return $valid && (is_string($replacement) || is_int($replacement) || is_bool($replacement) || is_float($replacement));
       }, TRUE);
     if (!$is_valid) {
       throw new BadRequestHttpException(sprintf(

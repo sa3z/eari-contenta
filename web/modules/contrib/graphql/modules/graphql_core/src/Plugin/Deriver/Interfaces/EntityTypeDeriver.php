@@ -2,63 +2,48 @@
 
 namespace Drupal\graphql_core\Plugin\Deriver\Interfaces;
 
-use Drupal\Component\Plugin\Derivative\DeriverBase;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\graphql\Utility\StringHelper;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\graphql_core\Plugin\Deriver\EntityTypeDeriverBase;
 
-/**
- * Derive GraphQL Interfaces from Drupal entity types.
- */
-class EntityTypeDeriver extends DeriverBase implements ContainerDeriverInterface {
+class EntityTypeDeriver extends EntityTypeDeriverBase {
   use StringTranslationTrait;
-
-  /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, $basePluginId) {
-    return new static(
-      $container->get('entity_type.manager')
-    );
-  }
-
-  /**
-   * EntityTypeDeriver constructor.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   Instance of an entity type manager.
-   */
-  public function __construct(EntityTypeManagerInterface $entityTypeManager) {
-    $this->entityTypeManager = $entityTypeManager;
-  }
 
   /**
    * {@inheritdoc}
    */
   public function getDerivativeDefinitions($basePluginDefinition) {
-    $this->derivatives = [];
     foreach ($this->entityTypeManager->getDefinitions() as $typeId => $type) {
-      if ($type instanceof ContentEntityTypeInterface) {
-        $this->derivatives[$typeId] = [
-          'name' => StringHelper::camelCase($typeId),
-          'description' => $this->t("The '@type' entity type.", [
-            '@type' => $type->getLabel(),
-          ]),
-          'data_type' => 'entity:' . $typeId,
-          'entity_type' => $typeId,
-        ] + $basePluginDefinition;
+      if (!($type instanceof ContentEntityTypeInterface)) {
+        continue;
       }
+
+      $bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
+
+      // Only create a base interface for types that support bundles.
+      if (!$type->hasKey('bundle') && array_key_exists($typeId, $bundles) && count($bundles[$typeId])) {
+        continue;
+      }
+
+      $derivative = [
+        'name' => StringHelper::camelCase($typeId),
+        'description' => $this->t("The '@type' entity type.", [
+          '@type' => $type->getLabel(),
+        ]),
+        'type' => "entity:$typeId",
+        'interfaces' => $this->getInterfaces($type, $basePluginDefinition),
+        'entity_type' => $typeId,
+      ] + $basePluginDefinition;
+
+      if ($typeId === 'node') {
+        // TODO: Make this more generic somehow.
+        $derivative['response_cache_contexts'][] = 'user.node_grants:view';
+      }
+
+      $this->derivatives[$typeId] = $derivative;
     }
+
     return parent::getDerivativeDefinitions($basePluginDefinition);
   }
 

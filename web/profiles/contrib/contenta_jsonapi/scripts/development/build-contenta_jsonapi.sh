@@ -3,6 +3,7 @@
 BASE_DIR="$(dirname $(dirname $(cd ${0%/*} && pwd)))"
 
 COMPOSER="$(which composer)"
+COMPOSER_BIN_DIR="$(composer config bin-dir)"
 DOCROOT="web"
 
 # Define the color scheme.
@@ -21,7 +22,7 @@ else
   echo -e "${FG_C}${WBG_C} WARNING ${NO_C} No installation path provided.\nContenta will be installed in $DEST_DIR."
   echo -e "${FG_C}${BG_C} USAGE ${NO_C} ${0} [install_path] # to install in a different directory."
 fi
-DRUSH="$DEST_DIR/bin/drush"
+DRUSH="$DEST_DIR/$COMPOSER_BIN_DIR/drush"
 
 echo -e "\n\n\n"
 echo -e "\t********************************"
@@ -54,18 +55,26 @@ cd ${DEST_DIR}
 
 $COMPOSER config repositories.contenta_jsonapi path ${BASE_DIR}
 
-$COMPOSER require "contentacms/contenta_jsonapi:*" "phpunit/phpunit:~5.7" --no-progress
+$COMPOSER require "contentacms/contenta_jsonapi:*" "phpunit/phpunit:^6" --no-progress
 
 cd $DOCROOT
 echo "-----------------------------------------------"
 echo " Installing Contenta CMS for local usage "
 echo "-----------------------------------------------"
-echo -e "${FG_C}${BG_C} EXECUTING ${NO_C} $DRUSH si contenta_jsonapi --db-url=sqlite://sites/default/files/.ht.sqlite --account-pass=test -y\n\n"
-$DRUSH si contenta_jsonapi --db-url=sqlite://sites/default/files/.ht.sqlite --account-pass=test -y
+echo -e "${FG_C}${BG_C} EXECUTING ${NO_C} $DRUSH site-install --verbose --yes --db-url=sqlite://tmp/site.sqlite --site-mail=admin@localhost --account-mail=admin@localhost --site-name='Contenta CMS Demo' --account-name=admin --account-pass=admin\n\n"
+# There is a problem installing from CLI. Drush can't locate some required services. Reinstalling a
+# second time usually does the trick.
+# TODO: We need to fix this.
+$DRUSH site-install --verbose --yes --db-url=sqlite://tmp/site.sqlite --site-mail=admin@localhost --account-mail=admin@localhost --site-name='Contenta CMS Demo' --account-name=admin --account-pass=admin;
+$DRUSH site-install --verbose --yes --db-url=sqlite://tmp/site.sqlite --site-mail=admin@localhost --account-mail=admin@localhost --site-name='Contenta CMS Demo' --account-name=admin --account-pass=admin;
+
 if [ $? -ne 0 ]; then
   echo -e "${FG_C}${EBG_C} ERROR ${NO_C} The Drupal installer failed to install Contenta CMS."
   exit 3
 fi
+
+echo -e "${FG_C}${BG_C} EXECUTING ${NO_C} $DRUSH en -y recipes_magazin contentajs\n\n"
+$DRUSH en -y recipes_magazin contentajs contenta_graphql
 
 echo -e "\n\n\n"
 echo -e "\t********************************"
