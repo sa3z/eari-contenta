@@ -32,7 +32,7 @@ use Drupal\Core\Url;
  * strings, if they are literals provided by your module, should be
  * internationalized and translated; see the
  * @link i18n Internationalization topic @endlink for more information. Note
- * that although in the properies list that follows, they are designated to be
+ * that although in the properties list that follows, they are designated to be
  * of type string, they would generally end up being
  * \Drupal\Core\StringTranslation\TranslatableMarkup objects instead.
  *
@@ -268,7 +268,6 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
     if (!empty($element['#ajax']['disable-refocus'])) {
       $element['#attributes']['data-disable-refocus'] = "true";
     }
-
 
     // Add a reasonable default event handler if none was specified.
     if (isset($element['#ajax']) && !isset($element['#ajax']['event'])) {

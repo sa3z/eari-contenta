@@ -1,0 +1,11 @@
+uuid: 6a53bf02-edcf-47ed-91cb-8a61d666e1b1
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.podcast_type
+id: taxonomy_term.podcast_type
+target_entity_type_id: taxonomy_term
+target_bundle: podcast_type
+default_langcode: site_default
+language_alterable: false

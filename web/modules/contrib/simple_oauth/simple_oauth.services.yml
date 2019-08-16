@@ -1,7 +1,10 @@
 services:
   simple_oauth.authentication.simple_oauth:
     class: Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider
-    arguments: ['@simple_oauth.server.resource_server', '@entity_type.manager']
+    arguments:
+      - '@simple_oauth.server.resource_server'
+      - '@entity_type.manager'
+      - '@simple_oauth.page_cache_request_policy.disallow_oauth2_token_requests'
     tags:
       - { name: authentication_provider, provider_id: oauth2, global: TRUE, priority: 35 }
   simple_oauth.page_cache_request_policy.disallow_oauth2_token_requests:
@@ -41,6 +44,8 @@ services:
   simple_oauth.repositories.refresh_token:
     class: Drupal\simple_oauth\Repositories\RefreshTokenRepository
     arguments: ['@entity_type.manager', '@serializer']
+  simple_oauth.server.response_type:
+    class: \League\OAuth2\Server\ResponseTypes\BearerTokenResponse
   plugin.manager.oauth2_grant.processor:
     class: Drupal\simple_oauth\Plugin\Oauth2GrantManager
     parent: default_plugin_manager
@@ -50,6 +55,7 @@ services:
       - '@simple_oauth.repositories.access_token'
       - '@simple_oauth.repositories.refresh_token'
       - '@config.factory'
+      - '@simple_oauth.server.response_type'
   simple_oauth.expired_collector:
     class: Drupal\simple_oauth\ExpiredCollector
     arguments: ['@entity_type.manager', '@datetime.time']
@@ -58,9 +64,12 @@ services:
     tags:
       - { name: http_middleware }
 # Keys Generator Services
-  simple_oauth.filesystem:
-    class: Drupal\simple_oauth\Service\Filesystem\Filesystem
+  simple_oauth.filesystem_checker:
+    class: Drupal\simple_oauth\Service\Filesystem\FileSystemChecker
     arguments: ['@file_system']
   simple_oauth.key.generator:
     class: Drupal\simple_oauth\Service\KeyGeneratorService
-    arguments: ['@simple_oauth.filesystem']
+    arguments: ['@simple_oauth.filesystem_checker', '@file_system']
+  simple_oauth.known_clients:
+    class: \Drupal\simple_oauth\KnownClientsRepository
+    arguments: ['@user.data']

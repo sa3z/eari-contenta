@@ -16,7 +16,9 @@ module:
   entity: 0
   entity_browser: 0
   entity_reference: 0
+  entity_reference_revisions: 0
   field: 0
+  field_collection: 0
   field_ui: 0
   fieldable_path: 0
   file: 0

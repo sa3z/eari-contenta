@@ -1,198 +1,550 @@
 {
-    "swagger": "2.0",
-    "schemes": [
-        "http"
-    ],
-    "info": {
-        "description": "This is a JSON API compliant implemenation",
-        "title": "Drupal - JSON API",
-        "version": "Versioning not supported"
-    },
-    "host": "{host}",
-    "basePath": "\/{base_path}\/jsonapi",
-    "securityDefinitions": [],
-    "tags": [
-        {
-            "name": "User"
-        }
-    ],
     "definitions": {
-        "user:user": {
-            "type": "object",
+        "user--user": {
             "title": "user Schema",
             "description": "Describes the payload for 'user' entities.",
+            "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
-                "attributes": {
+                "data": {
+                    "description": "\\\"Resource objects\\\" appear in a JSON:API document to represent resources.",
                     "type": "object",
+                    "required": [
+                        "type",
+                        "id"
+                    ],
                     "properties": {
-                        "uid": {
-                            "type": "integer",
-                            "title": "User ID",
-                            "description": "The user ID."
-                        },
-                        "uuid": {
+                        "type": {
                             "type": "string",
-                            "title": "UUID",
-                            "maxLength": 128,
-                            "description": "The user UUID."
+                            "title": "type",
+                            "description": "Resource type",
+                            "enum": [
+                                "user--user"
+                            ]
                         },
-                        "langcode": {
-                            "type": "object",
-                            "properties": {
-                                "value": {
-                                    "type": "string",
-                                    "title": "Language code"
-                                },
-                                "language": {
-                                    "type": "language_reference",
-                                    "title": "Language object",
-                                    "description": "The referenced language"
-                                }
-                            },
-                            "required": [
-                                "value"
-                            ],
-                            "title": "Language code",
-                            "description": "The user language code."
-                        },
-                        "preferred_langcode": {
-                            "type": "object",
-                            "properties": {
-                                "value": {
-                                    "type": "string",
-                                    "title": "Language code"
-                                },
-                                "language": {
-                                    "type": "language_reference",
-                                    "title": "Language object",
-                                    "description": "The referenced language"
-                                }
-                            },
-                            "required": [
-                                "value"
-                            ],
-                            "title": "Preferred language code",
-                            "description": "The user's preferred language code for receiving emails and viewing the site."
-                        },
-                        "preferred_admin_langcode": {
-                            "type": "object",
-                            "properties": {
-                                "value": {
-                                    "type": "string",
-                                    "title": "Language code"
-                                },
-                                "language": {
-                                    "type": "language_reference",
-                                    "title": "Language object",
-                                    "description": "The referenced language"
-                                }
-                            },
-                            "required": [
-                                "value"
-                            ],
-                            "title": "Preferred admin language code",
-                            "description": "The user's preferred language code for viewing administration pages.",
-                            "default": ""
-                        },
-                        "name": {
+                        "id": {
                             "type": "string",
-                            "title": "Name",
-                            "maxLength": 255,
-                            "description": "The name of this user."
+                            "title": "Resource ID",
+                            "format": "uuid",
+                            "maxLength": 128
                         },
-                        "pass": {
+                        "attributes": {
+                            "description": "Entity attributes",
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
-                                "value": {
-                                    "type": "string",
-                                    "title": "The hashed password",
-                                    "maxLength": 255
+                                "drupal_internal__uid": {
+                                    "type": "integer",
+                                    "title": "User ID",
+                                    "description": "The user ID."
                                 },
-                                "existing": {
-                                    "type": "string",
-                                    "title": "Existing password"
+                                "langcode": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {
+                                            "type": "string",
+                                            "title": "Language code"
+                                        },
+                                        "language": {
+                                            "type": "language_reference",
+                                            "title": "Language object",
+                                            "description": "The referenced language"
+                                        }
+                                    },
+                                    "required": [
+                                        "value"
+                                    ],
+                                    "title": "Language code",
+                                    "description": "The user language code."
                                 },
-                                "pre_hashed": {
+                                "preferred_langcode": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {
+                                            "type": "string",
+                                            "title": "Language code"
+                                        },
+                                        "language": {
+                                            "type": "language_reference",
+                                            "title": "Language object",
+                                            "description": "The referenced language"
+                                        }
+                                    },
+                                    "required": [
+                                        "value"
+                                    ],
+                                    "title": "Preferred language code",
+                                    "description": "The user\\'s preferred language code for receiving emails and viewing the site."
+                                },
+                                "preferred_admin_langcode": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {
+                                            "type": "string",
+                                            "title": "Language code"
+                                        },
+                                        "language": {
+                                            "type": "language_reference",
+                                            "title": "Language object",
+                                            "description": "The referenced language"
+                                        }
+                                    },
+                                    "required": [
+                                        "value"
+                                    ],
+                                    "title": "Preferred admin language code",
+                                    "description": "The user\\'s preferred language code for viewing administration pages.",
+                                    "default": ""
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "title": "Name",
+                                    "maxLength": 255,
+                                    "description": "The name of this user."
+                                },
+                                "pass": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {
+                                            "type": "string",
+                                            "title": "The hashed password",
+                                            "maxLength": 255
+                                        },
+                                        "existing": {
+                                            "type": "string",
+                                            "title": "Existing password"
+                                        },
+                                        "pre_hashed": {
+                                            "type": "boolean",
+                                            "title": "Determines if a password needs hashing"
+                                        }
+                                    },
+                                    "title": "Password",
+                                    "description": "The password of this user (hashed)."
+                                },
+                                "mail": {
+                                    "type": "string",
+                                    "title": "Email",
+                                    "format": "email",
+                                    "description": "The email of this user.",
+                                    "default": ""
+                                },
+                                "timezone": {
+                                    "type": "string",
+                                    "title": "Timezone",
+                                    "maxLength": 32,
+                                    "description": "The timezone of this user."
+                                },
+                                "status": {
                                     "type": "boolean",
-                                    "title": "Determines if a password needs hashing"
+                                    "title": "User status",
+                                    "description": "Whether the user is active or blocked.",
+                                    "default": false
+                                },
+                                "created": {
+                                    "type": "number",
+                                    "title": "Created",
+                                    "format": "utc-millisec",
+                                    "description": "The time that the user was created."
+                                },
+                                "changed": {
+                                    "type": "number",
+                                    "title": "Changed",
+                                    "format": "utc-millisec",
+                                    "description": "The time that the user was last edited."
+                                },
+                                "access": {
+                                    "type": "number",
+                                    "title": "Last access",
+                                    "format": "utc-millisec",
+                                    "description": "The time that the user last accessed the site.",
+                                    "default": 0
+                                },
+                                "login": {
+                                    "type": "number",
+                                    "title": "Last login",
+                                    "format": "utc-millisec",
+                                    "description": "The time that the user last logged in.",
+                                    "default": 0
+                                },
+                                "init": {
+                                    "type": "string",
+                                    "title": "Initial email",
+                                    "format": "email",
+                                    "description": "The email address used for initial account creation.",
+                                    "default": ""
+                                },
+                                "default_langcode": {
+                                    "type": "boolean",
+                                    "title": "Default translation",
+                                    "description": "A flag indicating whether this is the default translation.",
+                                    "default": true
                                 }
                             },
-                            "title": "Password",
-                            "description": "The password of this user (hashed)."
+                            "required": [
+                                "drupal_internal__uid",
+                                "name"
+                            ]
                         },
-                        "mail": {
-                            "type": "string",
-                            "title": "Email",
-                            "format": "email",
-                            "description": "The email of this user.",
-                            "default": ""
+                        "relationships": {
+                            "description": "Entity relationships",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "roles": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "required": [
+                                                    "type",
+                                                    "id"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "title": "Referenced resource",
+                                                        "enum": [
+                                                            "user_role--user_role"
+                                                        ]
+                                                    },
+                                                    "id": {
+                                                        "type": "string",
+                                                        "title": "Resource ID",
+                                                        "format": "uuid",
+                                                        "maxLength": 128
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "title": "Roles"
+                                }
+                            }
                         },
-                        "timezone": {
-                            "type": "string",
-                            "title": "Timezone",
-                            "maxLength": 32,
-                            "description": "The timezone of this user."
+                        "links": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "description": "A link **MUST** be represented as either: a string containing the link's URL or a link object . ",
+                                "type": "object",
+                                "required": [
+                                    "href"
+                                ],
+                                "properties": {
+                                    "href": {
+                                        "description": "A string containing the link's URL . ",
+                                        "type": "string",
+                                        "format": "uri - reference"
+                                    },
+                                    "meta": {
+                                        "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                        "type": "object",
+                                        "additionalProperties": true
+                                    }
+                                }
+                            }
                         },
-                        "status": {
-                            "type": "boolean",
-                            "title": "User status",
-                            "description": "Whether the user is active or blocked.",
-                            "default": false
-                        },
-                        "created": {
-                            "type": "number",
-                            "title": "Created",
-                            "format": "utc-millisec",
-                            "description": "The time that the user was created."
-                        },
-                        "changed": {
-                            "type": "number",
-                            "title": "Changed",
-                            "format": "utc-millisec",
-                            "description": "The time that the user was last edited."
-                        },
-                        "access": {
-                            "type": "number",
-                            "title": "Last access",
-                            "format": "utc-millisec",
-                            "description": "The time that the user last accessed the site.",
-                            "default": 0
-                        },
-                        "login": {
-                            "type": "number",
-                            "title": "Last login",
-                            "format": "utc-millisec",
-                            "description": "The time that the user last logged in.",
-                            "default": 0
-                        },
-                        "init": {
-                            "type": "string",
-                            "title": "Initial email",
-                            "format": "email",
-                            "description": "The email address used for initial account creation.",
-                            "default": ""
-                        },
-                        "default_langcode": {
-                            "type": "boolean",
-                            "title": "Default translation",
-                            "description": "A flag indicating whether this is the default translation.",
-                            "default": true
+                        "meta": {
+                            "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
-                    "required": [
-                        "uid",
-                        "uuid",
-                        "name"
-                    ]
+                    "additionalProperties": false
                 },
-                "relationships": {
+                "meta": {
+                    "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "links": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "description": "A link **MUST** be represented as either: a string containing the link's URL or a link object . ",
+                        "type": "object",
+                        "required": [
+                            "href"
+                        ],
+                        "properties": {
+                            "href": {
+                                "description": "A string containing the link's URL . ",
+                                "type": "string",
+                                "format": "uri - reference"
+                            },
+                            "meta": {
+                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                },
+                "jsonapi": {
+                    "description": "An object describing the server's implementation",
+                    "type": "object",
                     "properties": {
-                        "roles": {
+                        "version": {
+                            "type": "string"
+                        },
+                        "meta": {
+                            "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
                             "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "paths": {
+        "\/user\/user": {
+            "get": {
+                "summary": "List (User)",
+                "description": "<em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#fetching\">Collection endpoint<\/a><\/em> for the user--user resource type. Collections are a list of <em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#document-resource-objects\">resource objects<\/a><\/em> for a particular resource type. In the JSON API module for Drupal all collections are homogeneous, which means that all the items in a collection are of the same type.",
+                "parameters": [
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "type": "array",
+                        "required": false,
+                        "description": "The JSON:API module has some of the most robust and feature-rich filtering features around. All of that power comes with a bit of a learning curve though. <a href=\"https:\/\/www.drupal.org\/docs\/8\/modules\/jsonapi\/filtering\">Learn more in the documentation<\/a>."
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "type": "array",
+                        "required": false,
+                        "description": "The JSON:API module allows you to sort collections based on properties in the resource or in nested resources. <a href=\"https:\/\/www.drupal.org\/docs\/8\/modules\/jsonapi\/sorting\">Learn more in the documentation<\/a>."
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "type": "array",
+                        "required": false,
+                        "description": "Pagination can be a deceptively complex topic. It's easy to fall into traps and not follow best-practices. <a href=\"https:\/\/www.drupal.org\/docs\/8\/modules\/jsonapi\/pagination\">Learn more in the documentation<\/a>."
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Embed related entities in the response. For example: use a query string like <code>?include=comments.author<\/code> to include all the entities referenced by <code>comments<\/code> and all the entities referenced by <code>author<\/code> on those entities!. <a href=\"https:\/\/www.drupal.org\/docs\/8\/modules\/jsonapi\/includes\">Learn more in the documentation<\/a>."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "title": "user Schema",
+                            "description": "Describes the payload for 'user' entities.",
+                            "type": "object",
+                            "required": [
+                                "data"
+                            ],
                             "properties": {
                                 "data": {
                                     "type": "array",
                                     "items": {
+                                        "$ref": "#\/definitions\/user--user\/properties\/data"
+                                    }
+                                },
+                                "meta": {
+                                    "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                    "type": "object",
+                                    "additionalProperties": true
+                                },
+                                "links": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "description": "A link **MUST** be represented as either: a string containing the link's URL or a link object . ",
+                                        "type": "object",
+                                        "required": [
+                                            "href"
+                                        ],
+                                        "properties": {
+                                            "href": {
+                                                "description": "A string containing the link's URL . ",
+                                                "type": "string",
+                                                "format": "uri - reference"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                },
+                                "jsonapi": {
+                                    "description": "An object describing the server's implementation",
+                                    "type": "object",
+                                    "properties": {
+                                        "version": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create (User)",
+                "description": null,
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "description": "The <em class=\"placeholder\">user<\/em> object",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#\/definitions\/user--user"
+                        }
+                    }
+                ],
+                "responses": []
+            }
+        },
+        "\/user\/user\/{entity}": {
+            "get": {
+                "summary": "View (User)",
+                "description": "<em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#fetching\">Individual endpoint<\/a><\/em> for the user--user resource type. The individual endpoint contains a <em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#document-resource-objects\">resource object<\/a><\/em> with the data for a particular resource or entity.",
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#\/definitions\/user--user"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Remove (User)",
+                "description": null,
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Entity deleted"
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update (User)",
+                "description": null,
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    },
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "description": "The <em class=\"placeholder\">user<\/em> object",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#\/definitions\/user--user"
+                        }
+                    }
+                ],
+                "responses": []
+            }
+        },
+        "\/user\/user\/{entity}\/roles": {
+            "get": {
+                "summary": "Related: roles (Role)",
+                "description": "<em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#fetching\">Related endpoint<\/a><\/em> for the user_role--user_role resource type through the <em class=\"placeholder\">roles<\/em> relationship. The related endpoint contains a <em class=\"placeholder\"><a href=\"http:\/\/jsonapi.org\/format\/#document-resource-objects\">resource object<\/a><\/em> with the data for a particular related resource or entity.",
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    }
+                }
+            }
+        },
+        "\/user\/user\/{entity}\/relationships\/roles": {
+            "delete": {
+                "summary": "Relationship: roles (Role)",
+                "description": null,
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Relationship: roles (Role)",
+                "description": "<em class=\"placeholder\"><a href=\"https:\/\/jsonapi.org\/format\/#fetching-relationships\">Relationship endpoint<\/a><\/em> for the user_role--user_role resource type through the <em class=\"placeholder\">roles<\/em> relationship. The relationship endpoint contains a <em class=\"placeholder\"><a href=\"https:\/\/jsonapi.org\/format\/#document-resource-identifier-objects\">resource identifier object<\/a><\/em> with the data for a particular relationship.",
+                "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "description": "An array of objects each containing \\\"type\\\" and \\\"id\\\" members for to-many relationships.",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "The \"type\" and \"id\" to non-empty members.",
                                         "type": "object",
                                         "required": [
                                             "type",
@@ -200,273 +552,234 @@
                                         ],
                                         "properties": {
                                             "type": {
+                                                "title": "Resource type name",
                                                 "type": "string",
-                                                "title": "Referenced resource",
                                                 "enum": [
                                                     "user_role--user_role"
                                                 ]
                                             },
                                             "id": {
-                                                "type": "string",
                                                 "title": "Resource ID",
-                                                "format": "uuid",
-                                                "maxLength": 128
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true,
+                                                "properties": []
                                             }
-                                        }
-                                    }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "uniqueItems": true
                                 }
-                            },
-                            "title": "Resource Identifier"
+                            }
                         }
-                    },
-                    "type": "object"
-                },
-                "type": {
-                    "type": "string",
-                    "title": "Title",
-                    "example": "user--"
-                },
-                "id": {
-                    "type": "string",
-                    "title": "Id"
+                    }
                 }
-            }
-        }
-    },
-    "paths": {
-        "\/user\/user": {
-            "get": {
-                "summary": "collection get",
-                "description": "@todo Add descriptions",
+            },
+            "patch": {
+                "summary": "Relationship: roles (Role)",
+                "description": null,
                 "parameters": [
                     {
-                        "name": "filter",
-                        "in": "query",
-                        "type": "array",
-                        "required": false
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
                     },
                     {
-                        "name": "sort",
-                        "in": "query",
-                        "type": "array",
-                        "required": false
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "type": "array",
-                        "required": false
+                        "name": "body",
+                        "in": "body",
+                        "description": "The resource identifier object",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "description": "An array of objects each containing \\\"type\\\" and \\\"id\\\" members for to-many relationships.",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "The \"type\" and \"id\" to non-empty members.",
+                                        "type": "object",
+                                        "required": [
+                                            "type",
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "type": {
+                                                "title": "Resource type name",
+                                                "type": "string",
+                                                "enum": [
+                                                    "user_role--user_role"
+                                                ]
+                                            },
+                                            "id": {
+                                                "title": "Resource ID",
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true,
+                                                "properties": []
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "uniqueItems": true
+                                }
+                            }
+                        }
                     }
-                ],
-                "tags": [
-                    "User"
                 ],
                 "responses": {
                     "200": {
                         "description": "successful operation",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#\/definitions\/user:user"
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "description": "An array of objects each containing \\\"type\\\" and \\\"id\\\" members for to-many relationships.",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "The \"type\" and \"id\" to non-empty members.",
+                                        "type": "object",
+                                        "required": [
+                                            "type",
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "type": {
+                                                "title": "Resource type name",
+                                                "type": "string",
+                                                "enum": [
+                                                    "user_role--user_role"
+                                                ]
+                                            },
+                                            "id": {
+                                                "title": "Resource ID",
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true,
+                                                "properties": []
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "uniqueItems": true
+                                }
                             }
                         }
                     }
                 }
             },
             "post": {
-                "summary": "collection post",
-                "description": "@todo Add descriptions",
+                "summary": "Relationship: roles (Role)",
+                "description": null,
                 "parameters": [
+                    {
+                        "name": "entity",
+                        "required": true,
+                        "in": "path",
+                        "type": "uuid",
+                        "description": "The uuid of the user user"
+                    },
                     {
                         "name": "body",
                         "in": "body",
-                        "description": "The user object",
+                        "description": "The resource identifier object",
                         "required": true,
                         "schema": {
-                            "$ref": "#\/definitions\/user:user"
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "description": "An array of objects each containing \\\"type\\\" and \\\"id\\\" members for to-many relationships.",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "The \"type\" and \"id\" to non-empty members.",
+                                        "type": "object",
+                                        "required": [
+                                            "type",
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "type": {
+                                                "title": "Resource type name",
+                                                "type": "string",
+                                                "enum": [
+                                                    "user_role--user_role"
+                                                ]
+                                            },
+                                            "id": {
+                                                "title": "Resource ID",
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true,
+                                                "properties": []
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "uniqueItems": true
+                                }
+                            }
                         }
                     }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": []
-            }
-        },
-        "\/user\/user\/{user}": {
-            "get": {
-                "summary": "individual get",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "successful operation",
-                        "schema": {
-                            "$ref": "#\/definitions\/user:user"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "summary": "individual patch",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": []
-            },
-            "delete": {
-                "summary": "individual delete",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
                 ],
                 "responses": {
                     "201": {
-                        "description": "Entity deleted"
-                    }
-                }
-            }
-        },
-        "\/user\/user\/{user}\/{related}": {
-            "get": {
-                "summary": "related get",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "successful operation",
+                        "description": "created",
                         "schema": {
-                            "$ref": "#\/definitions\/user:user"
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "description": "An array of objects each containing \\\"type\\\" and \\\"id\\\" members for to-many relationships.",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "The \"type\" and \"id\" to non-empty members.",
+                                        "type": "object",
+                                        "required": [
+                                            "type",
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "type": {
+                                                "title": "Resource type name",
+                                                "type": "string",
+                                                "enum": [
+                                                    "user_role--user_role"
+                                                ]
+                                            },
+                                            "id": {
+                                                "title": "Resource ID",
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "meta": {
+                                                "description": "Non-standard meta-information that can not be represented as an attribute or relationship.",
+                                                "type": "object",
+                                                "additionalProperties": true,
+                                                "properties": []
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "uniqueItems": true
+                                }
+                            }
                         }
-                    }
-                }
-            }
-        },
-        "\/user\/user\/{user}\/relationships\/{related}": {
-            "get": {
-                "summary": "relationship get",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "successful operation",
-                        "schema": {
-                            "$ref": "#\/definitions\/user:user"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "summary": "relationship post",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Entity created",
-                        "schema": {
-                            "$ref": "#\/definitions\/user:user"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "summary": "relationship patch",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": []
-            },
-            "delete": {
-                "summary": "relationship delete",
-                "description": "@todo Add descriptions",
-                "parameters": [
-                    {
-                        "name": "user",
-                        "required": true,
-                        "in": "path",
-                        "type": "uuid",
-                        "description": "The uuid of the user user"
-                    }
-                ],
-                "tags": [
-                    "User"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Entity deleted"
                     }
                 }
             }

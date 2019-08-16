@@ -8,3 +8,12 @@ services:
     class: Drupal\Console\Command\ShellCommand
     tags:
       - { name: drupal.command }
+  console.snippet:
+    class: Drupal\Console\Command\SnippetCommand
+    arguments: ['@console.root', '@app.root']
+    tags:
+      - { name: drupal.command }
+  console.composerize:
+    class: Drupal\Console\Command\ComposerizeCommand
+    tags:
+      - { name: drupal.command }

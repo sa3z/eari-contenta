@@ -2,20 +2,21 @@
 
 namespace Drupal\simple_oauth_extras\Controller;
 
-use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Routing\TrustedRedirectResponse;
-use Drupal\Core\Url;
-use Drupal\simple_oauth\Entities\UserEntity;
+use Drupal\simple_oauth\KnownClientsRepositoryInterface;
 use Drupal\simple_oauth\Plugin\Oauth2GrantManagerInterface;
-use GuzzleHttp\Psr7\Response;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Authorize form.
+ */
 class Oauth2AuthorizeForm extends FormBase {
 
   /**
@@ -44,18 +45,42 @@ class Oauth2AuthorizeForm extends FormBase {
   protected $grantManager;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The known client repository service.
+   *
+   * @var \Drupal\simple_oauth\KnownClientsRepositoryInterface
+   */
+  protected $knownClientRepository;
+
+  /**
    * Oauth2AuthorizeForm constructor.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface $message_factory
+   *   The message factory.
    * @param \Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface $foundation_factory
+   *   The foundation factory.
    * @param \Drupal\simple_oauth\Plugin\Oauth2GrantManagerInterface $grant_manager
+   *   The grant manager.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   * @param \Drupal\simple_oauth\KnownClientsRepositoryInterface $known_clients_repository
+   *   The known client repository service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, HttpMessageFactoryInterface $message_factory, HttpFoundationFactoryInterface $foundation_factory, Oauth2GrantManagerInterface $grant_manager) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, HttpMessageFactoryInterface $message_factory, HttpFoundationFactoryInterface $foundation_factory, Oauth2GrantManagerInterface $grant_manager, ConfigFactoryInterface $config_factory, KnownClientsRepositoryInterface $known_clients_repository) {
     $this->entityTypeManager = $entity_type_manager;
     $this->messageFactory = $message_factory;
     $this->foundationFactory = $foundation_factory;
     $this->grantManager = $grant_manager;
+    $this->configFactory = $config_factory;
+    $this->knownClientRepository = $known_clients_repository;
   }
 
   /**
@@ -66,7 +91,9 @@ class Oauth2AuthorizeForm extends FormBase {
       $container->get('entity_type.manager'),
       $container->get('psr7.http_message_factory'),
       $container->get('psr7.http_foundation_factory'),
-      $container->get('plugin.manager.oauth2_grant.processor')
+      $container->get('plugin.manager.oauth2_grant.processor'),
+      $container->get('config.factory'),
+      $container->get('simple_oauth.known_clients')
     );
   }
 
@@ -90,18 +117,12 @@ class Oauth2AuthorizeForm extends FormBase {
    *
    * @return array
    *   The form structure.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \League\OAuth2\Server\Exception\OAuthServerException
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    if (!$this->currentUser()->isAuthenticated()) {
-      $form['redirect_params'] = ['#type' => 'hidden', '#value' => $this->getRequest()->getQueryString()];
-      $form['description'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('An external client application is requesting access to your data in this site. Please log in first to authorize the operation.'),
-      ];
-      $form['submit'] = ['#type' => 'submit', '#value' => $this->t('Login')];
-      return $form;
-    }
     $request = $this->getRequest();
     if ($request->get('response_type') == 'code') {
       $grant_type = 'code';
@@ -140,25 +161,35 @@ class Oauth2AuthorizeForm extends FormBase {
     }
     $client_drupal_entity = reset($client_drupal_entities);
 
-    // Gather all the role ids.
-    $scope_ids = array_merge(
-      explode(' ', $request->get('scope')),
-      array_map(function ($item) {
-        return $item['target_id'];
-      }, $client_drupal_entity->get('roles')->getValue())
-    );
-    $user_roles = $manager->getStorage('user_role')->loadMultiple($scope_ids);
+    $cacheablity_metadata = new CacheableMetadata();
+
     $form['client'] = $manager->getViewBuilder('consumer')->view($client_drupal_entity);
-    $client_drupal_entity->addCacheableDependency($form['client']);
     $form['scopes'] = [
       '#title' => $this->t('Permissions'),
       '#theme' => 'item_list',
       '#items' => [],
     ];
-    foreach ($user_roles as $user_role) {
-      $user_role->addCacheableDependency($form['scopes']);
-      $form['scopes']['#items'][] = $user_role->label();
+
+    $client_roles = [];
+    foreach ($client_drupal_entity->get('roles') as $role_item) {
+      $client_roles[$role_item->target_id] = $role_item->entity;
     }
+
+    /** @var \Drupal\simple_oauth\Entities\ScopeEntityNameInterface $scope */
+    foreach ($auth_request->getScopes() as $scope) {
+      $cacheablity_metadata->addCacheableDependency($scope);
+      $form['scopes']['#items'][] = $scope->getName();
+
+      unset($client_roles[$scope->getIdentifier()]);
+    }
+
+    // Add the client roles that were not explicitly requested to the list.
+    foreach ($client_roles as $client_role) {
+      $cacheablity_metadata->addCacheableDependency($client_role);
+      $form['scopes']['#items'][] = $client_role->label();
+    }
+
+    $cacheablity_metadata->applyTo($form['scopes']);
 
     $form['redirect_uri'] = [
       '#type' => 'hidden',
@@ -184,33 +215,17 @@ class Oauth2AuthorizeForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($auth_request = $form_state->get('auth_request')) {
-      // Once the user has logged in set the user on the AuthorizationRequest.
-      $user_entity = new UserEntity();
-      $user_entity->setIdentifier($this->currentUser()->id());
-      $auth_request->setUser($user_entity);
-      // Once the user has approved or denied the client update the status
-      // (true = approved, false = denied).
-      $can_grant_codes = $this->currentUser()->hasPermission('grant simple_oauth codes');
-      $auth_request->setAuthorizationApproved((bool) $form_state->getValue('submit') && $can_grant_codes);
-      // Return the HTTP redirect response.
-      $response = $this->server->completeAuthorizationRequest($auth_request, new Response());
-      // Get the location and return a secure redirect response.
-      $redirect_response = TrustedRedirectResponse::create(
-        $response->getHeaderLine('location'),
-        $response->getStatusCode(),
-        $response->getHeaders()
+      $can_grant_codes = $this->currentUser()
+        ->hasPermission('grant simple_oauth codes');
+      $redirect_response = Oauth2AuthorizeController::redirectToCallback(
+        $auth_request,
+        $this->server,
+        $this->currentUser(),
+        (bool) $form_state->getValue('submit') && $can_grant_codes,
+        (bool) $this->configFactory->get('simple_oauth.settings')->get('remember_clients'),
+        $this->knownClientRepository
       );
       $form_state->setResponse($redirect_response);
-    }
-    elseif ($params = $form_state->getValue('redirect_params')) {
-      $url = Url::fromRoute('user.login');
-      $destination = Url::fromRoute('oauth2_token_extras.authorize', [], [
-        'query' => UrlHelper::parse('/?' . $params)['query'],
-      ]);
-      $url->setOption('query', [
-        'destination' => $destination->toString(),
-      ]);
-      $form_state->setRedirectUrl($url);
     }
   }
 

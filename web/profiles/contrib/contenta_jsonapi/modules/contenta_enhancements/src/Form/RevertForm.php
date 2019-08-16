@@ -59,7 +59,7 @@ class RevertForm extends ConfirmFormBase {
     // Use the admin theme in the front-end.
     $this->siteConfig->set('page.front', '/admin/content');
     $this->siteConfig->save();
-    $this->moduleInstaller->uninstall(['recipes_magazin', 'recipes_magazin_contenta']);
+    $this->moduleInstaller->uninstall(['recipes_magazin']);
     drupal_set_message($this->t('Contenta has successfully reverted to a clean state!'));
     $form_state->setRedirectUrl($this->getCancelUrl());
   }
@@ -68,9 +68,19 @@ class RevertForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
+    return $this->t('Revert to clean state?');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
     return $this->t('This action will remove all the default content and the front-end theme. Are you sure you want to proceed?');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getCancelUrl() {
     return new Url('<front>');
   }

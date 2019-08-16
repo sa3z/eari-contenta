@@ -45,7 +45,7 @@ class DirectoryTest extends FileTestBase {
     $this->assertDirectoryPermissions($directory, $old_mode);
 
     // Check creating a directory using an absolute path.
-    $absolute_path = drupal_realpath($directory) . DIRECTORY_SEPARATOR . $this->randomMachineName() . DIRECTORY_SEPARATOR . $this->randomMachineName();
+    $absolute_path = \Drupal::service('file_system')->realpath($directory) . DIRECTORY_SEPARATOR . $this->randomMachineName() . DIRECTORY_SEPARATOR . $this->randomMachineName();
     $this->assertTrue(drupal_mkdir($absolute_path, 0775, TRUE), 'No error reported when creating new absolute directories.', 'File');
     $this->assertDirectoryPermissions($absolute_path, 0775);
   }
@@ -147,6 +147,10 @@ class DirectoryTest extends FileTestBase {
     $this->assertNotEqual($path, $destination, 'A new filepath destination is created when filepath destination already exists with FILE_EXISTS_RENAME.', 'File');
     $path = file_destination($destination, FILE_EXISTS_ERROR);
     $this->assertEqual($path, FALSE, 'An error is returned when filepath destination already exists with FILE_EXISTS_ERROR.', 'File');
+
+    // Invalid UTF-8 causes an exception.
+    $this->setExpectedException(\RuntimeException::class, "Invalid filename 'a\xFFtest\x80€.txt'");
+    file_destination("core/misc/a\xFFtest\x80€.txt", FILE_EXISTS_REPLACE);
   }
 
   /**

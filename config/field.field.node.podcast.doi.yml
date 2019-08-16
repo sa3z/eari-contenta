@@ -1,0 +1,19 @@
+uuid: a5676fb2-1f55-4d36-9dc8-23c21dc31641
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.doi
+    - node.type.podcast
+id: node.podcast.doi
+field_name: doi
+entity_type: node
+bundle: podcast
+label: DOI
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -65,14 +65,35 @@ function material_admin_form_system_theme_settings_alter(&$form, $form_state) {
 
   $form['theme_ui_options']['material_admin_message']['material_admin_message_length'] = array(
     '#type' => 'number',
-    '#title' => t('Max allowed width of status message'),
-    '#description' => t('Status messages use google material toast notifcation system, but this limits the length shown in the status message. Note: the full message will always appear in the bottom drawer'),
+    '#title' => t('Max allowed characters of status messages in notification'),
+    '#description' => t('limits the characters shown in the <a href="https://material.io/guidelines/components/snackbars-toasts.html" target="_blank">Toast </a> status message to avoid distracting long notifications. Notes: the full message will always appear in the bottom drawer. leave blank for infinite.'),
     '#default_value' => theme_get_setting('material_admin_message_length'),
   );
     $form['theme_ui_options']['material_admin_message']['material_admin_message_prompt'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Skip toast notice if the message is too long'),
-    '#description' => t('If checked, a long message will skip the toast notice and only show up in the drawer'),
+    '#title' => t('Skip toast notice entirely if the message is too long'),
+    '#description' => t('If checked, a long message will skip the toast notice and only show up in the bottom drawer'),
     '#default_value' => theme_get_setting('material_admin_message_prompt'),
+  );
+
+  $form['theme_ui_options']['material_admin_datepicker_select_years'] = array(
+    '#type' => 'number',
+    '#title' => t('Number of years in datepicker'),
+    '#description' => t('Defines the number of years, that will be available in the datepicker dropdown.'),
+    '#default_value' => theme_get_setting('material_admin_datepicker_select_years'),
+  );
+
+   $form['theme_ui_options']['material_admin_compatability'] = array(
+    '#type' => 'details',
+    '#title' => t('Compatability Mode'),
+    '#weight' => 1,
+    '#open' => 'true',
+  );
+
+  $form['theme_ui_options']['material_admin_compatability']['material_admin_select_default'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use browser defaults for select elements (do not replace with materializecss styles)'),
+    '#description' => t('Turning this on will use browser defaults for the select elements, this is for compatability with modules that replace select elements, such as Chosen.'),
+    '#default_value' => theme_get_setting('material_admin_select_default'),
   );
 }

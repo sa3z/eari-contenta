@@ -34,6 +34,8 @@ Drupal.behaviors.graphQLRenderExplorer = {
       React.createElement(GraphiQL, {
         fetcher: graphQLFetcher,
         schema: graphQLSchema,
+        query: settings.graphqlQuery || undefined,
+        variables: settings.graphqlVariables || undefined,
       }), container
     );
   },

@@ -3,19 +3,23 @@
 namespace Drupal\graphql_core\Plugin\GraphQL\Fields\Entity;
 
 use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\graphql\GraphQL\Execution\ResolveContext;
 use Drupal\graphql\Plugin\GraphQL\Fields\FieldPluginBase;
-use Youshido\GraphQL\Execution\ResolveInfo;
+use GraphQL\Type\Definition\ResolveInfo;
 use DateTime;
 
 /**
- * Get the entities changed date if available.
+ * TODO: Should we derive this for each entity type individually?
  *
  * @GraphQLField(
  *   id = "entity_changed",
  *   secure = true,
  *   name = "entityChanged",
  *   type = "String",
- *   parents = {"Entity"}
+ *   parents = {"Entity"},
+ *   arguments = {
+ *     "format" = "String"
+ *   }
  * )
  */
 class EntityChanged extends FieldPluginBase {
@@ -23,11 +27,12 @@ class EntityChanged extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  protected function resolveValues($value, array $args, ResolveInfo $info) {
+  protected function resolveValues($value, array $args, ResolveContext $context, ResolveInfo $info) {
     if ($value instanceof EntityChangedInterface) {
       $datetime = new DateTime();
       $datetime->setTimestamp($value->getChangedTime());
-      yield $datetime->format(DateTime::ISO8601);
+      $format = isset($args['format']) ? $args['format'] : DateTime::ISO8601;
+      yield $datetime->format($format);
     }
   }
 

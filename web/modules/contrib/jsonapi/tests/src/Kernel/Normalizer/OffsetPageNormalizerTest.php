@@ -4,12 +4,15 @@ namespace Drupal\Tests\jsonapi\Kernel\Normalizer;
 
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\jsonapi\Query\OffsetPage;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @coversDefaultClass \Drupal\jsonapi\Normalizer\OffsetPageNormalizer
  * @group jsonapi
  * @group jsonapi_normalizers
  * @group legacy
+ *
+ * @internal
  */
 class OffsetPageNormalizerTest extends KernelTestBase {
 
@@ -62,9 +65,9 @@ class OffsetPageNormalizerTest extends KernelTestBase {
 
   /**
    * @covers ::denormalize
-   * @expectedException \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
    */
   public function testDenormalizeFail() {
+    $this->setExpectedException(BadRequestHttpException::class);
     $this->normalizer->denormalize('lorem', OffsetPage::class);
   }
 

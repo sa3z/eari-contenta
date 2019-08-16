@@ -1,0 +1,140 @@
+uuid: 6dbf48d8-f8ff-49bc-ab42-ab706e30d908
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.contributor.affiliation
+    - field.field.node.contributor.alternative_email
+    - field.field.node.contributor.body
+    - field.field.node.contributor.email
+    - field.field.node.contributor.first_name
+    - field.field.node.contributor.last_name
+    - field.field.node.contributor.long_bio
+    - field.field.node.contributor.main_image
+    - field.field.node.contributor.phone
+    - field.field.node.contributor.role
+    - field.field.node.contributor.short_bio
+    - field.field.node.contributor.twitter_handle
+    - field.field.node.contributor.twitter_widget
+    - node.type.contributor
+  module:
+    - image
+    - options
+    - text
+    - user
+id: node.contributor.default
+targetEntityType: node
+bundle: contributor
+mode: default
+content:
+  affiliation:
+    weight: 105
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+    region: content
+  alternative_email:
+    weight: 110
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  email:
+    weight: 109
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  first_name:
+    weight: 102
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  last_name:
+    weight: 103
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+    region: content
+  links:
+    weight: 100
+    region: content
+  long_bio:
+    weight: 107
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: text_default
+    region: content
+  main_image:
+    weight: 108
+    label: above
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    type: image
+    region: content
+  phone:
+    weight: 111
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  role:
+    weight: 104
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+    region: content
+  short_bio:
+    weight: 106
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  title:
+    label: hidden
+    type: string
+    weight: -5
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  twitter_handle:
+    weight: 112
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  twitter_widget:
+    weight: 113
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+hidden:
+  langcode: true

@@ -2,6 +2,8 @@
 
 namespace Drupal\decoupled_router\EventSubscriber;
 
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Url;
 use Drupal\decoupled_router\PathTranslatorEvent;
@@ -15,6 +17,11 @@ class RedirectPathTranslatorSubscriber extends RouterPathTranslatorSubscriber {
    * {@inheritdoc}
    */
   public function onPathTranslation(PathTranslatorEvent $event) {
+    $response = $event->getResponse();
+    if (!$response instanceof CacheableJsonResponse) {
+      $this->logger->error('Unable to get the response object for the decoupled router event.');
+      return;
+    }
     if (!$this->moduleHandler->moduleExists('redirect')) {
       return;
     }
@@ -24,6 +31,8 @@ class RedirectPathTranslatorSubscriber extends RouterPathTranslatorSubscriber {
     $redirect_storage = $entity_type_manager->getStorage('redirect');
     $destination = $event->getPath();
     $traced_urls = [];
+    $redirect = NULL;
+    $redirects_trace = [];
     while (TRUE) {
       $destination = $this->cleanSubdirInPath($destination, $event->getRequest());
       // Find if there is a redirect for this path.
@@ -38,8 +47,14 @@ class RedirectPathTranslatorSubscriber extends RouterPathTranslatorSubscriber {
       }
       /** @var \Drupal\redirect\Entity\Redirect $redirect */
       $redirect = $redirect_storage->load($rid);
+      $response->addCacheableDependency($redirect);
       $uri = $redirect->get('redirect_redirect')->uri;
       $url = Url::fromUri($uri)->toString(TRUE);
+      $redirects_trace[] = [
+        'from' => $destination,
+        'to' => $url->getGeneratedUrl(),
+        'status' => $redirect->getStatusCode(),
+      ];
       $destination = $url->getGeneratedUrl();
 
       // Detect infinite loops and break if there is one.
@@ -53,20 +68,30 @@ class RedirectPathTranslatorSubscriber extends RouterPathTranslatorSubscriber {
         break;
       }
     }
+    if (!$redirect) {
+      return;
+    }
     // At this point we should be pointing to a system route or path alias.
     $event->setPath($destination);
 
     // Now call the route level.
     parent::onPathTranslation($event);
 
+    if (!$response->isSuccessful()) {
+      return;
+    }
+    // Set the content in the response.
+    $content = Json::decode($response->getContent());
+    $response->setData(array_merge(
+      $content,
+      ['redirect' => $redirects_trace]
+    ));
     // If there is a response object, add the cacheability metadata necessary
     // for the traced URLs.
-    /** @var \Drupal\Core\Cache\CacheableResponse $response */
-    if ($response = $event->getResponse()) {
-      array_walk($traced_urls, function ($traced_url) use ($response) {
-        $response->addCacheableDependency($traced_url);
-      });
-    }
+    array_walk($traced_urls, function ($traced_url) use ($response) {
+      $response->addCacheableDependency($traced_url);
+    });
+    $event->stopPropagation();
   }
 
 }

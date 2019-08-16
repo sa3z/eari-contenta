@@ -2,10 +2,11 @@
 
 namespace Stecman\Component\Symfony\Console\BashCompletion\Tests;
 
+use PHPUnit\Framework\TestCase;
 use Stecman\Component\Symfony\Console\BashCompletion\CompletionContext;
 use Stecman\Component\Symfony\Console\BashCompletion\EnvironmentCompletionContext;
 
-class CompletionContextTest extends \PHPUnit_Framework_TestCase
+class CompletionContextTest extends TestCase
 {
 
     public function testWordBreakSplit()
@@ -89,6 +90,73 @@ class CompletionContextTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('cmd', '',  'a',), $context->getWords());
         $this->assertEquals(1, $context->getWordIndex());
         $this->assertEquals('', $context->getCurrentWord());
+    }
+
+    public function testQuotedStringWordBreaking()
+    {
+        $context = new CompletionContext();
+        $context->setCharIndex(1000);
+        $context->setCommandLine('make horse --legs=3 --name="Jeff the horse" --colour Extreme\\ Blanc \'foo " bar\'');
+
+        // Ensure spaces and quotes are processed correctly
+        $this->assertEquals(
+            array(
+                'make',
+                'horse',
+                '--legs',
+                '3',
+                '--name',
+                'Jeff the horse',
+                '--colour',
+                'Extreme Blanc',
+                'foo " bar',
+                '',
+            ),
+            $context->getWords()
+        );
+
+        // Confirm the raw versions of the words are indexed correctly
+        $this->assertEquals(
+            array(
+                'make',
+                'horse',
+                '--legs',
+                '3',
+                '--name',
+                '"Jeff the horse"',
+                '--colour',
+                'Extreme\\ Blanc',
+                "'foo \" bar'",
+                '',
+            ),
+            $context->getRawWords()
+        );
+
+        $context = new CompletionContext();
+        $context->setCommandLine('console --tag=');
+
+        // Cursor after equals symbol on option argument
+        $context->setCharIndex(14);
+        $this->assertEquals(
+            array(
+                'console',
+                '--tag',
+                ''
+            ),
+            $context->getWords()
+        );
+    }
+
+    public function testGetRawCurrentWord()
+    {
+        $context = new CompletionContext();
+
+        $context->setCommandLine('cmd "double quoted" --option \'value\'');
+        $context->setCharIndex(13);
+        $this->assertEquals(1, $context->getWordIndex());
+
+        $this->assertEquals(array('cmd', '"double q', '--option', "'value'"), $context->getRawWords());
+        $this->assertEquals('"double q', $context->getRawCurrentWord());
     }
 
     public function testConfigureFromEnvironment()

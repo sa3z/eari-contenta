@@ -1,0 +1,29 @@
+uuid: 1722aec7-e3a0-48f5-b30d-155ffa84a1b7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.affiliation
+    - node.type.contributor
+    - taxonomy.vocabulary.contributor_affiliation
+id: node.contributor.affiliation
+field_name: affiliation
+entity_type: node
+bundle: contributor
+label: Affiliation
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      contributor_affiliation: contributor_affiliation
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

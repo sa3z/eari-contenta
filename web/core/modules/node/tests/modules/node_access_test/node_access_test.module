@@ -52,7 +52,7 @@ use Drupal\node\NodeInterface;
 function node_access_test_node_grants($account, $op) {
   $grants = [];
   $grants['node_access_test_author'] = [$account->id()];
-  if ($op == 'view' && $account->hasPermission('node test view', $account)) {
+  if ($op == 'view' && $account->hasPermission('node test view')) {
     $grants['node_access_test'] = [8888, 8889];
   }
 
@@ -152,6 +152,12 @@ function node_access_test_node_access(NodeInterface $node, $op, AccountInterface
     // Make all Catalan content secret.
     return AccessResult::forbidden()->setCacheMaxAge(0);
   }
+
+  // Grant access if a specific user is specified.
+  if (\Drupal::state()->get('node_access_test.allow_uid') === $account->id()) {
+    return AccessResult::allowed();
+  }
+
   // No opinion.
   return AccessResult::neutral()->setCacheMaxAge(0);
 }

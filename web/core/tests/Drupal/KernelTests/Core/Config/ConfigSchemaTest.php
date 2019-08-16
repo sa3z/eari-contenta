@@ -211,7 +211,6 @@ class ConfigSchemaTest extends KernelTestBase {
     $expected['mapping']['upscale']['label'] = 'Upscale';
     $expected['type'] = 'image.effect.image_scale';
 
-
     $this->assertEqual($definition, $expected, 'Retrieved the right metadata for image.effect.image_scale');
 
     // Most complex case, get metadata for actual configuration element.
@@ -353,7 +352,7 @@ class ConfigSchemaTest extends KernelTestBase {
       // If the config schema doesn't have a type it shouldn't be casted.
       'no_type' => 1,
       'mapping' => [
-        'string' => 1
+        'string' => 1,
       ],
       'float' => '3.14',
       'null_float' => '',
@@ -376,7 +375,7 @@ class ConfigSchemaTest extends KernelTestBase {
       'boolean' => TRUE,
       'no_type' => 1,
       'mapping' => [
-        'string' => '1'
+        'string' => '1',
       ],
       'float' => 3.14,
       'null_float' => NULL,

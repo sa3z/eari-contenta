@@ -1,0 +1,27 @@
+uuid: a71c48ae-49f7-4e70-b6c2-4fff9fed37ee
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.audio_file
+    - node.type.podcast
+  module:
+    - file
+id: node.podcast.audio_file
+field_name: audio_file
+entity_type: node
+bundle: podcast
+label: 'Audio file'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  file_directory: '[date:custom:Y]-[date:custom:m]'
+  file_extensions: txt
+  max_filesize: ''
+  description_field: false
+  handler: 'default:file'
+  handler_settings: {  }
+field_type: file

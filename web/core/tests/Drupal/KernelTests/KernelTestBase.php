@@ -6,7 +6,7 @@ use Drupal\Component\FileCache\ApcuFileCacheBackend;
 use Drupal\Component\FileCache\FileCache;
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Config\Development\ConfigSchemaChecker;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -17,12 +17,11 @@ use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Test\TestDatabase;
-use Drupal\simpletest\AssertContentTrait;
 use Drupal\Tests\AssertHelperTrait;
 use Drupal\Tests\ConfigTestTrait;
+use Drupal\Tests\PhpunitCompatibilityTrait;
 use Drupal\Tests\RandomGeneratorTrait;
 use Drupal\Tests\TestRequirementsTrait;
-use Drupal\simpletest\TestServiceProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
@@ -76,6 +75,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
   use RandomGeneratorTrait;
   use ConfigTestTrait;
   use TestRequirementsTrait;
+  use PhpunitCompatibilityTrait;
 
   /**
    * {@inheritdoc}
@@ -249,7 +249,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * Should not be called by tests. Only visible for DrupalKernel integration
    * tests.
    *
-   * @see \Drupal\system\Tests\DrupalKernel\DrupalKernelTest
+   * @see \Drupal\KernelTests\Core\DrupalKernel\DrupalKernelTest
    * @internal
    */
   protected function bootEnvironment() {
@@ -324,10 +324,10 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
   private function bootKernel() {
     $this->setSetting('container_yamls', []);
     // Allow for test-specific overrides.
-    $settings_services_file = $this->root . '/sites/default' . '/testing.services.yml';
+    $settings_services_file = $this->root . '/sites/default/testing.services.yml';
     if (file_exists($settings_services_file)) {
       // Copy the testing-specific service overrides in place.
-      $testing_services_file = $this->root . '/' . $this->siteDirectory . '/services.yml';
+      $testing_services_file = $this->siteDirectory . '/services.yml';
       copy($settings_services_file, $testing_services_file);
       $this->setSetting('container_yamls', [$testing_services_file]);
     }
@@ -460,7 +460,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
         // Replace the full table prefix definition to ensure that no table
         // prefixes of the test runner leak into the test.
         $connection_info[$target]['prefix'] = [
-          'default' => $value['prefix']['default'] . $this->databasePrefix,
+          'default' => $this->databasePrefix,
         ];
       }
     }
@@ -761,7 +761,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
       $all_tables_exist = TRUE;
       foreach ($tables as $table) {
         if (!$db_schema->tableExists($table)) {
-          $this->fail(SafeMarkup::format('Installed entity type table for the %entity_type entity type: %table', [
+          $this->fail(new FormattableMarkup('Installed entity type table for the %entity_type entity type: %table', [
             '%entity_type' => $entity_type_id,
             '%table' => $table,
           ]));
@@ -769,7 +769,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
         }
       }
       if ($all_tables_exist) {
-        $this->pass(SafeMarkup::format('Installed entity type tables for the %entity_type entity type: %tables', [
+        $this->pass(new FormattableMarkup('Installed entity type tables for the %entity_type entity type: %tables', [
           '%entity_type' => $entity_type_id,
           '%tables' => '{' . implode('}, {', $tables) . '}',
         ]));
@@ -812,7 +812,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     // profile that is not the current profile, and we don't yet have a cached
     // way to receive inactive profile information.
     // @todo Remove as part of https://www.drupal.org/node/2186491
-    $listing = new ExtensionDiscovery(\Drupal::root());
+    $listing = new ExtensionDiscovery($this->root);
     $module_list = $listing->scan('module');
     // In ModuleHandlerTest we pass in a profile as if it were a module.
     $module_list += $listing->scan('profile');
@@ -827,7 +827,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
     foreach ($modules as $module) {
       if ($module_handler->moduleExists($module)) {
-        throw new \LogicException("$module module is already enabled.");
+        continue;
       }
       $module_handler->addModule($module, $module_list[$module]->getPath());
       // Maintain the list of enabled modules in configuration.
@@ -934,9 +934,30 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    *   \Drupal\Core\Site\Settings::get() to perform custom merges.
    */
   protected function setSetting($name, $value) {
+    if ($name === 'install_profile') {
+      @trigger_error('Use \Drupal\KernelTests\KernelTestBase::setInstallProfile() to set the install profile in kernel tests. See https://www.drupal.org/node/2538996', E_USER_DEPRECATED);
+      $this->setInstallProfile($value);
+    }
     $settings = Settings::getInstance() ? Settings::getAll() : [];
     $settings[$name] = $value;
     new Settings($settings);
+  }
+
+  /**
+   * Sets the install profile and rebuilds the container to update it.
+   *
+   * @param string $profile
+   *   The install profile to set.
+   */
+  protected function setInstallProfile($profile) {
+    $this->container->get('config.factory')
+      ->getEditable('core.extension')
+      ->set('profile', $profile)
+      ->save();
+
+    // The installation profile is provided by a container parameter. Saving
+    // the configuration doesn't automatically trigger invalidation
+    $this->container->get('kernel')->rebuildContainer();
   }
 
   /**
@@ -1025,7 +1046,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * Test authors should follow the provided instructions and adjust their tests
    * accordingly.
    *
-   * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.2.0.
+   * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
    */
   public function __get($name) {
     if (in_array($name, [

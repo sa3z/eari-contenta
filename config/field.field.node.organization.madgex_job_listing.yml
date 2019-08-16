@@ -1,0 +1,23 @@
+uuid: 4e9baa1c-dac2-42d6-b23b-d3aa2d8e19c7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.madgex_job_listing
+    - node.type.organization
+  module:
+    - link
+id: node.organization.madgex_job_listing
+field_name: madgex_job_listing
+entity_type: node
+bundle: organization
+label: 'Madgex Job Listing'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  link_type: 17
+  title: 1
+field_type: link

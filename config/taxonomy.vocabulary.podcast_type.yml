@@ -1,0 +1,9 @@
+uuid: e15286fb-8a8e-4ad2-ba78-3ea05fb26bb9
+langcode: en
+status: true
+dependencies: {  }
+name: 'Podcast Type'
+vid: podcast_type
+description: ''
+hierarchy: 0
+weight: 0

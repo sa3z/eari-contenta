@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\graphql_core\Kernel\Routing;
 
-use Drupal\Tests\graphql\Kernel\GraphQLFileTestBase;
+use Drupal\Tests\graphql_core\Kernel\GraphQLCoreTestBase;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Response;
 
@@ -11,7 +11,7 @@ use GuzzleHttp\Psr7\Response;
  *
  * @group graphql_core
  */
-class ExternalRequestTest extends GraphQLFileTestBase {
+class ExternalRequestTest extends GraphQLCoreTestBase {
 
   /**
    * {@inheritdoc}
@@ -19,10 +19,17 @@ class ExternalRequestTest extends GraphQLFileTestBase {
   public static $modules = ['graphql_core'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+    $this->installEntitySchema('user');
+  }
+
+  /**
    * Test external requests.
    */
   public function testExternalRequests() {
-
     $client = $this->prophesize(ClientInterface::class);
     $client->request('GET', 'http://drupal.graphql')->willReturn(new Response(
       200,
@@ -31,12 +38,18 @@ class ExternalRequestTest extends GraphQLFileTestBase {
     ));
 
     $this->container->set('http_client', $client->reveal());
+    // Add cache information from external response?
+    $metadata = $this->defaultCacheMetaData();
 
-    $result = $this->executeQueryFile('external_requests.gql', [], TRUE, TRUE);
-
-    $this->assertEquals(200, $result['data']['route']['request']['code']);
-    $this->assertContains('<p>GraphQL is awesome!</p>', $result['data']['route']['request']['content']);
-    $this->assertEquals('test', $result['data']['route']['request']['header']);
+    $this->assertResults($this->getQueryFromFile('external_requests.gql'), [], [
+      'route' => [
+        'request' => [
+          'code' => 200,
+          'content' => '<p>GraphQL is awesome!</p>',
+          'header' => 'test',
+        ],
+      ],
+    ], $metadata);
   }
 
 }

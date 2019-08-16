@@ -6,30 +6,76 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Menu\MenuTreeParameters;
+
+
 
 function passivate_node_insert(\Drupal\Core\Entity\EntityInterface $node) {
-  $client = \Drupal::httpClient();
-
+  //echo $site_name = \Drupal::config('system.site')->get('name');
+ /* $config = \Drupal::service('config.factory')->getEditable('passivate.settings');
+          $config->set('server_api_url', 'https://gslr2dvfxi.execute-api.us-west-2.amazonaws.com/pantheon/test')
+          ->save();*/
+  $serverApiUrl = \Drupal::config('passivate.adminsettings')->get('passivate_server_api_url'); 
+  $serverApiUrlKey = \Drupal::config('passivate.adminsettings')->get('server_api_key'); 
+  
+  // Retrieve JSON API representation of this node.
+  $normalized = \Drupal::service('jsonapi.entity.to_jsonapi')->normalize($node);
+  $client = \Drupal::httpClient();  
+  
   try {
-    $request = $client->post('https://api.jsonbin.io/b', [
-      'json' => [
-        'title' => $node->title->value//,
-        // 'nid' => $node->nid,
-        // 'id' => $node->uuid
-      ],
-      'headers' => [
-        'secret-key' => '$2a$10$ioC1xzbucqmfX9Y0SO66H.2rqEyeZc2jpFG/r.eInlKWZxQjSTfPi'//,
-        // 'collection-id' => '5ceda068bc2a75194e4f7606'
-      ]
+    $request = $client->post($serverApiUrl, [
+      'json' =>  $normalized,
+
+      'headers' => array(
+        'x-api-key' => $serverApiUrlKey
+      )
     ]);
+   
+    $response = json_decode($request->getBody());
+  }
+  catch (RequestException $e) {
+    watchdog_exception('passivate', $e->getMessage());
+  }
+  
+}
+
+
+function passivate_node_update(\Drupal\Core\Entity\EntityInterface $node) {
+  
+  $serverApiUrl = \Drupal::config('passivate.adminsettings')->get('passivate_server_api_url'); 
+  $serverApiUrlKey = \Drupal::config('passivate.adminsettings')->get('server_api_key'); 
+  
+  // Retrieve JSON API representation of this node.
+  $normalized = \Drupal::service('jsonapi.entity.to_jsonapi')->normalize($node);
+  $client = \Drupal::httpClient();  
+  
+  try {
+    $request = $client->post($serverApiUrl, [
+      'json' =>  $normalized,
+
+      'headers' => array(
+        'x-api-key' => $serverApiUrlKey
+      )
+    ]);
+   
     $response = json_decode($request->getBody());
   }
   catch (RequestException $e) {
     watchdog_exception('passivate', $e->getMessage());
   }
 
+  /*echo "<pre>";
+  print_r($response);
+  die();*/
+  
 }
-
 
 /**
  * @} End of "defgroup hooks_example".

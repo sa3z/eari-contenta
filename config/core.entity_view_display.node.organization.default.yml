@@ -1,0 +1,127 @@
+uuid: 1fa38b86-a163-44ef-a687-e2952134482d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.organization.additional_text
+    - field.field.node.organization.body
+    - field.field.node.organization.copyright_notification
+    - field.field.node.organization.job_listing
+    - field.field.node.organization.madgex_job_listing
+    - field.field.node.organization.mission_statement
+    - field.field.node.organization.short_bio
+    - field.field.node.organization.sponsor_link
+    - field.field.node.organization.sponsor_logo
+    - field.field.node.organization.syndication_status
+    - node.type.organization
+  module:
+    - image
+    - link
+    - options
+    - text
+    - user
+id: node.organization.default
+targetEntityType: node
+bundle: organization
+mode: default
+content:
+  additional_text:
+    weight: 104
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  copyright_notification:
+    weight: 110
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  job_listing:
+    weight: 107
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    type: link
+    region: content
+  links:
+    weight: 100
+    region: content
+  madgex_job_listing:
+    weight: 108
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    type: link
+    region: content
+  mission_statement:
+    weight: 103
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  short_bio:
+    weight: 102
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+    region: content
+  sponsor_link:
+    weight: 106
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    type: link
+    region: content
+  sponsor_logo:
+    weight: 105
+    label: above
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    type: image
+    region: content
+  syndication_status:
+    weight: 109
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+    region: content
+  title:
+    label: hidden
+    type: string
+    weight: -5
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+hidden:
+  langcode: true

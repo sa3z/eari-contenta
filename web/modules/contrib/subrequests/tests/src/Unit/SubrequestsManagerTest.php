@@ -43,6 +43,9 @@ class SubrequestsManagerTest extends UnitTestCase {
     $denormalizer
       ->supportsDenormalization(Argument::type(Subrequest::class), Request::class, NULL)
       ->willReturn([])->willReturn(TRUE);
+    $denormalizer
+      ->supportsDenormalization(Argument::type(Subrequest::class), Request::class, NULL, Argument::type('array'))
+      ->willReturn([])->willReturn(TRUE);
     $serializer = new Serializer(
       [$denormalizer->reveal()],
       [new JsonDecode()]
@@ -89,6 +92,7 @@ class SubrequestsManagerTest extends UnitTestCase {
     ]);
     $tree->stack([$subrequests[0]]);
     $tree->stack([$subrequests[1], $subrequests[2]]);
+    $tree->setMasterRequest(new Request());
     $actual = $this->sut->request($tree);
     $this->assertSame('<foo>', $actual[0]->headers->get('Content-ID'));
     $this->assertSame('<oop>', $actual[1]->headers->get('Content-ID'));

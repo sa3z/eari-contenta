@@ -1,0 +1,19 @@
+uuid: bb62e574-5ec7-46ce-a0f4-7aced04341b6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.phone
+    - node.type.contributor
+id: node.contributor.phone
+field_name: phone
+entity_type: node
+bundle: contributor
+label: Phone
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

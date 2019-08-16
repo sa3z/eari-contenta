@@ -3,7 +3,6 @@
 namespace Drupal\search;
 
 use Drupal\Core\Database\Query\Condition;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Database\Query\SelectInterface;
 
@@ -364,7 +363,7 @@ class SearchQuery extends SelectExtender {
     $split = explode(' ', $word);
     foreach ($split as $s) {
       $num = is_numeric($s);
-      if ($num || Unicode::strlen($s) >= \Drupal::config('search.settings')->get('index.minimum_word_size')) {
+      if ($num || mb_strlen($s) >= \Drupal::config('search.settings')->get('index.minimum_word_size')) {
         if (!isset($this->words[$s])) {
           $this->words[$s] = $s;
           $num_new_scores++;
@@ -570,7 +569,6 @@ class SearchQuery extends SelectExtender {
         $this->scoresArguments[':total_' . $i] = $sum;
       }
     }
-
 
     // Add arguments for the keyword relevance normalization number.
     $normalization = 1.0 / $this->normalize;

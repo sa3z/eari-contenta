@@ -3,20 +3,33 @@
 namespace Doctrine\Tests;
 
 use Doctrine\Common\Collections\AbstractLazyCollection;
-use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 /**
- * Simple lazy collection that used an ArrayCollection as backed collection
+ * Simple lazy collection that used an ArrayCollection as backed collection.
  */
 class LazyArrayCollection extends AbstractLazyCollection
 {
     /**
-     * Do the initialization logic
+     * Apply the collection only in method doInitialize
      *
-     * @return void
+     * @var Collection
      */
-    protected function doInitialize()
+    private $collectionOnInitialization;
+
+    /**
+     * @param Collection $collection
+     */
+    public function __construct(Collection $collection)
     {
-        $this->collection = new ArrayCollection(array('a', 'b', 'c'));
+        $this->collectionOnInitialization = $collection;
+    }
+
+    /**
+     * Do the initialization logic.
+     */
+    protected function doInitialize() : void
+    {
+        $this->collection = $this->collectionOnInitialization;
     }
 }

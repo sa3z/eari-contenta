@@ -2,6 +2,10 @@
 
 namespace Drupal\jsonapi\Resource;
 
+use Drupal\Component\Assertion\Inspector;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\jsonapi\Exception\EntityAccessDeniedHttpException;
+
 /**
  * Wrapper to normalize collections with multiple entities.
  *
@@ -33,11 +37,16 @@ class EntityCollection implements \IteratorAggregate, \Countable {
   /**
    * Instantiates a EntityCollection object.
    *
-   * @param \Drupal\Core\Entity\EntityInterface[] $entities
+   * @param \Drupal\Core\Entity\EntityInterface|null[] $entities
    *   The entities for the collection.
    */
   public function __construct(array $entities) {
-    $this->entities = array_filter(array_values($entities));
+    assert(Inspector::assertAll(function ($entity) {
+      return $entity === NULL
+        || $entity instanceof EntityInterface
+        || $entity instanceof EntityAccessDeniedHttpException;
+    }, $entities));
+    $this->entities = $entities;
   }
 
   /**
@@ -97,8 +106,8 @@ class EntityCollection implements \IteratorAggregate, \Countable {
   /**
    * Sets the has next page flag.
    *
-   * Once the collection query has been executed and we build the entity collection, we now if there will be a next page
-   * with extra entities.
+   * Once the collection query has been executed and we build the entity
+   * collection, we now if there will be a next page with extra entities.
    *
    * @param bool $has_next_page
    *   TRUE if the collection has a next page.

@@ -5,16 +5,12 @@ namespace Drupal\graphql_core\Plugin\Deriver\Fields;
 use Drupal\Component\Plugin\Derivative\DeriverBase;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\TypedData\TypedDataManager;
 use Drupal\graphql\Utility\StringHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-/**
- * Create GraphQL entityQuery fields based on available Drupal entity types.
- */
 class EntityQueryDeriver extends DeriverBase implements ContainerDeriverInterface {
   use StringTranslationTrait;
 
@@ -43,7 +39,12 @@ class EntityQueryDeriver extends DeriverBase implements ContainerDeriverInterfac
   }
 
   /**
-   * {@inheritdoc}
+   * EntityQueryDeriver constructor.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager service.
+   * @param \Drupal\Core\TypedData\TypedDataManager $typedDataManager
+   *   The typed data manager service.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
@@ -65,20 +66,9 @@ class EntityQueryDeriver extends DeriverBase implements ContainerDeriverInterfac
           'entity_type' => $id,
         ] + $basePluginDefinition;
 
-        /** @var \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface $definition */
-        $definition = $this->typedDataManager->createDataDefinition("entity:$id");
-        $properties = $definition->getPropertyDefinitions();
-
-        $queryableProperties = array_filter($properties, function ($property) {
-          return $property instanceof BaseFieldDefinition && $property->isQueryable();
-        });
-
-        if (!empty($queryableProperties)) {
-          $derivative['arguments']['filter'] = [
-            'multi' => FALSE,
-            'nullable' => TRUE,
-            'type' => StringHelper::camelCase($id, 'query', 'filter', 'input'),
-          ];
+        if ($id === 'node') {
+          // TODO: Make this more generic.
+          $derivative['response_cache_contexts'][] = 'user.node_grants:view';
         }
 
         $this->derivatives[$id] = $derivative;

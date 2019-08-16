@@ -1,0 +1,27 @@
+uuid: 70723b5a-4f50-4480-8034-99d575765c6e
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.media_type
+field_name: media_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: '1'
+      label: Webinar
+    -
+      value: '2'
+      label: Podcast
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
